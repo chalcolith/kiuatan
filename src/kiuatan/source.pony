@@ -1,91 +1,121 @@
 
-
-trait Loc[T: Any #read, S: Seq[T] box]
-  fun ref has_next(): Bool val ?
-  fun ref next(): S->T ?
-  fun clone(): Loc[T,S] ref ?
-
-trait Segment[T: Any #read, S: Seq[T] box]
-  fun begin(): Loc[T,S] ref ?
+trait Loc[T]
+  fun has_next(): Bool ?
+  fun ref next(): box->T ?
+  fun clone(): Loc[T]^
 
 
-class _SeqLoc[T: Any #read, S: Seq[T] box] is Loc[T,S]
-  let _s: S
+trait Segment[T]
+  fun begin(): Loc[T]^ ?
+
+
+class _SeqLoc[T] is Loc[T]
+  let _seq: Seq[T] box
   var _i: USize
 
-  new create(s: S, i: USize) =>
-    _s = s
+  new create(seq: Seq[T] box, i: USize) =>
+    _seq = seq
     _i = i
 
-  fun box has_next(): Bool val =>
-    _i < _s.size()
+  fun has_next(): Bool =>
+    _i < _seq.size()
 
-  fun ref next(): S->T ? =>
-    if _i < _s.size() then
-      _s(_i = _i + 1)
+  fun ref next(): box->T ? =>
+    if _i < _seq.size() then
+      _seq(_i = _i + 1)
     else
       error
     end
 
-  fun clone(): Loc[T,S] ref =>
-    _SeqLoc[T,S](_s, _i)
+  fun clone(): Loc[T]^ =>
+    let loc = _SeqLoc[T](_seq, _i)
+    consume loc
 
 
-class box _SeqSegment[T: Any #read, S: Seq[T] box] is Segment[T,S]
-  let _s: S
+class _SeqSegment[T] is Segment[T]
+  let _seq: Seq[T] box
 
-  new box create(s: S) ? =>
-    if s.size() == 0 then error end
-    _s = s
+  new create(seq: Seq[T] box) =>
+    _seq = seq
 
-  fun box begin(): Loc[T,S] =>
-    _SeqLoc[T,S](_s, 0)
+  fun begin(): Loc[T]^ =>
+    let loc = _SeqLoc[T](_seq, 0)
+    consume loc
 
 
-class _SourceLoc[T: Any #read, S: Seq[T] box] is Loc[T,S]
-  let _segs: Seq[Segment[T,S] box] box
+class _SegmentLoc[T] is Loc[T]
+  let _segs: Array[Segment[T] box] box
   var _si: USize
-  var _loc: Loc[T,S]
+  var _sl: (Loc[T] ref | None)
 
-  new create(segs: Seq[Segment[T,S] box] box, si: USize) ? =>
-    if segs.size() == 0 then error end
+  new create(segs: Array[Segment[T] box] box) ? =>
+    _segs = segs
+    _si = 0
+    _sl = if _si < _segs.size() then _segs(_si).begin() else None end
+
+  new _create(segs: Array[Segment[T] box] box, si: USize, sl: (Loc[T] ref | None)) =>
     _segs = segs
     _si = si
-    _loc = segs(_si).begin()
+    _sl = sl
 
-  fun ref has_next(): Bool val ? =>
-    if _loc.has_next() then
-      true
-    elseif _si < (_segs.size() - 1) then
-      _si = _si + 1
-      try _loc = _segs(_si).begin() end
-      _loc.has_next()
+  fun has_next(): Bool ? =>
+    match _sl
+    | let loc: this->Loc[T] ref =>
+      if loc.has_next() then
+        true
+      elseif _si < (_segs.size() - 1) then
+        let ni = _si + 1
+        let nl = _segs(ni).begin()
+        nl.has_next()
+      else
+        false
+      end
     else
       false
     end
 
-  fun ref next(): S->T ? =>
-    if has_next() then
-      _loc.next()
+  fun ref next(): box->T ? =>
+    match _sl
+    | let loc: Loc[T] =>
+      if loc.has_next() then
+        loc.next()
+      elseif _si < (_segs.size() - 1) then
+        let ni = _si + 1
+        let nl = _segs(ni).begin()
+        if nl.has_next() then
+          _si = ni
+          _sl = nl
+          nl.next()
+        else
+          error
+        end
+      else
+        _sl = None
+        error
+      end
     else
       error
     end
 
-  fun clone(): Loc[T,S] ref ? =>
-    _SourceLoc[T,S](_segs, _si)
+  fun clone(): Loc[T]^ =>
+    let sl = match _sl
+    | let loc: this->Loc[T] => loc.clone()
+    else None end
+
+    let loc = _SegmentLoc[T]._create(_segs, _si, sl)
+    consume loc
 
 
-class box Source[T: Any #read, S: Seq[T] box] is Segment[T,S]
-  let _segments: Array[Segment[T,S] box]
+class Source[T] is Segment[T]
+  let _segs: Array[Segment[T] box] box
 
-  new box create(seqs: Seq[S] box) ? =>
-    if seqs.size() == 0 then error end
-
-    _segments = Array[Segment[T,S] box]()
+  new create(seqs: this->Seq[Seq[T]]) =>
+    var segs = Array[Segment[T] box](seqs.size())
     for s in seqs.values() do
-      let seg = _SeqSegment[T,S](s)
-      _segments.push(seg)
+      let seg = _SeqSegment[T](s)
+      segs.push(seg)
     end
+    _segs = segs
 
-  fun box begin(): Loc[T,S] ? =>
-    _SourceLoc[T,S](_segments, 0)
+  fun box begin(): Loc[T]^ ? =>
+    _SegmentLoc[T](_segs)
