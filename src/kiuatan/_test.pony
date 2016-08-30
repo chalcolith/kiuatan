@@ -10,14 +10,14 @@ actor Main is TestList
   fun tag tests(test: PonyTest) =>
     test(_TestSourceSeqSegmentPrimitive)
     test(_TestSourceSeqSegmentString)
-    test(_TestSourcePrimitive)
+    test(_TestSourceSourcePrimitive)
 
 
 class iso _TestSourceSeqSegmentPrimitive is UnitTest
   fun name(): String => "Source_SeqSegment_Primitive"
 
   fun apply(h: TestHelper) ? =>
-    let a: Array[U32] = [0, 1, 2, 3, 4]
+    let a = [as U32: 0, 1, 2, 3, 4]
     let seg = _SeqSegment[U32](a)
     let loc = seg.begin()
     for n in a.values() do
@@ -31,7 +31,7 @@ class iso _TestSourceSeqSegmentString is UnitTest
   fun name(): String => "Source_SeqSegment_String"
 
   fun apply(h: TestHelper) ? =>
-    let a: Array[String] = ["one", "two", "three", "four"]
+    let a = ["one", "two", "three", "four"]
     let seg = _SeqSegment[String](a)
     let loc = seg.begin()
     for s in a.values() do
@@ -41,15 +41,13 @@ class iso _TestSourceSeqSegmentString is UnitTest
     h.assert_false(loc.has_next())
 
 
-class iso _TestSourcePrimitive is UnitTest
-  fun name(): String => "Source_Primitive"
+class iso _TestSourceSourcePrimitive is UnitTest
+  fun name(): String => "Source_Source_Primitive"
 
   fun apply(h: TestHelper) ? =>
-    let a1: Array[U32] = [0, 1, 2, 3]
-    let a2: Array[U32] = [4, 5, 6, 7]
-    let aa = Array[Seq[U32]](2)
-    aa.push(a1)
-    aa.push(a2)
+    let a1 = [as U32: 0, 1, 2, 3]
+    let a2 = [as U32: 4, 5, 6, 7]
+    let aa = [as Seq[U32]: a1, a2]
 
     let src = Source[U32](aa)
     let loc = src.begin()

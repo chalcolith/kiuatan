@@ -1,11 +1,25 @@
 
 trait Loc[T]
+  """
+  A pointer to a particular location in a Source.
+  """
   fun has_next(): Bool ?
   fun ref next(): box->T ?
+
+  fun eq(other: box->Loc[T]): Bool
+  fun ne(other: box->Loc[T]): Bool
+  fun lt(other: box->Loc[T]): Bool
+  fun le(other: box->Loc[T]): Bool
+  fun ge(other: box->Loc[T]): Bool
+  fun gt(other: box->Loc[T]): Bool
+
   fun clone(): Loc[T]^
 
 
 trait Segment[T]
+  """
+  Contains a part of a Source.
+  """
   fun begin(): Loc[T]^ ?
 
 
@@ -26,6 +40,48 @@ class _SeqLoc[T] is Loc[T]
     else
       error
     end
+
+  fun eq(other: box->Loc[T]): Bool =>
+    try
+      let other' = other as box->_SeqLoc[T]
+      (_seq is other'._seq) and (_i == other'._i)
+    end
+    false
+
+  fun ne(other: box->Loc[T]): Bool =>
+    try
+      let other' = other as box->_SeqLoc[T]
+      (not (_seq is other'._seq)) or (_i != other'._i)
+    end
+    false
+
+  fun lt(other: box->Loc[T]): Bool =>
+    try
+      let other' = other as box->_SeqLoc[T]
+      (_seq is other'._seq) and (_i < other'._i)
+    end
+    false
+
+  fun le(other: box->Loc[T]): Bool =>
+    try
+      let other' = other as box->_SeqLoc[T]
+      (_seq is other'._seq) and (_i <= other'._i)
+    end
+    false
+
+  fun ge(other: box->Loc[T]): Bool =>
+    try
+      let other' = other as box->_SeqLoc[T]
+      (_seq is other'._seq) and (_i >= other'._i)
+    end
+    false
+
+  fun gt(other: box->Loc[T]): Bool =>
+    try
+      let other' = other as box->_SeqLoc[T]
+      (_seq is other'._seq) and (_i > other'._i)
+    end
+    false
 
   fun clone(): Loc[T]^ =>
     let loc = _SeqLoc[T](_seq, _i)
@@ -53,7 +109,12 @@ class _SegmentLoc[T] is Loc[T]
     _si = 0
     _sl = if _si < _segs.size() then _segs(_si).begin() else None end
 
-  new _create(segs: Array[Segment[T] box] box, si: USize, sl: (Loc[T] ref | None)) =>
+  new at_segment(segs: Array[Segment[T] box] box, si: USize) ? =>
+    _segs = segs
+    _si = si
+    _sl = if _si < _segs.size() then _segs(_si).begin() else None end
+
+  new _from_orig(segs: Array[Segment[T] box] box, si: USize, sl: (Loc[T] ref | None)) =>
     _segs = segs
     _si = si
     _sl = sl
@@ -97,12 +158,115 @@ class _SegmentLoc[T] is Loc[T]
       error
     end
 
-  fun clone(): Loc[T]^ =>
-    let sl = match _sl
-    | let loc: this->Loc[T] => loc.clone()
-    else None end
+  fun eq(other: box->Loc[T]): Bool =>
+    var res = false
+    try
+      let other' = other as box->_SegmentLoc[T]
+      match _sl
+      | let la: Loc[T] box =>
+        match other'._sl
+        | let lb: box->Loc[T] =>
+          res = la == lb
+        end
+      end
+    end
+    res
 
-    let loc = _SegmentLoc[T]._create(_segs, _si, sl)
+  fun ne(other: box->Loc[T]): Bool =>
+    var res = false
+    try
+      let other' = other as box->_SegmentLoc[T]
+      match _sl
+      | let la: Loc[T] box =>
+        match other'._sl
+        | let lb: box->Loc[T] =>
+          res = la != lb
+        end
+      else
+        res = not (other'._sl is None)
+      end
+    end
+    res
+
+  fun lt(other: box->Loc[T]): Bool =>
+    var res = false
+    try
+      let other' = other as box->_SegmentLoc[T]
+      if _si < other'._si then
+        true
+      elseif _si == other'._si then
+        match _sl
+        | let la: Loc[T] box =>
+          match other'._sl
+          | let lb: box->Loc[T] =>
+            res = la < lb
+          end
+        end
+      end
+    end
+    res
+
+  fun le(other: box->Loc[T]): Bool =>
+    var res = false
+    try
+      let other' = other as box->_SegmentLoc[T]
+      if _si < other'._si then
+        true
+      elseif _si == other'._si then
+        match _sl
+        | let la: Loc[T] box =>
+          match other'._sl
+          | let lb: box->Loc[T] =>
+            res = la <= lb
+          end
+        end
+      end
+    end
+    res
+
+  fun ge(other: box->Loc[T]): Bool =>
+    var res = false
+    try
+      let other' = other as box->_SegmentLoc[T]
+      if _si > other'._si then
+        true
+      elseif _si == other'._si then
+        match _sl
+        | let la: Loc[T] box =>
+          match other'._sl
+          | let lb: box->Loc[T] =>
+            res = la >= lb
+          end
+        end
+      end
+    end
+    res
+
+  fun gt(other: box->Loc[T]): Bool =>
+    var res = false
+    try
+      let other' = other as box->_SegmentLoc[T]
+      if _si > other'._si then
+        true
+      elseif _si == other'._si then
+        match _sl
+        | let la: Loc[T] box =>
+          match other'._sl
+          | let lb: box->Loc[T] =>
+            res = la > lb
+          end
+        end
+      end
+    end
+    res
+
+  fun clone(): Loc[T]^ =>
+    let sl =
+      match _sl
+      | let loc: this->Loc[T] => loc.clone()
+      else None end
+
+    let loc = _SegmentLoc[T]._from_orig(_segs, _si, sl)
     consume loc
 
 
@@ -117,5 +281,8 @@ class Source[T] is Segment[T]
     end
     _segs = segs
 
-  fun box begin(): Loc[T]^ ? =>
+  fun begin(): Loc[T]^ ? =>
     _SegmentLoc[T](_segs)
+
+  fun segments(): Array[Segment[T] box] box =>
+    _segs
