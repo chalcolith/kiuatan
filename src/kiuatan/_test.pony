@@ -1,3 +1,4 @@
+use "debug"
 use "ponytest"
 
 actor Main is TestList
@@ -49,10 +50,17 @@ class iso _TestSourceSourcePrimitive is UnitTest
     let a2 = [as U32: 4, 5, 6, 7]
     let aa = [as Seq[U32]: a1, a2]
 
-    let src = Source[U32](aa)
-    let loc = src.begin()
+    let src = MatchSource[U32](aa)
+    let loc = src.begin_segment(0)
     var count: U32 = 0
     while loc.has_next() do
-      h.assert_eq[U32](count = count + 1, loc.next())
+      let item = loc.next()
+      let idx = loc.index()
+      if count < 4 then
+        h.assert_eq[USize](0, idx)
+      else
+        h.assert_eq[USize](1, idx)
+      end
+      h.assert_eq[U32](count = count + 1, item)
     end
     h.assert_eq[U32](8, count)
