@@ -1,29 +1,29 @@
 
-trait Loc[T]
+trait MatchLoc[T]
   """
   A pointer to a particular location in a Source.
   """
   fun has_next(): Bool ?
   fun ref next(): box->T ?
 
-  fun eq(other: box->Loc[T]): Bool
-  fun ne(other: box->Loc[T]): Bool
-  fun lt(other: box->Loc[T]): Bool
-  fun le(other: box->Loc[T]): Bool
-  fun ge(other: box->Loc[T]): Bool
-  fun gt(other: box->Loc[T]): Bool
+  fun eq(other: box->MatchLoc[T]): Bool
+  fun ne(other: box->MatchLoc[T]): Bool
+  fun lt(other: box->MatchLoc[T]): Bool
+  fun le(other: box->MatchLoc[T]): Bool
+  fun ge(other: box->MatchLoc[T]): Bool
+  fun gt(other: box->MatchLoc[T]): Bool
 
-  fun clone(): Loc[T]^
+  fun clone(): MatchLoc[T]^
 
 
 trait Segment[T]
   """
   Contains a part of a Source.
   """
-  fun begin(): Loc[T]^ ?
+  fun begin(): MatchLoc[T]^ ?
 
 
-class _SeqLoc[T] is Loc[T]
+class _SeqLoc[T] is MatchLoc[T]
   let _seq: Seq[T] box
   var _i: USize
 
@@ -41,49 +41,49 @@ class _SeqLoc[T] is Loc[T]
       error
     end
 
-  fun eq(other: box->Loc[T]): Bool =>
+  fun eq(other: box->MatchLoc[T]): Bool =>
     try
       let other' = other as box->_SeqLoc[T]
       (_seq is other'._seq) and (_i == other'._i)
     end
     false
 
-  fun ne(other: box->Loc[T]): Bool =>
+  fun ne(other: box->MatchLoc[T]): Bool =>
     try
       let other' = other as box->_SeqLoc[T]
       (not (_seq is other'._seq)) or (_i != other'._i)
     end
     false
 
-  fun lt(other: box->Loc[T]): Bool =>
+  fun lt(other: box->MatchLoc[T]): Bool =>
     try
       let other' = other as box->_SeqLoc[T]
       (_seq is other'._seq) and (_i < other'._i)
     end
     false
 
-  fun le(other: box->Loc[T]): Bool =>
+  fun le(other: box->MatchLoc[T]): Bool =>
     try
       let other' = other as box->_SeqLoc[T]
       (_seq is other'._seq) and (_i <= other'._i)
     end
     false
 
-  fun ge(other: box->Loc[T]): Bool =>
+  fun ge(other: box->MatchLoc[T]): Bool =>
     try
       let other' = other as box->_SeqLoc[T]
       (_seq is other'._seq) and (_i >= other'._i)
     end
     false
 
-  fun gt(other: box->Loc[T]): Bool =>
+  fun gt(other: box->MatchLoc[T]): Bool =>
     try
       let other' = other as box->_SeqLoc[T]
       (_seq is other'._seq) and (_i > other'._i)
     end
     false
 
-  fun clone(): Loc[T]^ =>
+  fun clone(): MatchLoc[T]^ =>
     let loc = _SeqLoc[T](_seq, _i)
     consume loc
 
@@ -94,15 +94,15 @@ class _SeqSegment[T] is Segment[T]
   new create(seq: Seq[T] box) =>
     _seq = seq
 
-  fun begin(): Loc[T]^ =>
+  fun begin(): MatchLoc[T]^ =>
     let loc = _SeqLoc[T](_seq, 0)
     consume loc
 
 
-class MatchSourceLoc[T] is Loc[T]
+class MatchSourceLoc[T] is MatchLoc[T]
   let _segs: Array[Segment[T] box] box
   var _si: USize
-  var _sl: (Loc[T] ref | None)
+  var _sl: (MatchLoc[T] ref | None)
 
   new create(segs: Array[Segment[T] box] box) ? =>
     _segs = segs
@@ -118,7 +118,7 @@ class MatchSourceLoc[T] is Loc[T]
       None
     end
 
-  new _from_orig(segs: Array[Segment[T] box] box, si: USize, sl: (Loc[T] ref | None)) =>
+  new _from_orig(segs: Array[Segment[T] box] box, si: USize, sl: (MatchLoc[T] ref | None)) =>
     _segs = segs
     _si = si
     _sl = sl
@@ -129,7 +129,7 @@ class MatchSourceLoc[T] is Loc[T]
 
   fun has_next(): Bool ? =>
     match _sl
-    | let loc: this->Loc[T] ref =>
+    | let loc: this->MatchLoc[T] ref =>
       if loc.has_next() then
         true
       elseif _si < (_segs.size() - 1) then
@@ -145,7 +145,7 @@ class MatchSourceLoc[T] is Loc[T]
 
   fun ref next(): box->T ? =>
     match _sl
-    | let loc: Loc[T] =>
+    | let loc: MatchLoc[T] =>
       if loc.has_next() then
         return loc.next()
       elseif _si < (_segs.size() - 1) then
@@ -162,28 +162,28 @@ class MatchSourceLoc[T] is Loc[T]
     _sl = None
     error
 
-  fun eq(other: box->Loc[T]): Bool =>
+  fun eq(other: box->MatchLoc[T]): Bool =>
     var res = false
     try
       let other' = other as box->MatchSourceLoc[T]
       match _sl
-      | let la: Loc[T] box =>
+      | let la: MatchLoc[T] box =>
         match other'._sl
-        | let lb: box->Loc[T] =>
+        | let lb: box->MatchLoc[T] =>
           res = la == lb
         end
       end
     end
     res
 
-  fun ne(other: box->Loc[T]): Bool =>
+  fun ne(other: box->MatchLoc[T]): Bool =>
     var res = false
     try
       let other' = other as box->MatchSourceLoc[T]
       match _sl
-      | let la: Loc[T] box =>
+      | let la: MatchLoc[T] box =>
         match other'._sl
-        | let lb: box->Loc[T] =>
+        | let lb: box->MatchLoc[T] =>
           res = la != lb
         end
       else
@@ -192,7 +192,7 @@ class MatchSourceLoc[T] is Loc[T]
     end
     res
 
-  fun lt(other: box->Loc[T]): Bool =>
+  fun lt(other: box->MatchLoc[T]): Bool =>
     var res = false
     try
       let other' = other as box->MatchSourceLoc[T]
@@ -200,9 +200,9 @@ class MatchSourceLoc[T] is Loc[T]
         true
       elseif _si == other'._si then
         match _sl
-        | let la: Loc[T] box =>
+        | let la: MatchLoc[T] box =>
           match other'._sl
-          | let lb: box->Loc[T] =>
+          | let lb: box->MatchLoc[T] =>
             res = la < lb
           end
         end
@@ -210,7 +210,7 @@ class MatchSourceLoc[T] is Loc[T]
     end
     res
 
-  fun le(other: box->Loc[T]): Bool =>
+  fun le(other: box->MatchLoc[T]): Bool =>
     var res = false
     try
       let other' = other as box->MatchSourceLoc[T]
@@ -218,9 +218,9 @@ class MatchSourceLoc[T] is Loc[T]
         true
       elseif _si == other'._si then
         match _sl
-        | let la: Loc[T] box =>
+        | let la: MatchLoc[T] box =>
           match other'._sl
-          | let lb: box->Loc[T] =>
+          | let lb: box->MatchLoc[T] =>
             res = la <= lb
           end
         end
@@ -228,7 +228,7 @@ class MatchSourceLoc[T] is Loc[T]
     end
     res
 
-  fun ge(other: box->Loc[T]): Bool =>
+  fun ge(other: box->MatchLoc[T]): Bool =>
     var res = false
     try
       let other' = other as box->MatchSourceLoc[T]
@@ -236,9 +236,9 @@ class MatchSourceLoc[T] is Loc[T]
         true
       elseif _si == other'._si then
         match _sl
-        | let la: Loc[T] box =>
+        | let la: MatchLoc[T] box =>
           match other'._sl
-          | let lb: box->Loc[T] =>
+          | let lb: box->MatchLoc[T] =>
             res = la >= lb
           end
         end
@@ -246,7 +246,7 @@ class MatchSourceLoc[T] is Loc[T]
     end
     res
 
-  fun gt(other: box->Loc[T]): Bool =>
+  fun gt(other: box->MatchLoc[T]): Bool =>
     var res = false
     try
       let other' = other as box->MatchSourceLoc[T]
@@ -254,9 +254,9 @@ class MatchSourceLoc[T] is Loc[T]
         true
       elseif _si == other'._si then
         match _sl
-        | let la: Loc[T] box =>
+        | let la: MatchLoc[T] box =>
           match other'._sl
-          | let lb: box->Loc[T] =>
+          | let lb: box->MatchLoc[T] =>
             res = la > lb
           end
         end
@@ -264,10 +264,10 @@ class MatchSourceLoc[T] is Loc[T]
     end
     res
 
-  fun clone(): Loc[T]^ =>
+  fun clone(): MatchLoc[T]^ =>
     let sl =
       match _sl
-      | let loc: this->Loc[T] => loc.clone()
+      | let loc: this->MatchLoc[T] => loc.clone()
       else None end
 
     let loc = MatchSourceLoc[T]._from_orig(_segs, _si, sl)
@@ -285,7 +285,7 @@ class MatchSource[T] is Segment[T]
     end
     _segs = segs
 
-  fun begin(): Loc[T]^ ? =>
+  fun begin(): MatchLoc[T]^ ? =>
     let loc = MatchSourceLoc[T](_segs)
     consume loc
 
