@@ -16,7 +16,7 @@ trait MatchLoc[T]
   fun clone(): MatchLoc[T]^
 
 
-trait Segment[T]
+trait MatchSegment[T]
   """
   Contains a part of a Source.
   """
@@ -88,7 +88,7 @@ class _SeqLoc[T] is MatchLoc[T]
     consume loc
 
 
-class _SeqSegment[T] is Segment[T]
+class _SeqSegment[T] is MatchSegment[T]
   let _seq: Seq[T] box
 
   new create(seq: Seq[T] box) =>
@@ -100,16 +100,16 @@ class _SeqSegment[T] is Segment[T]
 
 
 class MatchSourceLoc[T] is MatchLoc[T]
-  let _segs: Array[Segment[T] box] box
+  let _segs: Array[MatchSegment[T] box] box
   var _si: USize
   var _sl: (MatchLoc[T] ref | None)
 
-  new create(segs: Array[Segment[T] box] box) ? =>
+  new create(segs: Array[MatchSegment[T] box] box) ? =>
     _segs = segs
     _si = 0
     _sl = if _si < _segs.size() then _segs(_si).begin() else None end
 
-  new begin_segment(segs: Array[Segment[T] box] box, si: USize) ? =>
+  new begin_segment(segs: Array[MatchSegment[T] box] box, si: USize) ? =>
     _segs = segs
     _si = si
     _sl = if _si < _segs.size() then
@@ -118,12 +118,12 @@ class MatchSourceLoc[T] is MatchLoc[T]
       None
     end
 
-  new _from_orig(segs: Array[Segment[T] box] box, si: USize, sl: (MatchLoc[T] ref | None)) =>
+  new _from_orig(segs: Array[MatchSegment[T] box] box, si: USize, sl: (MatchLoc[T] ref | None)) =>
     _segs = segs
     _si = si
     _sl = sl
 
-  fun segments(): Array[Segment[T] box] box => _segs
+  fun segments(): Array[MatchSegment[T] box] box => _segs
 
   fun index(): USize => _si
 
@@ -274,11 +274,11 @@ class MatchSourceLoc[T] is MatchLoc[T]
     consume loc
 
 
-class MatchSource[T] is Segment[T]
-  let _segs: Array[Segment[T] box] ref
+class MatchSource[T] is MatchSegment[T]
+  let _segs: Array[MatchSegment[T] box] ref
 
   new create(seqs: this->Seq[Seq[T]]) =>
-    var segs = Array[Segment[T] box](seqs.size())
+    var segs = Array[MatchSegment[T] box](seqs.size())
     for s in seqs.values() do
       let seg = _SeqSegment[T](s)
       segs.push(seg)
@@ -293,5 +293,5 @@ class MatchSource[T] is Segment[T]
     let loc = MatchSourceLoc[T].begin_segment(_segs, i)
     consume loc
 
-  fun ref segments(): Array[Segment[T] box] ref =>
+  fun ref segments(): Array[MatchSegment[T] box] ref =>
     _segs
