@@ -1,8 +1,10 @@
+use "collections"
 
 trait MatchLoc[T]
   """
   A pointer to a particular location in a Source.
   """
+
   fun has_next(): Bool ?
   fun ref next(): box->T ?
 
@@ -12,6 +14,13 @@ trait MatchLoc[T]
   fun le(other: box->MatchLoc[T]): Bool
   fun ge(other: box->MatchLoc[T]): Bool
   fun gt(other: box->MatchLoc[T]): Bool
+
+  fun add(n: USize): MatchLoc[T] =>
+    let cur = clone()
+    for i in Range(0, n) do
+      cur.next()
+    end
+    cur
 
   fun clone(): MatchLoc[T]^
 
@@ -277,7 +286,7 @@ class MatchSourceLoc[T] is MatchLoc[T]
 class MatchSource[T] is MatchSegment[T]
   let _segs: Array[MatchSegment[T] box] ref
 
-  new create(seqs: this->Seq[Seq[T]]) =>
+  new create(seqs: Seq[Seq[T]]) =>
     var segs = Array[MatchSegment[T] box](seqs.size())
     for s in seqs.values() do
       let seg = _SeqSegment[T](s)

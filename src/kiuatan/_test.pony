@@ -64,3 +64,26 @@ class iso _TestSourceSourcePrimitive is UnitTest
       h.assert_eq[U32](count = count + 1, item)
     end
     h.assert_eq[U32](8, count)
+
+
+class iso _TestGrammarRuleLiteral is UnitTest
+  fun name(): String => "GrammarRule_Literal"
+
+  fun apply(h: TestHelper) ? =>
+    let seg1 = "one two three"
+    let segs = [as Seq[U8] val: seg1]
+    let src = MatchSource[U8](segs)
+
+    let str = "one"
+    let memo = MatchState(src)
+    let literal = GrammarLiteral[U8,None](str)
+    let result = literal.parse(memo, src.begin())
+
+    match result
+    | None => h.fail("literal did not match")
+    | let result': MatchResult[U8, None] =>
+      let start = src.begin()
+      let next = start + str.size()
+      h.assert_eq(start, result'.start, "match does not start at the correct loc")
+      h.assert_eq(next, result'.next, "match does not end at the correct loc")
+    end
