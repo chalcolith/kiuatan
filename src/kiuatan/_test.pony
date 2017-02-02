@@ -48,9 +48,9 @@ class iso _TestSourceSourcePrimitive is UnitTest
   fun apply(h: TestHelper) ? =>
     let a1 = [as U32: 0, 1, 2, 3]
     let a2 = [as U32: 4, 5, 6, 7]
-    let aa = [as Seq[U32]: a1, a2]
+    let aa = [as Seq[U32] box: a1, a2]
 
-    let src = MatchSource[U32](aa)
+    let src = ParseSource[U32](aa)
     let loc = src.begin_segment(0)
     var count: U32 = 0
     while loc.has_next() do
@@ -71,19 +71,19 @@ class iso _TestGrammarRuleLiteral is UnitTest
 
   fun apply(h: TestHelper) ? =>
     let seg1 = "one two three"
-    let segs = [as Seq[U8] val: seg1]
-    let src = MatchSource[U8](segs)
+    let segs = [as Seq[U8] box: seg1]
+    let src = ParseSource[U8](segs)
 
     let str = "one"
-    let memo = MatchState(src)
+    let memo = ParseState[U8,None](src)
     let literal = GrammarLiteral[U8,None](str)
     let result = literal.parse(memo, src.begin())
 
     match result
     | None => h.fail("literal did not match")
-    | let result': MatchResult[U8, None] =>
+    | let result': ParseResult[U8,None] =>
       let start = src.begin()
       let next = start + str.size()
-      h.assert_eq(start, result'.start, "match does not start at the correct loc")
-      h.assert_eq(next, result'.next, "match does not end at the correct loc")
+      h.assert_eq[ParseLoc[U8] box](start, result'.start, "match does not start at the correct loc")
+      h.assert_eq[ParseLoc[U8] box](next, result'.next, "match does not end at the correct loc")
     end
