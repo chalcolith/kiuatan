@@ -1,4 +1,6 @@
+use "collections"
 use "debug"
+use "itertools"
 use "ponytest"
 
 actor Main is TestList
@@ -9,81 +11,123 @@ actor Main is TestList
     None
 
   fun tag tests(test: PonyTest) =>
-    test(_TestSourceSeqSegmentPrimitive)
-    test(_TestSourceSeqSegmentString)
-    test(_TestSourceSourcePrimitive)
+    test(_TestParseLocPrimitive)
+    test(_TestParseLocClass)
+    test(_TestParseLocListPrimitive)
+    test(_TestParseRuleLiteral)
+    test(_TestParseRuleLiteralAction)
 
 
-class iso _TestSourceSeqSegmentPrimitive is UnitTest
-  fun name(): String => "Source_SeqSegment_Primitive"
+class iso _TestParseLocPrimitive is UnitTest
+  fun name(): String => "ParseLoc_Primitive"
 
   fun apply(h: TestHelper) ? =>
-    let a = [as U32: 0, 1, 2, 3, 4]
-    let seg = _SeqSegment[U32](a)
-    let loc = seg.begin()
-    for n in a.values() do
+    let seq = [as U32: 0, 1, 2, 3, 4]
+    let loc = ParseLoc[U32](ListNode[ReadSeq[U32]](seq), 0)
+    for n in seq.values() do
       h.assert_true(loc.has_next())
       h.assert_eq[U32](n, loc.next())
     end
     h.assert_false(loc.has_next())
 
 
-class iso _TestSourceSeqSegmentString is UnitTest
-  fun name(): String => "Source_SeqSegment_String"
+class iso _TestParseLocClass is UnitTest
+  fun name(): String => "ParseLoc_Class"
 
   fun apply(h: TestHelper) ? =>
-    let a = ["one", "two", "three", "four"]
-    let seg = _SeqSegment[String](a)
-    let loc = seg.begin()
-    for s in a.values() do
+    let seq = ["one", "two", "three", "four"]
+    let loc = ParseLoc[String](ListNode[ReadSeq[String]](seq), 0)
+    for s in seq.values() do
       h.assert_true(loc.has_next())
       h.assert_eq[String](s, loc.next())
     end
     h.assert_false(loc.has_next())
 
 
-class iso _TestSourceSourcePrimitive is UnitTest
-  fun name(): String => "Source_Source_Primitive"
+class iso _TestParseLocListPrimitive is UnitTest
+  fun name(): String => "ParseLoc_List_Primitive"
 
   fun apply(h: TestHelper) ? =>
     let a1 = [as U32: 0, 1, 2, 3]
     let a2 = [as U32: 4, 5, 6, 7]
-    let aa = [as Seq[U32] box: a1, a2]
+    let aa = [as ReadSeq[U32]: a1, a2]
 
-    let src = ParseSource[U32](aa)
-    let loc = src.begin_segment(0)
-    var count: U32 = 0
-    while loc.has_next() do
-      let item = loc.next()
-      let idx = loc.index()
-      if count < 4 then
-        h.assert_eq[USize](0, idx)
-      else
-        h.assert_eq[USize](1, idx)
-      end
-      h.assert_eq[U32](count = count + 1, item)
+    let actual = List[ReadSeq[U32]].from(aa)
+    let loc = ParseLoc[U32](actual.head())
+
+    let expected = Chain[U32]([a1.values(), a2.values()].values())
+
+    for e in expected do
+      h.assert_true(loc.has_next())
+      h.assert_eq[U32](e, loc.next())
     end
-    h.assert_eq[U32](8, count)
+    h.assert_false(loc.has_next())
 
 
-class iso _TestGrammarRuleLiteral is UnitTest
-  fun name(): String => "GrammarRule_Literal"
+class iso _TestParseRuleLiteral is UnitTest
+  fun name(): String => "ParseRule_Literal"
 
   fun apply(h: TestHelper) ? =>
     let seg1 = "one two three"
-    let segs = [as Seq[U8] box: seg1]
-    let src = ParseSource[U8](segs)
+    let segs = [ as ReadSeq[U8]: seg1 ]
+    let src = List[ReadSeq[U8]].from(segs)
 
     let str = "one"
     let memo = ParseState[U8,None](src)
-    let literal = GrammarLiteral[U8,None](str)
-    let result = literal.parse(memo, src.begin())
+    let literal = ParseLiteral[U8,None](str)
+    let result = literal.parse(memo, memo.start())
 
     match result
     | None => h.fail("literal did not match")
     | let result': ParseResult[U8,None] =>
-      let start = src.begin()
+      let start = memo.start()
       let next = start + str.size()
       h.assert_eq[ParseLoc[U8] box](start, result'.start, "match does not start at the correct loc")
       h.assert_eq[ParseLoc[U8] box](next, result'.next, "match does not end at the correct loc")
+    end
+
+
+class iso _TestParseRuleLiteralAction is UnitTest
+  fun name(): String => "ParseRule_Literal_Action"
+
+  fun apply(h: TestHelper) ? =>
+    let seg1 = "123 456 789"
+    let segs = [as ReadSeq[U8]: seg1]
+    let src = List[ReadSeq[U8]].from(segs)
+
+    let str = "123"
+    let memo = ParseState[U8,USize](src)
+    let literal = ParseLiteral[U8,USize](str, {
+      (
+        state: ParseState[U8,USize] box,
+        start: ParseLoc[U8] box,
+        next: ParseLoc[U8] box,
+        children: ReadSeq[ParseResult[U8,USize] box] box
+      ) : USize =>
+        try
+          let s = String
+          let i = start.clone()
+          while i.has_next() and (i != next) do
+            s.push(i.next())
+          end
+          s.usize()
+        else
+          -1
+        end
+    })
+    let result = literal.parse(memo, memo.start())
+
+    match result
+    | None => h.fail("literal did not match")
+    | let result': ParseResult[U8,USize] =>
+      let start = memo.start()
+      let next = start + str.size()
+      h.assert_eq[ParseLoc[U8] box](start, result'.start, "match does not start at the correct loc")
+      h.assert_eq[ParseLoc[U8] box](next, result'.next, "match does not end at the correct loc")
+      match result'.result()
+      | let num: USize =>
+        h.assert_eq[USize](123, num, "action did not return the correct result")
+      else
+        h.fail("action did not return any result")
+      end
     end
