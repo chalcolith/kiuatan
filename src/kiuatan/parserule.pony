@@ -11,12 +11,16 @@ trait ParseRule[TSrc,TRes]
   fun box parse(memo: ParseState[TSrc,TRes] ref, start: ParseLoc[TSrc] ref): (ParseResult[TSrc,TRes] | None) ?
 
 
+type ParseAction[TSrc,TRes] is {
+  (ParseState[TSrc,TRes] box, ParseLoc[TSrc] box, ParseLoc[TSrc] box, ReadSeq[ParseResult[TSrc,TRes] box] box): TRes
+}
+
 class ParseLiteral[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
   var _expected: ReadSeq[TSrc] box
-  var _action: ({ (ParseState[TSrc,TRes] box, ParseLoc[TSrc] box, ParseLoc[TSrc] box, ReadSeq[ParseResult[TSrc,TRes] box] box): TRes } val | None)
+  var _action: (ParseAction[TSrc,TRes] val | None)
 
   new create(expected: ReadSeq[TSrc] box,
-             action: ({ (ParseState[TSrc,TRes] box, ParseLoc[TSrc] box, ParseLoc[TSrc] box, ReadSeq[ParseResult[TSrc,TRes] box] box): TRes } val | None) = None) =>
+             action: (ParseAction[TSrc,TRes] val | None) = None) =>
     _expected = expected
     _action = action
 
@@ -33,6 +37,6 @@ class ParseLiteral[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
 
     match _action
     | None => ParseResult[TSrc,TRes].from_value(memo, start, cur, Array[ParseResult[TSrc,TRes]](), None)
-    | let action: { (ParseState[TSrc,TRes] box, ParseLoc[TSrc] box, ParseLoc[TSrc] box, ReadSeq[ParseResult[TSrc,TRes] box] box): TRes } val =>
+    | let action: ParseAction[TSrc,TRes] val =>
       ParseResult[TSrc,TRes].from_action(memo, start, cur, Array[ParseResult[TSrc,TRes]](), action)
     end
