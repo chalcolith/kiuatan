@@ -6,14 +6,8 @@ trait ParseRule[TSrc,TRes]
   fun is_recursive(): Bool =>
     false
 
-  fun box name(): String val
-
   fun box parse(memo: ParseState[TSrc,TRes] ref, start: ParseLoc[TSrc] ref): (ParseResult[TSrc,TRes] | None) ?
 
-
-type ParseAction[TSrc,TRes] is {
-  (ParseState[TSrc,TRes] box, ParseLoc[TSrc] box, ParseLoc[TSrc] box, ReadSeq[ParseResult[TSrc,TRes] box] box): TRes
-}
 
 class ParseLiteral[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
   var _expected: ReadSeq[TSrc] box
@@ -23,9 +17,6 @@ class ParseLiteral[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
              action: (ParseAction[TSrc,TRes] val | None) = None) =>
     _expected = expected
     _action = action
-
-  fun box name(): String val =>
-    "Literal"
 
   fun box parse(memo: ParseState[TSrc,TRes], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TRes] | None) ? =>
     let cur = start.clone()

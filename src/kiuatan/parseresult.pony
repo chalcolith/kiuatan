@@ -1,9 +1,13 @@
+type ParseAction[TSrc,TRes] is {
+  (ParseState[TSrc,TRes] box, ParseLoc[TSrc] box, ParseLoc[TSrc] box, ReadSeq[ParseResult[TSrc,TRes] box] box): TRes
+}
+
 class ParseResult[TSrc,TRes]
   let state: ParseState[TSrc,TRes] box
   let start: ParseLoc[TSrc] box
   let next: ParseLoc[TSrc] box
   let children: ReadSeq[ParseResult[TSrc,TRes]] box
-  let _act: ({ (ParseState[TSrc,TRes] box, ParseLoc[TSrc] box, ParseLoc[TSrc] box, ReadSeq[ParseResult[TSrc,TRes] box] box): TRes } val | None)
+  let _act: (ParseAction[TSrc,TRes] val | None)
   let _res: (TRes! | None)
 
   new from_value(state': ParseState[TSrc,TRes] box,
@@ -22,7 +26,7 @@ class ParseResult[TSrc,TRes]
                   start': ParseLoc[TSrc] box,
                   next': ParseLoc[TSrc] box,
                   children': ReadSeq[ParseResult[TSrc,TRes]] box,
-                  act': { (ParseState[TSrc,TRes] box, ParseLoc[TSrc] box, ParseLoc[TSrc] box, ReadSeq[ParseResult[TSrc,TRes] box] box): TRes } val) =>
+                  act': ParseAction[TSrc,TRes] val) =>
     state = state'
     start = start'.clone()
     next = next'.clone()
@@ -35,7 +39,7 @@ class ParseResult[TSrc,TRes]
     | let res: TRes! => res
     else
       match _act
-      | let act: { (ParseState[TSrc,TRes] box, ParseLoc[TSrc] box, ParseLoc[TSrc] box, ReadSeq[ParseResult[TSrc,TRes] box] box): TRes } val =>
+      | let act: ParseAction[TSrc,TRes] val =>
         act(state, start, next, children)
       else
         None
