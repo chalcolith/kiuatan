@@ -13,7 +13,7 @@ trait ParseRule[TSrc,TRes]
 
 
 class ParseAny[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
-  var _action: RuleAction[TSrc,TRes]
+  let _action: RuleAction[TSrc,TRes]
 
   new create(action: RuleAction[TSrc,TRes] = None) =>
     _action = action
@@ -35,8 +35,8 @@ class ParseAny[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
 
 
 class ParseLiteral[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
-  var _expected: ReadSeq[TSrc] box
-  var _action: RuleAction[TSrc,TRes]
+  let _expected: ReadSeq[TSrc] box
+  let _action: RuleAction[TSrc,TRes]
 
   new create(expected: ReadSeq[TSrc] box,
              action: RuleAction[TSrc,TRes] = None) =>
@@ -60,8 +60,8 @@ class ParseLiteral[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
 
 
 class ParseSequence[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
-  var _children: ReadSeq[ParseRule[TSrc,TRes] box]
-  var _action: RuleAction[TSrc,TRes]
+  let _children: ReadSeq[ParseRule[TSrc,TRes] box]
+  let _action: RuleAction[TSrc,TRes]
 
   new create(children: ReadSeq[ParseRule[TSrc,TRes] box] box,
              action: RuleAction[TSrc,TRes] = None) =>
@@ -81,3 +81,23 @@ class ParseSequence[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
       end
     end
     ParseResult[TSrc,TRes].from_action(memo, start, cur, results, _action)
+
+
+class ParseChoice[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
+  let _children: ReadSeq[ParseRule[TSrc,TRes] box]
+  let _action: RuleAction[TSrc,TRes]
+
+  new create(children: ReadSeq[ParseRule[TSrc,TRes] box] box,
+             action: RuleAction[TSrc,TRes] = None) =>
+    _children = children
+    _action = action
+  
+  fun box parse(memo: ParseState[TSrc,TRes], start: ParseLoc[TSrc] box): RuleResult[TSrc,TRes] ? =>
+    for rule in _children.values() do
+      var cur = start.clone()
+      match memo.call_with_memo(rule, cur)
+      | let r: ParseResult[TSrc,TRes] =>
+        return ParseResult[TSrc,TRes].from_action(memo, start, r.next, [r], _action)
+      end
+    end
+    None

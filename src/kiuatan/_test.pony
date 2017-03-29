@@ -17,6 +17,39 @@ actor Main is TestList
     test(_TestParseRuleLiteral)
     test(_TestParseRuleLiteralAction)
     test(_TestParseRuleSequenceAction)
+    test(_TestParseRuleChoiceAction)
+
+
+class iso _TestParseRuleChoiceAction is UnitTest
+  fun name(): String => "ParseRule_Choice_Action"
+
+  fun apply(h: TestHelper) ? =>
+    let a_rule = ParseLiteral[U8,U8]("a")
+    let b_rule = ParseLiteral[U8,U8]("b")
+    let c_rule = ParseLiteral[U8,U8]("c")
+
+    let rules = [as ParseRule[U8,U8]: a_rule; b_rule; c_rule]
+    let choice = ParseChoice[U8,U8](rules)
+
+    let memo1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))
+    match choice.parse(memo1, memo1.start())
+    | None => h.fail("choice a did not match")
+    end
+
+    let memo2 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "b"]))
+    match choice.parse(memo2, memo2.start())
+    | None => h.fail("choice b did not match")
+    end
+
+    let memo3 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "c"]))
+    match choice.parse(memo3, memo3.start())
+    | None => h.fail("choice c did not match")
+    end
+
+    let memo4 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "z"]))
+    match choice.parse(memo4, memo4.start())
+    | let _: ParseResult[U8,U8] => h.fail("choice z matched erroneously")
+    end
 
 
 class iso _TestParseRuleSequenceAction is UnitTest
