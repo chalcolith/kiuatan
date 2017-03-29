@@ -26,7 +26,7 @@ class ParseResult[TSrc,TRes]
                   start': ParseLoc[TSrc] box,
                   next': ParseLoc[TSrc] box,
                   children': ReadSeq[ParseResult[TSrc,TRes]] box,
-                  act': ParseAction[TSrc,TRes] val) =>
+                  act': (ParseAction[TSrc,TRes] val | None)) =>
     state = state'
     start = start'.clone()
     next = next'.clone()
@@ -34,7 +34,7 @@ class ParseResult[TSrc,TRes]
     _act = act'
     _res = None
 
-  fun box result(): (TRes! | None) =>
+  fun box value(): (TRes! | None) =>
     match _res
     | let res: TRes! => res
     else

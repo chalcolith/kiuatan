@@ -1,3 +1,6 @@
+type RuleResult[TSrc,TRes] is (ParseResult[TSrc,TRes] | None)
+type RuleAction[TSrc,TRes] is (ParseAction[TSrc,TRes] val | None)
+
 trait ParseRule[TSrc,TRes]
   """
   A rule in a grammar.
@@ -6,19 +9,41 @@ trait ParseRule[TSrc,TRes]
   fun is_recursive(): Bool =>
     false
 
-  fun box parse(memo: ParseState[TSrc,TRes] ref, start: ParseLoc[TSrc] ref): (ParseResult[TSrc,TRes] | None) ?
+  fun box parse(memo: ParseState[TSrc,TRes] ref, start: ParseLoc[TSrc] box): RuleResult[TSrc,TRes] ?
+
+
+class ParseAny[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
+  var _action: RuleAction[TSrc,TRes]
+
+  new create(action: RuleAction[TSrc,TRes] = None) =>
+    _action = action
+  
+  fun box parse(memo: ParseState[TSrc,TRes], start: ParseLoc[TSrc] box): RuleResult[TSrc,TRes] ? =>
+    let cur = start.clone()
+    if cur.has_next() then 
+      cur.next()
+    else
+      return None 
+    end
+
+    match _action
+    | None => 
+      ParseResult[TSrc,TRes].from_value(memo, start, cur, Array[ParseResult[TSrc,TRes]](), None)
+    | let action: ParseAction[TSrc,TRes] val =>
+      ParseResult[TSrc,TRes].from_action(memo, start, cur, Array[ParseResult[TSrc,TRes]](), action)
+    end
 
 
 class ParseLiteral[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
   var _expected: ReadSeq[TSrc] box
-  var _action: (ParseAction[TSrc,TRes] val | None)
+  var _action: RuleAction[TSrc,TRes]
 
   new create(expected: ReadSeq[TSrc] box,
-             action: (ParseAction[TSrc,TRes] val | None) = None) =>
+             action: RuleAction[TSrc,TRes] = None) =>
     _expected = expected
     _action = action
 
-  fun box parse(memo: ParseState[TSrc,TRes], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TRes] | None) ? =>
+  fun box parse(memo: ParseState[TSrc,TRes], start: ParseLoc[TSrc] box): RuleResult[TSrc,TRes] ? =>
     let cur = start.clone()
     for expected in _expected.values() do
       if not cur.has_next() then return None end
@@ -27,7 +52,32 @@ class ParseLiteral[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
     end
 
     match _action
-    | None => ParseResult[TSrc,TRes].from_value(memo, start, cur, Array[ParseResult[TSrc,TRes]](), None)
+    | None => 
+      ParseResult[TSrc,TRes].from_value(memo, start, cur, Array[ParseResult[TSrc,TRes]](), None)
     | let action: ParseAction[TSrc,TRes] val =>
       ParseResult[TSrc,TRes].from_action(memo, start, cur, Array[ParseResult[TSrc,TRes]](), action)
     end
+
+
+class ParseSequence[TSrc: Equatable[TSrc] #read, TRes] is ParseRule[TSrc,TRes]
+  var _children: ReadSeq[ParseRule[TSrc,TRes] box]
+  var _action: RuleAction[TSrc,TRes]
+
+  new create(children: ReadSeq[ParseRule[TSrc,TRes] box] box,
+             action: RuleAction[TSrc,TRes] = None) =>
+    _children = children
+    _action = action
+  
+  fun box parse(memo: ParseState[TSrc,TRes], start: ParseLoc[TSrc] box): RuleResult[TSrc,TRes] ? =>
+    let results = Array[ParseResult[TSrc,TRes]](_children.size())
+    var cur = start
+    for rule in _children.values() do
+      match memo.call_with_memo(rule, cur)
+      | let r: ParseResult[TSrc,TRes] =>
+        results.push(r)
+        cur = r.next
+      else
+        return None
+      end
+    end
+    ParseResult[TSrc,TRes].from_action(memo, start, cur, results, _action)

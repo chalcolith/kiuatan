@@ -16,6 +16,62 @@ actor Main is TestList
     test(_TestParseLocListPrimitive)
     test(_TestParseRuleLiteral)
     test(_TestParseRuleLiteralAction)
+    test(_TestParseRuleSequenceAction)
+
+
+class iso _TestParseRuleSequenceAction is UnitTest
+  fun name(): String => "ParseRule_Sequence_Action"
+
+  fun apply(h: TestHelper) ? =>
+    let any_rule = ParseAny[U8,USize]({
+      (
+        state: ParseState[U8,USize] box,
+        start: ParseLoc[U8] box,
+        next: ParseLoc[U8] box,
+        results: ReadSeq[ParseResult[U8,USize] box] box
+      ) : USize =>
+        try
+          let i = start.clone()
+          let c = i.next()
+          if (c >= '0') and (c <= '9') then
+            return USize.from[U8](c - '0')
+          end
+        end
+        0
+    })
+    let rules = [as ParseRule[U8,USize]: any_rule; any_rule; any_rule; any_rule; any_rule]
+
+    let seq_rule = ParseSequence[U8,USize](rules, {
+      (
+        state: ParseState[U8,USize] box,
+        start: ParseLoc[U8] box,
+        next: ParseLoc[U8] box,
+        results: ReadSeq[ParseResult[U8,USize] box] box
+      ) : USize =>
+        var sum: USize = 0
+        for r in results.values() do
+          match r.value()
+          | let n: USize => sum = sum + n
+          end
+        end
+        sum      
+    })
+
+    let seg1 = "12345"
+    let src = List[ReadSeq[U8]].from([as ReadSeq[U8]: seg1])
+    let memo = ParseState[U8,USize](src)
+    let result = seq_rule.parse(memo, memo.start())
+
+    match result
+    | None => h.fail("sequence did not match")
+    | let r: ParseResult[U8,USize] =>
+      match r.value()
+      | let sum: USize =>
+        h.assert_eq[USize](15, sum, "sequence action did not return the correct value")
+      else
+       h.fail("action did not return a value")
+      end
+    end
 
 
 class iso _TestParseRuleLiteralAction is UnitTest
@@ -33,7 +89,7 @@ class iso _TestParseRuleLiteralAction is UnitTest
         state: ParseState[U8,USize] box,
         start: ParseLoc[U8] box,
         next: ParseLoc[U8] box,
-        children: ReadSeq[ParseResult[U8,USize] box] box
+        results: ReadSeq[ParseResult[U8,USize] box] box
       ) : USize =>
         try
           let s = String
@@ -55,11 +111,11 @@ class iso _TestParseRuleLiteralAction is UnitTest
       let next = start + str.size()
       h.assert_eq[ParseLoc[U8] box](start, result'.start, "match does not start at the correct loc")
       h.assert_eq[ParseLoc[U8] box](next, result'.next, "match does not end at the correct loc")
-      match result'.result()
+      match result'.value()
       | let num: USize =>
         h.assert_eq[USize](123, num, "action did not return the correct result")
       else
-        h.fail("action did not return any result")
+        h.fail("action did not return a value")
       end
     end
 

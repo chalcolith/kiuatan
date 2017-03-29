@@ -2,7 +2,7 @@ use "collections"
 
 type ParseSegment[T] is ListNode[ReadSeq[T]]
 
-class ParseLoc[T] is (Equatable[ParseLoc[T]] & Stringable)
+class ParseLoc[T] is (Equatable[ParseLoc[T]] & Hashable & Stringable)
   """
   A pointer to a particular location in list of source sequences.
   """
@@ -57,6 +57,9 @@ class ParseLoc[T] is (Equatable[ParseLoc[T]] & Stringable)
 
   fun box ne(that: box->ParseLoc[T]) : Bool =>
     not ((_segment is that._segment) and (_index == that._index))
+
+  fun box hash() : U64 val =>
+    HashIs[ParseSegment[T]].hash(_segment) xor U64.from[USize](_index)
 
   fun box string(): String iso^ =>
     var num: USize = 0

@@ -3,14 +3,14 @@ use "collections"
 type _SegToRuleMemo[TSrc,TRes] is MapIs[ParseSegment[TSrc] box, _RuleToExpMemo[TSrc,TRes]]
 type _RuleToExpMemo[TSrc,TRes] is MapIs[ParseRule[TSrc,TRes] box, _ExpToLocMemo[TSrc,TRes]]
 type _ExpToLocMemo[TSrc,TRes] is Map[USize, _LocToResultMemo[TSrc,TRes]]
-type _LocToResultMemo[TSrc,TRes] is MapIs[ParseLoc[TSrc] box, (ParseResult[TSrc,TRes] | None)]
+type _LocToResultMemo[TSrc,TRes] is Map[ParseLoc[TSrc] box, (ParseResult[TSrc,TRes] | None)]
 
 
 class _Expansion[TSrc,TRes]
-  let rule: ParseRule[TSrc,TRes]
+  let rule: ParseRule[TSrc,TRes] box
   let num: USize
 
-  new create(rule': ParseRule[TSrc,TRes], num': USize) =>
+  new create(rule': ParseRule[TSrc,TRes] box, num': USize) =>
     rule = rule'
     num = num'
 
@@ -40,7 +40,7 @@ class ParseState[TSrc,TRes]
   fun box start(): ParseLoc[TSrc] box =>
     _start
 
-  fun ref call_with_memo(rule: ParseRule[TSrc,TRes], loc: ParseLoc[TSrc]): (ParseResult[TSrc,TRes] | None) ? =>
+  fun ref call_with_memo(rule: ParseRule[TSrc,TRes] box, loc: ParseLoc[TSrc] box): (ParseResult[TSrc,TRes] | None) ? =>
     let exp = _Expansion[TSrc,TRes](rule, 0)
     
     match get_result(exp, loc)
@@ -51,7 +51,7 @@ class ParseState[TSrc,TRes]
     memoize(exp, loc, res)
     res
 
-  fun get_result(exp: _Expansion[TSrc,TRes], loc: ParseLoc[TSrc]): (this->ParseResult[TSrc,TRes] | None) =>
+  fun get_result(exp: _Expansion[TSrc,TRes], loc: ParseLoc[TSrc] box): (this->ParseResult[TSrc,TRes] | None) =>
     try
       let rule_memo = _memo_tables(loc.segment())
       let exp_memo = rule_memo(exp.rule)
@@ -61,7 +61,7 @@ class ParseState[TSrc,TRes]
       None
     end
 
-  fun ref memoize(exp: _Expansion[TSrc,TRes], loc: ParseLoc[TSrc], res: (ParseResult[TSrc,TRes] | None)) ? =>
+  fun ref memoize(exp: _Expansion[TSrc,TRes], loc: ParseLoc[TSrc] box, res: (ParseResult[TSrc,TRes] | None)) ? =>
     let rule_memo = try
       _memo_tables(loc.segment())
     else
@@ -81,7 +81,6 @@ class ParseState[TSrc,TRes]
     end
 
     loc_memo.insert(loc, res)
-
 
   fun ref forget(exp: _Expansion[TSrc,TRes], loc: ParseLoc[TSrc]) =>
     try
