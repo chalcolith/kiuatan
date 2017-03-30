@@ -1,5 +1,3 @@
-type RuleResult[TSrc,TVal] is (ParseResult[TSrc,TVal] | None)
-type RuleAction[TSrc,TVal] is (ParseAction[TSrc,TVal] val | None)
 
 trait ParseRule[TSrc,TVal]
   """
@@ -9,16 +7,16 @@ trait ParseRule[TSrc,TVal]
   fun is_recursive(): Bool =>
     false
 
-  fun box parse(memo: ParseState[TSrc,TVal] ref, start: ParseLoc[TSrc] box): RuleResult[TSrc,TVal] ?
+  fun box parse(memo: ParseState[TSrc,TVal] ref, start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ?
 
 
 class ParseAny[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
-  let _action: RuleAction[TSrc,TVal]
+  let _action: (ParseAction[TSrc,TVal] val | None)
 
-  new create(action: RuleAction[TSrc,TVal] = None) =>
+  new create(action: (ParseAction[TSrc,TVal] val | None) = None) =>
     _action = action
   
-  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): RuleResult[TSrc,TVal] ? =>
+  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>
     let cur = start.clone()
     if cur.has_next() then 
       cur.next()
@@ -30,20 +28,20 @@ class ParseAny[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
     | None => 
       ParseResult[TSrc,TVal].from_value(memo, start, cur, Array[ParseResult[TSrc,TVal]](), None)
     | let action: ParseAction[TSrc,TVal] val =>
-      ParseResult[TSrc,TVal].from_action(memo, start, cur, Array[ParseResult[TSrc,TVal]](), action)
+      ParseResult[TSrc,TVal](memo, start, cur, Array[ParseResult[TSrc,TVal]](), action)
     end
 
 
 class ParseLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
   let _expected: ReadSeq[TSrc] box
-  let _action: RuleAction[TSrc,TVal]
+  let _action: (ParseAction[TSrc,TVal] val | None)
 
   new create(expected: ReadSeq[TSrc] box,
-             action: RuleAction[TSrc,TVal] = None) =>
+             action: (ParseAction[TSrc,TVal] val | None) = None) =>
     _expected = expected
     _action = action
 
-  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): RuleResult[TSrc,TVal] ? =>
+  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>
     let cur = start.clone()
     for expected in _expected.values() do
       if not cur.has_next() then return None end
@@ -55,20 +53,20 @@ class ParseLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
     | None => 
       ParseResult[TSrc,TVal].from_value(memo, start, cur, Array[ParseResult[TSrc,TVal]](), None)
     | let action: ParseAction[TSrc,TVal] val =>
-      ParseResult[TSrc,TVal].from_action(memo, start, cur, Array[ParseResult[TSrc,TVal]](), action)
+      ParseResult[TSrc,TVal](memo, start, cur, Array[ParseResult[TSrc,TVal]](), action)
     end
 
 
 class ParseSequence[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
   let _children: ReadSeq[ParseRule[TSrc,TVal] box]
-  let _action: RuleAction[TSrc,TVal]
+  let _action: (ParseAction[TSrc,TVal] val | None)
 
   new create(children: ReadSeq[ParseRule[TSrc,TVal] box] box,
-             action: RuleAction[TSrc,TVal] = None) =>
+             action: (ParseAction[TSrc,TVal] val | None) = None) =>
     _children = children
     _action = action
   
-  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): RuleResult[TSrc,TVal] ? =>
+  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>
     let results = Array[ParseResult[TSrc,TVal]](_children.size())
     var cur = start
     for rule in _children.values() do
@@ -80,24 +78,24 @@ class ParseSequence[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
         return None
       end
     end
-    ParseResult[TSrc,TVal].from_action(memo, start, cur, results, _action)
+    ParseResult[TSrc,TVal](memo, start, cur, results, _action)
 
 
 class ParseChoice[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
   let _children: ReadSeq[ParseRule[TSrc,TVal] box]
-  let _action: RuleAction[TSrc,TVal]
+  let _action: (ParseAction[TSrc,TVal] val | None)
 
   new create(children: ReadSeq[ParseRule[TSrc,TVal] box] box,
-             action: RuleAction[TSrc,TVal] = None) =>
+             action: (ParseAction[TSrc,TVal] val | None) = None) =>
     _children = children
     _action = action
   
-  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): RuleResult[TSrc,TVal] ? =>
+  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>
     for rule in _children.values() do
       var cur = start.clone()
       match memo.call_with_memo(rule, cur)
       | let r: ParseResult[TSrc,TVal] =>
-        return ParseResult[TSrc,TVal].from_action(memo, start, r.next, [r], _action)
+        return ParseResult[TSrc,TVal](memo, start, r.next, [r], _action)
       end
     end
     None
@@ -107,15 +105,15 @@ class ParseRepeat[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
   let _child: ParseRule[TSrc,TVal] box
   let _min: USize
   let _max: USize
-  let _action: RuleAction[TSrc,TVal]
+  let _action: (ParseAction[TSrc,TVal] val | None)
 
-  new create(child: ParseRule[TSrc,TVal] box, min: USize, max: USize = USize.max_value(), action: RuleAction[TSrc,TVal] = None) =>
+  new create(child: ParseRule[TSrc,TVal] box, min: USize, max: USize = USize.max_value(), action: (ParseAction[TSrc,TVal] val | None) = None) =>
     _child = child
     _min = min
     _max = max
     _action = action
   
-  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): RuleResult[TSrc,TVal] ? =>
+  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>
     let results = Array[ParseResult[TSrc,TVal]]()
     var count: USize = 0
     var cur = start
@@ -127,9 +125,10 @@ class ParseRepeat[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
       else
         break
       end
+      count = count + 1
     end
     if (count >= _min) then
-      ParseResult[TSrc,TVal].from_action(memo, start, cur, results, _action)
+      ParseResult[TSrc,TVal](memo, start, cur, results, _action)
     else
       None
     end

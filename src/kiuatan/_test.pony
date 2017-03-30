@@ -91,14 +91,9 @@ class iso _TestParseRuleSequenceAction is UnitTest
 
   fun apply(h: TestHelper) ? =>
     let any_rule = ParseAny[U8,USize]({
-      (
-        state: ParseState[U8,USize] box,
-        start: ParseLoc[U8] box,
-        next: ParseLoc[U8] box,
-        results: ReadSeq[ParseResult[U8,USize] box] box
-      ) : USize =>
+      (ctx: ParseActionContext[U8,USize] box) : USize =>
         try
-          let i = start.clone()
+          let i = ctx.start.clone()
           let c = i.next()
           if (c >= '0') and (c <= '9') then
             return USize.from[U8](c - '0')
@@ -109,14 +104,9 @@ class iso _TestParseRuleSequenceAction is UnitTest
     let rules = [as ParseRule[U8,USize]: any_rule; any_rule; any_rule; any_rule; any_rule]
 
     let seq_rule = ParseSequence[U8,USize](rules, {
-      (
-        state: ParseState[U8,USize] box,
-        start: ParseLoc[U8] box,
-        next: ParseLoc[U8] box,
-        results: ReadSeq[ParseResult[U8,USize] box] box
-      ) : USize =>
+      (ctx: ParseActionContext[U8,USize] box) : USize =>
         var sum: USize = 0
-        for r in results.values() do
+        for r in ctx.results.values() do
           match r.value()
           | let n: USize => sum = sum + n
           end
@@ -152,16 +142,11 @@ class iso _TestParseRuleLiteralAction is UnitTest
     let str = "123"
     let memo = ParseState[U8,USize](src)
     let literal = ParseLiteral[U8,USize](str, {
-      (
-        state: ParseState[U8,USize] box,
-        start: ParseLoc[U8] box,
-        next: ParseLoc[U8] box,
-        results: ReadSeq[ParseResult[U8,USize] box] box
-      ) : USize =>
+      (ctx: ParseActionContext[U8,USize] box) : USize =>
         try
           let s = String
-          let i = start.clone()
-          while i.has_next() and (i != next) do
+          let i = ctx.start.clone()
+          while i.has_next() and (i != ctx.next) do
             s.push(i.next())
           end
           s.usize()
