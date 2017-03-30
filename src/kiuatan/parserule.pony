@@ -101,3 +101,35 @@ class ParseChoice[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
       end
     end
     None
+
+
+class ParseRepeat[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
+  let _child: ParseRule[TSrc,TVal] box
+  let _min: USize
+  let _max: USize
+  let _action: RuleAction[TSrc,TVal]
+
+  new create(child: ParseRule[TSrc,TVal] box, min: USize, max: USize = USize.max_value(), action: RuleAction[TSrc,TVal] = None) =>
+    _child = child
+    _min = min
+    _max = max
+    _action = action
+  
+  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): RuleResult[TSrc,TVal] ? =>
+    let results = Array[ParseResult[TSrc,TVal]]()
+    var count: USize = 0
+    var cur = start
+    while count < _max do
+      match memo.call_with_memo(_child, cur)
+      | let r: ParseResult[TSrc,TVal] =>
+        results.push(r)
+        cur = r.next
+      else
+        break
+      end
+    end
+    if (count >= _min) then
+      ParseResult[TSrc,TVal].from_action(memo, start, cur, results, _action)
+    else
+      None
+    end

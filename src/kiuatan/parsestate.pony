@@ -33,6 +33,15 @@ class ParseState[TSrc,TVal]
     else
       ParseLoc[TSrc](_source.head(), 0)
     end
+  
+  new from_seq(seq: ReadSeq[TSrc] box, start': (ParseLoc[TSrc] | None) = None) ? =>
+    _source = List[ReadSeq[TSrc]].from([as ReadSeq[TSrc]: seq])
+    _start = match start'
+    | let loc: ParseLoc[TSrc] =>
+      loc.clone()
+    else
+      ParseLoc[TSrc](_source.head(), 0)
+    end
 
   fun box source(): List[ReadSeq[TSrc] box] box =>
     _source

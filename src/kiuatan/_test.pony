@@ -18,6 +18,40 @@ actor Main is TestList
     test(_TestParseRuleLiteralAction)
     test(_TestParseRuleSequenceAction)
     test(_TestParseRuleChoiceAction)
+    test(_TestParseRuleRepeatAction)
+
+
+class iso _TestParseRuleRepeatAction is UnitTest
+  fun name(): String => "ParseRule_Repeat_Action"
+
+  fun apply(h: TestHelper) ? =>
+    let child = ParseLiteral[U8,U8]("x")
+    let rep0 = ParseRepeat[U8,U8](child, 0)
+    
+    let memo0_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))
+    match rep0.parse(memo0_0, memo0_0.start())
+    | None => h.fail("repeat 0 did not match 0")
+    end
+
+    let memo0_1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "x"]))
+    match rep0.parse(memo0_1, memo0_1.start())
+    | None => h.fail("repeat 0 did not match 1")
+    end
+
+    let rep1 = ParseRepeat[U8,U8](child, 1)
+
+    let memo1_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))
+    match rep1.parse(memo1_0, memo1_0.start())
+    | let _: ParseResult[U8,U8] => h.fail("repeat 1 matched 0")
+    end
+
+    let memo1_1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "xx"]))
+    match rep1.parse(memo1_1, memo1_1.start())
+    | let r: ParseResult[U8,U8] =>
+      let n = r.children.size()
+      h.assert_eq[USize](2, n, "repeat 1 did not match 2 xes")
+    | None => h.fail("repeat 1 did not match 2")
+    end
 
 
 class iso _TestParseRuleChoiceAction is UnitTest
