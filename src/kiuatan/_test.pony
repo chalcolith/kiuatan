@@ -103,7 +103,7 @@ class iso _TestParseRuleSequenceAction is UnitTest
     })
     let rules = [as ParseRule[U8,USize]: any_rule; any_rule; any_rule; any_rule; any_rule]
 
-    let seq_rule = ParseSequence[U8,USize](rules, {
+    let seq_rule = ParseSequence[U8,USize]("Seq", rules, {
       (ctx: ParseActionContext[U8,USize] box) : USize =>
         var sum: USize = 0
         for r in ctx.results.values() do
