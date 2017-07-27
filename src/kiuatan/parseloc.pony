@@ -2,7 +2,7 @@ use "collections"
 
 type ParseSegment[T] is ListNode[ReadSeq[T]]
 
-class ParseLoc[T] is (Equatable[ParseLoc[T]] & Hashable & Stringable)
+class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
   """
   A pointer to a particular location in list of source sequences.
   """
@@ -57,6 +57,62 @@ class ParseLoc[T] is (Equatable[ParseLoc[T]] & Hashable & Stringable)
 
   fun box ne(that: box->ParseLoc[T]) : Bool =>
     not ((_segment is that._segment) and (_index == that._index))
+
+  fun box lt(that: box->ParseLoc[T]) : Bool =>
+    if _segment is that._segment then
+      _index < that._index
+    else
+      var cur = recover val this._segment end
+      while not (cur is that._segment) do
+        if not cur.has_next() then return false end
+        match cur.next()
+        | let n: ListNode[ReadSeq[T] box] val => cur = n
+        else return false end
+      end
+      true
+    end
+
+  fun box le(that: box->ParseLoc[T]) : Bool =>
+    if _segment is that._segment then
+      _index <= that._index
+    else
+      var cur = recover val this._segment end
+      while not (cur is that._segment) do
+        if not cur.has_next() then return false end
+        match cur.next()
+        | let n: ListNode[ReadSeq[T] box] val => cur = n
+        else return false end
+      end
+      true
+    end
+  
+  fun box ge(that: box->ParseLoc[T]) : Bool =>
+    if _segment is that._segment then
+      _index >= that._index
+    else
+      var cur = recover val this._segment end
+      while not (cur is that._segment) do
+        if not cur.has_prev() then return false end
+        match cur.prev()
+        | let n: ListNode[ReadSeq[T] box] val => cur = n
+        else return false end
+      end
+      true
+    end
+  
+  fun box gt(that: box->ParseLoc[T]): Bool =>
+    if _segment is that._segment then
+      _index > that._index
+    else
+      var cur = recover this._segment end
+      while not (cur is that._segment) do
+        if not cur.has_prev() then return false end
+        match cur.prev()
+        | let n: ListNode[ReadSeq[T] box] val => cur = n
+        else return false end
+      end
+      true
+    end
 
   fun box hash() : U64 val =>
     HashIs[ParseSegment[T]].hash(_segment) xor U64.from[USize](_index)
