@@ -34,7 +34,7 @@ class ParseSequence[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
     let results = Array[ParseResult[TSrc,TVal]](_children.size())
     var cur = start
     for rule in _children.values() do
-      match memo.call_with_memo(rule, cur)
+      match memo.call_with_memo(rule, cur)?
       | let r: ParseResult[TSrc,TVal] =>
         results.push(r)
         cur = r.next

@@ -11,7 +11,7 @@ class ParseAny[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
   fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>
     let cur = start.clone()
     if cur.has_next() then 
-      cur.next()
+      cur.next()?
     else
       return None 
     end

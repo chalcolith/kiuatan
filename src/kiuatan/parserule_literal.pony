@@ -23,7 +23,7 @@ class ParseLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
     let cur = start.clone()
     for expected in _expected.values() do
       if not cur.has_next() then return None end
-      let actual = cur.next()
+      let actual = cur.next()?
       if expected != actual then return None end
     end
 

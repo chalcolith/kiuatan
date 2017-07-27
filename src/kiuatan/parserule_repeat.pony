@@ -33,7 +33,7 @@ class ParseRepeat[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
     var count: USize = 0
     var cur = start
     while count < _max do
-      match memo.call_with_memo(_child, cur)
+      match memo.call_with_memo(_child, cur)?
       | let r: ParseResult[TSrc,TVal] =>
         results.push(r)
         cur = r.next

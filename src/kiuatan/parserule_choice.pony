@@ -26,7 +26,7 @@ class ParseChoice[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
   fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>
     for rule in _children.values() do
       var cur = start.clone()
-      match memo.call_with_memo(rule, cur)
+      match memo.call_with_memo(rule, cur)?
       | let r: ParseResult[TSrc,TVal] =>
         return ParseResult[TSrc,TVal](memo, start, r.next, [r], _action)
       end

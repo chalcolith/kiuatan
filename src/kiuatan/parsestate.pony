@@ -52,7 +52,7 @@ class ParseState[TSrc,TVal]
     | let loc: ParseLoc[TSrc] =>
       loc.clone()
     else
-      ParseLoc[TSrc](_source.head(), 0)
+      ParseLoc[TSrc](_source.head()?, 0)
     end
   
   new from_seq(seq: ReadSeq[TSrc] box, start': (ParseLoc[TSrc] | None) = None) ? =>
@@ -61,7 +61,7 @@ class ParseState[TSrc,TVal]
     | let loc: ParseLoc[TSrc] =>
       loc.clone()
     else
-      ParseLoc[TSrc](_source.head(), 0)
+      ParseLoc[TSrc](_source.head()?, 0)
     end
 
   fun box source(): List[ReadSeq[TSrc] box] box =>
@@ -78,8 +78,8 @@ class ParseState[TSrc,TVal]
     end
 
     if rule.is_recursive() then
-      let res = rule.parse(this, loc)
-      memoize(exp, loc, res)
+      let res = rule.parse(this, loc)?
+      memoize(exp, loc, res)?
       return res
     end
 
@@ -93,31 +93,31 @@ class ParseState[TSrc,TVal]
       get_result(rec.cur_expansion, loc)
     else
       let rec = _LRRecord[TSrc,TVal](rule, loc)
-      memoize(rec.cur_expansion, loc, None)
+      memoize(rec.cur_expansion, loc, None)?
       start_lr_record(rule, loc, rec)
       _call_stack.unshift(rec)
 
       var res: (ParseResult[TSrc,TVal] | None) = None
       while true do
-        res = rule.parse(this, loc)
+        res = rule.parse(this, loc)?
         match res
         | (let r: ParseResult[TSrc,TVal]) if rec.lr_detected and (r.next > rec.cur_next_loc) =>
           rec.num_expansions = rec.num_expansions + 1
           rec.cur_expansion = _Expansion[TSrc,TVal](rule, rec.num_expansions)
           rec.cur_next_loc = r.next
           rec.cur_result = r
-          memoize(rec.cur_expansion, loc, r)
+          memoize(rec.cur_expansion, loc, r)?
         else
           if rec.lr_detected then
             res = rec.cur_result
           end
           forget_lr_record(rule, loc)
-          _call_stack.shift()
+          _call_stack.shift()?
           if not _call_stack.exists({
               (r: _LRRecord[TSrc,TVal] box): Bool => 
                 r.involved_rules.contains(rule)
           }) then
-            memoize(exp, loc, res)
+            memoize(exp, loc, res)?
           end
           break
         end
@@ -127,39 +127,39 @@ class ParseState[TSrc,TVal]
 
   fun get_result(exp: _Expansion[TSrc,TVal] box, loc: ParseLoc[TSrc] box): (this->ParseResult[TSrc,TVal] | None) =>
     try
-      let exp_memo = _memo_tables(exp.rule)
-      let loc_memo = exp_memo(exp.num)
-      loc_memo(loc)
+      let exp_memo = _memo_tables(exp.rule)?
+      let loc_memo = exp_memo(exp.num)?
+      loc_memo(loc)?
     else
       None
     end
 
   fun ref memoize(exp: _Expansion[TSrc,TVal], loc: ParseLoc[TSrc] box, res: (ParseResult[TSrc,TVal] | None)) ? =>
     let exp_memo = try
-      _memo_tables(exp.rule)
+      _memo_tables(exp.rule)?
     else
-      _memo_tables.insert(exp.rule, _ExpToLocMemo[TSrc,TVal]())
+      _memo_tables.insert(exp.rule, _ExpToLocMemo[TSrc,TVal]())?
     end
     
     let loc_memo = try
-      exp_memo(exp.num)
+      exp_memo(exp.num)?
     else
-      exp_memo.insert(exp.num, _LocToResultMemo[TSrc,TVal]())
+      exp_memo.insert(exp.num, _LocToResultMemo[TSrc,TVal]())?
     end
 
-    loc_memo.insert(loc, res)
+    loc_memo.insert(loc, res)?
 
   fun ref forget(exp: _Expansion[TSrc,TVal], loc: ParseLoc[TSrc]) =>
     try
-      let exp_memo = _memo_tables(exp.rule)
-      let loc_memo = exp_memo(exp.num)
-      loc_memo.remove(loc)
+      let exp_memo = _memo_tables(exp.rule)?
+      let loc_memo = exp_memo(exp.num)?
+      loc_memo.remove(loc)?
     end
 
   fun ref get_lr_record(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box): (_LRRecord[TSrc,TVal] | None) =>
     try
-      let loc_lr = _cur_recursions(rule)
-      loc_lr(loc)
+      let loc_lr = _cur_recursions(rule)?
+      loc_lr(loc)?
     else
       None
     end
@@ -167,16 +167,16 @@ class ParseState[TSrc,TVal]
   fun ref start_lr_record(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box, rec: _LRRecord[TSrc,TVal]) =>
     try
       let loc_lr = try
-        _cur_recursions(rule)
+        _cur_recursions(rule)?
       else
-        _cur_recursions.insert(rule, _LocToLR[TSrc,TVal]())
+        _cur_recursions.insert(rule, _LocToLR[TSrc,TVal]())?
       end
 
-      loc_lr.insert(loc, rec)
+      loc_lr.insert(loc, rec)?
     end
 
   fun ref forget_lr_record(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box) =>
     try
-      let loc_lr = _cur_recursions(rule)
-      loc_lr.remove(loc)
+      let loc_lr = _cur_recursions(rule)?
+      loc_lr.remove(loc)?
     end

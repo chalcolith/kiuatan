@@ -22,23 +22,23 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
 
   fun has_next(): Bool =>
     try
-      if _index < _segment().size() then
+      if _index < _segment()?.size() then
         return true
       elseif _segment.has_next() then
         let n = _segment.next() as ParseSegment[T] box
-        return n().size() > 0
+        return n()?.size() > 0
       end
     end
     false
 
   fun ref next(): box->T ? =>
-    var seq = _segment()
+    var seq = _segment()?
     if _index >= seq.size() then
       _segment = _segment.next() as ParseSegment[T] box
       _index = 0
-      seq = _segment()
+      seq = _segment()?
     end
-    seq(_index = _index + 1)
+    seq(_index = _index + 1)?
 
   fun box clone(): ParseLoc[T]^ =>
     ParseLoc[T](_segment, _index)
@@ -47,7 +47,7 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
     let cur = clone()
     var i: USize = 0
     while i < n do
-      cur.next()
+      cur.next()?
       i = i + 1
     end
     consume cur
