@@ -1,5 +1,8 @@
-
 class ParseLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
+  """
+  Matches a literal sequence of inputs.
+  """
+
   let _expected: ReadSeq[TSrc] box
   let _action: (ParseAction[TSrc,TVal] val | None)
 
@@ -8,7 +11,7 @@ class ParseLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
     _expected = expected
     _action = action
   
-  fun name(): String =>
+  fun description(): String =>
     try
       recover
         let s = String

@@ -1,11 +1,14 @@
+class ParseAny[TSrc,TVal] is ParseRule[TSrc,TVal]
+  """
+  Matches any single input.
+  """
 
-class ParseAny[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
   let _action: (ParseAction[TSrc,TVal] val | None)
 
   new create(action: (ParseAction[TSrc,TVal] val | None) = None) =>
     _action = action
   
-  fun name(): String =>
+  fun description(): String =>
     "."
 
   fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>

@@ -1,5 +1,8 @@
+class ParseRepeat[TSrc,TVal] is ParseRule[TSrc,TVal]
+  """
+  Matches a number of repetitions of a rule.
+  """
 
-class ParseRepeat[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
   let _child: ParseRule[TSrc,TVal] box
   let _min: USize
   let _max: USize
@@ -12,19 +15,19 @@ class ParseRepeat[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
     _max = max
     _action = action
   
-  fun name(): String =>
+  fun description(): String =>
     if (_min == 0) and (_max == 1) then
-      _child.name() + "?"
+      _child.description() + "?"
     elseif _min == 0 then
-      _child.name() + "*"
+      _child.description() + "*"
     elseif _min == 1 then
-      _child.name() + "+"
+      _child.description() + "+"
     else
-      _child.name() + "{" + _min.string() + 
+      _child.description() + "{" + _min.string() + 
         "," + _max.string() + "}"
     end
   
-  fun is_recursive(): Bool =>
+  fun can_be_recursive(): Bool =>
     true
       
   fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): 

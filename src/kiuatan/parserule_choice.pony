@@ -1,5 +1,9 @@
-
 class ParseChoice[TSrc, TVal] is ParseRule[TSrc,TVal]
+  """
+  Matches one of a list of rules.  Uses PEG committed choice semantics;
+  does not backtrack once a choice has matched.
+  """
+
   let _children: ReadSeq[ParseRule[TSrc,TVal] box]
   let _action: (ParseAction[TSrc,TVal] val | None)
 
@@ -8,19 +12,19 @@ class ParseChoice[TSrc, TVal] is ParseRule[TSrc,TVal]
     _children = children
     _action = action
   
-  fun name(): String =>
+  fun description(): String =>
     recover
       let s = String
       s.append("(")
       for child in _children.values() do
         if s.size() > 1 then s.append(" | ") end
-        s.append(child.name())
+        s.append(child.description())
       end
       s.append(")")
       s
     end
   
-  fun is_recursive(): Bool =>
+  fun can_be_recursive(): Bool =>
     true
 
   fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>

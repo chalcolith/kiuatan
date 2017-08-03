@@ -21,13 +21,42 @@ actor Main is TestList
     test(_TestParseRuleRepeatAction)
     test(_TestParseRuleSequenceOperator)
     test(_TestParseRuleChoiceOperator)
+    test(_TestParseRuleNot)
+    test(_TestParseRuleAnd)
+
+
+class iso _TestParseRuleAnd is UnitTest
+  fun name(): String => "ParseRule_And"
+
+  fun apply(h: TestHelper) ? =>
+    let rule = ParseAnd[U8,None](ParseLiteral[U8,None]("ab"))
+      + ParseLiteral[U8,None]("abcd")
+    
+    let state = ParseState[U8,None].from_seq("abcd")?
+    match rule.parse(state, state.start())?
+    | None => h.fail("&ab+abcd rule did not match \"abcd\"")
+    end
+
+
+class iso _TestParseRuleNot is UnitTest
+  fun name(): String => "ParseRule_Not"
+
+  fun apply(h: TestHelper) ? =>
+    let rule = ParseNot[U8,None](ParseLiteral[U8,None]("ab"))
+      + ParseLiteral[U8,None]("cde")
+    
+    let state = ParseState[U8,None].from_seq("cde")?
+    match rule.parse(state, state.start())?
+    | None => h.fail("!ab+cde rule did not match \"cde\"")
+    end
 
 
 class iso _TestParseRuleChoiceOperator is UnitTest
   fun name(): String => "ParseRule_Choice_Operator"
 
   fun apply(h: TestHelper) ? =>
-    let ab_or_bc_rule = ParseLiteral[U8, None]("ab") or ParseLiteral[U8,None]("bc")
+    let ab_or_bc_rule = ParseLiteral[U8,None]("ab") 
+      or ParseLiteral[U8,None]("bc")
 
     let match_ab = ParseState[U8,None].from_seq("ab")?
     match ab_or_bc_rule.parse(match_ab, match_ab.start())?
@@ -148,7 +177,7 @@ class iso _TestParseRuleSequenceAction is UnitTest
     })
     let rules = [as ParseRule[U8,USize]: any_rule; any_rule; any_rule; any_rule; any_rule]
 
-    let seq_rule = ParseSequence[U8,USize]("Seq", rules, {
+    let seq_rule = ParseSequence[U8,USize](rules, {
       (ctx: ParseActionContext[U8,USize] box) : USize =>
         var sum: USize = 0
         for r in ctx.results.values() do

@@ -1,24 +1,8 @@
-class box ParseActionContext[TSrc,TVal]
-  let state: ParseState[TSrc,TVal] box
-  let start:  ParseLoc[TSrc] box
-  let next: ParseLoc[TSrc] box
-  let results: ReadSeq[ParseResult[TSrc,TVal] box] box
-
-  new create(state': ParseState[TSrc,TVal] box,
-             start':  ParseLoc[TSrc] box,
-             next': ParseLoc[TSrc] box,
-             results': ReadSeq[ParseResult[TSrc,TVal] box] box) =>
-    state = state'
-    start = start'
-    next = next'
-    results = results'
-
-
-type ParseAction[TSrc,TVal] is {
-  (ParseActionContext[TSrc,TVal]): TVal
-}
-
 class ParseResult[TSrc,TVal]
+  """
+  Holds the result of a successful parse.
+  """
+
   let state: ParseState[TSrc,TVal] box
   let start: ParseLoc[TSrc] box
   let next: ParseLoc[TSrc] box
@@ -61,3 +45,26 @@ class ParseResult[TSrc,TVal]
         None
       end
     end
+
+
+class box ParseActionContext[TSrc,TVal]
+  """
+  Holds the context for a parse action.
+  """
+
+  let state: ParseState[TSrc,TVal] box
+  let start:  ParseLoc[TSrc] box
+  let next: ParseLoc[TSrc] box
+  let results: ReadSeq[ParseResult[TSrc,TVal] box] box
+
+  new create(state': ParseState[TSrc,TVal] box,
+             start':  ParseLoc[TSrc] box,
+             next': ParseLoc[TSrc] box,
+             results': ReadSeq[ParseResult[TSrc,TVal] box] box) =>
+    state = state'
+    start = start'
+    next = next'
+    results = results'
+
+
+type ParseAction[TSrc,TVal] is { (ParseActionContext[TSrc,TVal]): TVal }

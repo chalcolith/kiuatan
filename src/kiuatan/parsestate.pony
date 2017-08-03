@@ -2,7 +2,7 @@ use "collections"
 
 class ParseState[TSrc,TVal]
   """
-  Stores the memo and matcher stack for a particular match.
+  Stores the state of a particular match.
   """
 
   let _source: List[ReadSeq[TSrc]] box
@@ -43,7 +43,7 @@ class ParseState[TSrc,TVal]
     | let r: ParseResult[TSrc,TVal] => return r
     end
 
-    if rule.is_recursive() then
+    if rule.can_be_recursive() then
       let res = rule.parse(this, loc)?
       memoize(exp, loc, res)?
       return res
