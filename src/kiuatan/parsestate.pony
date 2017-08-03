@@ -1,4 +1,5 @@
 use "collections"
+use "debug"
 
 class ParseState[TSrc,TVal]
   """
@@ -36,29 +37,62 @@ class ParseState[TSrc,TVal]
   fun box start(): ParseLoc[TSrc] box =>
     _start
 
-  fun ref call_with_memo(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>
+  fun _get_indent(n: USize): String =>
+    var indent: String trn = recover String end
+    var i = n
+    while i > 0 do
+      indent.append("  ")
+      i = i - 1
+    end
+    indent
+
+  fun ref parse(rule: ParseRule[TSrc,TVal] box, 
+                loc: ParseLoc[TSrc] box): 
+    (ParseResult[TSrc,TVal] | None) ? =>
     let exp = _Expansion[TSrc,TVal](rule, 0)
     
+    var depth = _call_stack.size()
+    let indent = _get_indent(depth)
+    Debug.out(indent + "parse: looking for " + exp.rule.description() 
+      + ":" + exp.num.string() + " (" + depth.string() + " deep)")
+    if depth > 10 then return None end
+
     match get_result(exp, loc)
-    | let r: ParseResult[TSrc,TVal] => return r
+    | let r: ParseResult[TSrc,TVal] => 
+      Debug.out(indent + "got memoized result @" + r.start.string() + "-" 
+        + r.next.string())
+      return r
     end
 
-    if rule.can_be_recursive() then
+    if not rule.can_be_recursive() then
       let res = rule.parse(this, loc)?
       memoize(exp, loc, res)?
+      match res
+      | let r: ParseResult[TSrc,TVal] =>
+        Debug.out(indent + "got non-recursive result @" + r.start.string() 
+          + "-" + r.next.string())
+      else
+        Debug.out(indent + "got non-recursive failure")
+      end
       return res
     end
 
     match get_lr_record(rule, loc)
     | let rec: _LRRecord[TSrc,TVal] =>
+      Debug.out(indent + "got LR record")
+
       rec.lr_detected = true
-      for lr in this._call_stack.rvalues() do
+      for lr in this._call_stack.values() do
         if lr.cur_expansion.rule is rule then break end
         rec.involved_rules.set(lr.cur_expansion.rule)
       end
-      get_result(rec.cur_expansion, loc)
+      return get_result(rec.cur_expansion, loc)
     else
       let rec = _LRRecord[TSrc,TVal](rule, loc)
+      Debug.out(indent + "start LR record; memoize failure for " 
+        + rec.cur_expansion.rule.description() + ":" 
+        + rec.cur_expansion.num.string())
+
       memoize(rec.cur_expansion, loc, None)?
       start_lr_record(rule, loc, rec)
       _call_stack.unshift(rec)
@@ -67,11 +101,14 @@ class ParseState[TSrc,TVal]
       while true do
         res = rule.parse(this, loc)?
         match res
-        | (let r: ParseResult[TSrc,TVal]) if rec.lr_detected and (r.next > rec.cur_next_loc) =>
+        | (let r: ParseResult[TSrc,TVal]) 
+          if rec.lr_detected and (r.next > rec.cur_next_loc) =>
           rec.num_expansions = rec.num_expansions + 1
           rec.cur_expansion = _Expansion[TSrc,TVal](rule, rec.num_expansions)
           rec.cur_next_loc = r.next
           rec.cur_result = r
+          Debug.out(indent + "memoize intermediate result @" + r.start.string() 
+            + "-" + r.next.string())
           memoize(rec.cur_expansion, loc, r)?
         else
           if rec.lr_detected then
@@ -79,16 +116,25 @@ class ParseState[TSrc,TVal]
           end
           forget_lr_record(rule, loc)
           _call_stack.shift()?
-          if not _call_stack.exists({
-              (r: _LRRecord[TSrc,TVal] box): Bool => 
-                r.involved_rules.contains(rule)
-          }) then
+          if not _call_stack.exists({ (r: _LRRecord[TSrc,TVal] box): Bool => 
+              r.involved_rules.contains(rule) }) then
             memoize(exp, loc, res)?
+          end
+
+          match res
+          | let r': ParseResult[TSrc,TVal] =>
+            Debug.out(indent + "end LR search; found result @" 
+              + r'.start.string() + "-" + r'.next.string())
+          else
+            Debug.out(indent + "end LR search; found None")
           end
           break
         end
+        Debug.out(indent + "repeating LR search for " 
+          + rec.cur_expansion.rule.description() + ":" 
+          + rec.cur_expansion.num.string())
       end
-      res
+      return res
     end
 
   fun get_result(exp: _Expansion[TSrc,TVal] box, loc: ParseLoc[TSrc] box): (this->ParseResult[TSrc,TVal] | None) =>
