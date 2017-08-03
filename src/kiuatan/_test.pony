@@ -23,6 +23,26 @@ actor Main is TestList
     test(_TestParseRuleChoiceOperator)
     test(_TestParseRuleNot)
     test(_TestParseRuleAnd)
+    test(_TestParseLeftRecursion)
+
+
+class iso _TestParseLeftRecursion is UnitTest
+  fun name(): String => "Parse_LeftRecursion"
+
+  fun apply(h: TestHelper) ? =>
+    // rule = rule + "cd" | "ab"
+    let ab = ParseLiteral[U8,None]("ab")
+    let cd = ParseLiteral[U8,None]("cd")
+
+    let first = ParseSequence[U8,None](Array[ParseRule[U8,None] box])
+    let rule = ParseChoice[U8,None]([ first; ab ])
+    first.push(rule)
+    first.push(cd)
+
+    let state = ParseState[U8,None].from_seq("abcd")?
+    match rule.parse(state, state.start())?
+    | None => h.fail("recursive rule did not match")
+    end
 
 
 class iso _TestParseRuleAnd is UnitTest
@@ -175,7 +195,7 @@ class iso _TestParseRuleSequenceAction is UnitTest
         end
         0
     })
-    let rules = [as ParseRule[U8,USize]: any_rule; any_rule; any_rule; any_rule; any_rule]
+    let rules = [as ParseRule[U8,USize] box: any_rule; any_rule; any_rule; any_rule; any_rule]
 
     let seq_rule = ParseSequence[U8,USize](rules, {
       (ctx: ParseActionContext[U8,USize] box) : USize =>

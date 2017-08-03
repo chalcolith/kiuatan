@@ -3,25 +3,32 @@ class ParseSequence[TSrc,TVal] is ParseRule[TSrc,TVal]
   Matches a sequence of rules.
   """
 
-  let _children: ReadSeq[ParseRule[TSrc,TVal] box]
+  let _children: Array[ParseRule[TSrc,TVal] box]
   let _action: (ParseAction[TSrc,TVal] val | None)
 
-  new create(children: ReadSeq[ParseRule[TSrc,TVal] box] box,
-             action: (ParseAction[TSrc,TVal] val | None) = None) =>
-    _children = children
+  new create(children: ReadSeq[ParseRule[TSrc,TVal] box],
+    action: (ParseAction[TSrc,TVal] val | None) = None) =>
+    _children = Array[ParseRule[TSrc,TVal] box]
+    for child in children.values() do
+      _children.push(child)
+    end
     _action = action
   
+  fun ref unshift(child: ParseRule[TSrc,TVal] box) =>
+    _children.unshift(child)
+
+  fun ref push(child: ParseRule[TSrc,TVal] box) =>
+    _children.push(child)
+
   fun description(): String =>
-    recover val
-      let s = String
-      s.append("(")
-      for child in _children.values() do
-        if s.size() > 1 then s.append(" + ") end
-        s.append(child.description())
-      end
-      s.append(")")
-      s
+    let s: String trn = recover String end
+    s.append("(")
+    for child in _children.values() do
+      if s.size() > 1 then s.append(" + ") end
+      s.append(child.description())
     end
+    s.append(")")
+    s
   
   fun can_be_recursive(): Bool =>
     true
