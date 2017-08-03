@@ -1,5 +1,5 @@
 
-class ParseChoice[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
+class ParseChoice[TSrc, TVal] is ParseRule[TSrc,TVal]
   let _children: ReadSeq[ParseRule[TSrc,TVal] box]
   let _action: (ParseAction[TSrc,TVal] val | None)
 

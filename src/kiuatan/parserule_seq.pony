@@ -1,5 +1,5 @@
 
-class ParseSequence[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
+class ParseSequence[TSrc,TVal] is ParseRule[TSrc,TVal]
   let _name: String
   let _children: ReadSeq[ParseRule[TSrc,TVal] box]
   let _action: (ParseAction[TSrc,TVal] val | None)

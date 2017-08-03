@@ -19,6 +19,51 @@ actor Main is TestList
     test(_TestParseRuleSequenceAction)
     test(_TestParseRuleChoiceAction)
     test(_TestParseRuleRepeatAction)
+    test(_TestParseRuleSequenceOperator)
+    test(_TestParseRuleChoiceOperator)
+
+
+class iso _TestParseRuleChoiceOperator is UnitTest
+  fun name(): String => "ParseRule_Choice_Operator"
+
+  fun apply(h: TestHelper) ? =>
+    let ab_or_bc_rule = ParseLiteral[U8, None]("ab") or ParseLiteral[U8,None]("bc")
+
+    let match_ab = ParseState[U8,None].from_seq("ab")?
+    match ab_or_bc_rule.parse(match_ab, match_ab.start())?
+    | None => h.fail("ab|bc choice did not match \"ab\"")
+    end
+
+    let match_bc = ParseState[U8,None].from_seq("bc")?
+    match ab_or_bc_rule.parse(match_bc, match_bc.start())?
+    | None => h.fail("ab|bc choice did not match \"bc\"")
+    end
+
+    let match_de = ParseState[U8,None].from_seq("de")?
+    match ab_or_bc_rule.parse(match_de, match_de.start())?
+    | None => None
+    else
+      h.fail("ab|bc choice matched \"de\" erroneously")
+    end
+
+
+class iso _TestParseRuleSequenceOperator is UnitTest
+  fun name(): String => "ParseRule_Sequence_Operator"
+
+  fun apply(h: TestHelper) ? =>
+    let ab_rule = ParseLiteral[U8,None]("a") + ParseLiteral[U8,None]("b")
+    
+    let should_match = ParseState[U8,None].from_seq("ab")?
+    match ab_rule.parse(should_match, should_match.start())?
+    | None => h.fail("ab sequence did not match \"ab\"")
+    end
+
+    let should_not_match = ParseState[U8,None].from_seq("cd")?
+    match ab_rule.parse(should_not_match, should_not_match.start())?
+    | None => None
+    else
+      h.fail("ab sequence matched \"cd\" erroneously")
+    end
 
 
 class iso _TestParseRuleRepeatAction is UnitTest

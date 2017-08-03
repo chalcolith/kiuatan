@@ -1,39 +1,5 @@
 use "collections"
 
-type _RuleToExpMemo[TSrc,TVal] is MapIs[ParseRule[TSrc,TVal] box, _ExpToLocMemo[TSrc,TVal]]
-type _ExpToLocMemo[TSrc,TVal] is Map[USize, _LocToResultMemo[TSrc,TVal]]
-type _LocToResultMemo[TSrc,TVal] is Map[ParseLoc[TSrc] box, (ParseResult[TSrc,TVal] | None)]
-
-type _RuleToLocLR[TSrc,TVal] is MapIs[ParseRule[TSrc,TVal] box, _LocToLR[TSrc,TVal]]
-type _LocToLR[TSrc,TVal] is Map[ParseLoc[TSrc] box, _LRRecord[TSrc,TVal]]
-
-
-class _Expansion[TSrc,TVal]
-  let rule: ParseRule[TSrc,TVal] box
-  let num: USize
-
-  new create(rule': ParseRule[TSrc,TVal] box, num': USize) =>
-    rule = rule'
-    num = num'
-
-
-class _LRRecord[TSrc,TVal]
-  var lr_detected: Bool
-  var num_expansions: USize
-  var cur_expansion: _Expansion[TSrc,TVal]
-  var cur_next_loc: ParseLoc[TSrc] box
-  var cur_result: (ParseResult[TSrc,TVal] | None)
-  var involved_rules: SetIs[ParseRule[TSrc,TVal] tag]
-
-  new create(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box) =>
-    lr_detected = false
-    num_expansions = 1
-    cur_expansion = _Expansion[TSrc,TVal](rule, num_expansions)
-    cur_next_loc = loc
-    cur_result = None
-    involved_rules = SetIs[ParseRule[TSrc,TVal] tag]
-
-
 class ParseState[TSrc,TVal]
   """
   Stores the memo and matcher stack for a particular match.
@@ -180,3 +146,37 @@ class ParseState[TSrc,TVal]
       let loc_lr = _cur_recursions(rule)?
       loc_lr.remove(loc)?
     end
+
+
+type _RuleToExpMemo[TSrc,TVal] is MapIs[ParseRule[TSrc,TVal] box, _ExpToLocMemo[TSrc,TVal]]
+type _ExpToLocMemo[TSrc,TVal] is Map[USize, _LocToResultMemo[TSrc,TVal]]
+type _LocToResultMemo[TSrc,TVal] is Map[ParseLoc[TSrc] box, (ParseResult[TSrc,TVal] | None)]
+
+type _RuleToLocLR[TSrc,TVal] is MapIs[ParseRule[TSrc,TVal] box, _LocToLR[TSrc,TVal]]
+type _LocToLR[TSrc,TVal] is Map[ParseLoc[TSrc] box, _LRRecord[TSrc,TVal]]
+
+
+class _Expansion[TSrc,TVal]
+  let rule: ParseRule[TSrc,TVal] box
+  let num: USize
+
+  new create(rule': ParseRule[TSrc,TVal] box, num': USize) =>
+    rule = rule'
+    num = num'
+
+
+class _LRRecord[TSrc,TVal]
+  var lr_detected: Bool
+  var num_expansions: USize
+  var cur_expansion: _Expansion[TSrc,TVal]
+  var cur_next_loc: ParseLoc[TSrc] box
+  var cur_result: (ParseResult[TSrc,TVal] | None)
+  var involved_rules: SetIs[ParseRule[TSrc,TVal] tag]
+
+  new create(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box) =>
+    lr_detected = false
+    num_expansions = 1
+    cur_expansion = _Expansion[TSrc,TVal](rule, num_expansions)
+    cur_next_loc = loc
+    cur_result = None
+    involved_rules = SetIs[ParseRule[TSrc,TVal] tag]
