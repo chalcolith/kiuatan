@@ -1,6 +1,6 @@
 use "collections"
 
-type ParseRuleCallStack[TSrc,TVal] is 
+type ParseRuleCallStack[TSrc,TVal] is
   (ListNode[ParseRule[TSrc,TVal] box] | None)
 
 trait ParseRule[TSrc,TVal]
@@ -14,10 +14,10 @@ trait ParseRule[TSrc,TVal]
   fun name(): String => ""
   fun ref set_name(str: String) => None
 
-  fun description(call_stack: ParseRuleCallStack[TSrc,TVal] = None): String => 
+  fun description(call_stack: ParseRuleCallStack[TSrc,TVal] = None): String =>
     "?"
 
-  fun _child_description(child: ParseRule[TSrc,TVal] box, 
+  fun _child_description(child: ParseRule[TSrc,TVal] box,
                          call_stack: ParseRuleCallStack[TSrc,TVal]): String =>
     match call_stack
     | let node: ListNode[ParseRule[TSrc,TVal] box] =>
@@ -52,6 +52,6 @@ trait ParseRule[TSrc,TVal]
 
   fun add(other: ParseRule[TSrc,TVal]): ParseRule[TSrc,TVal] =>
     ParseSequence[TSrc,TVal]([this; other], None)
-  
+
   fun op_or(other: ParseRule[TSrc,TVal]): ParseRule[TSrc,TVal] =>
     ParseChoice[TSrc,TVal]([this; other], None)

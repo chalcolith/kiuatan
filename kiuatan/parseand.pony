@@ -16,7 +16,7 @@ class ParseAnd[TSrc,TVal] is ParseRule[TSrc,TVal]
     _child = child
     _action = action
     _name = "?"
-  
+
   fun can_be_recursive(): Bool => true
 
   fun name(): String => _name
@@ -29,7 +29,7 @@ class ParseAnd[TSrc,TVal] is ParseRule[TSrc,TVal]
       "&(" + _child_description(_child, call_stack) + ")"
     end
 
-  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): 
+  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box):
     (ParseResult[TSrc,TVal] | None) ? =>
     match memo.parse(_child, start)?
     | let r: ParseResult[TSrc,TVal] =>

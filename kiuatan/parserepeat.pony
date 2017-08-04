@@ -11,17 +11,17 @@ class ParseRepeat[TSrc,TVal] is ParseRule[TSrc,TVal]
   let _max: USize
   let _action: (ParseAction[TSrc,TVal] val | None)
 
-  new create(child: ParseRule[TSrc,TVal] box, 
-             min: USize, max: USize = USize.max_value(), 
+  new create(child: ParseRule[TSrc,TVal] box,
+             min: USize, max: USize = USize.max_value(),
              action: (ParseAction[TSrc,TVal] val | None) = None) =>
     _name = ""
     _child = child
     _min = min
     _max = max
     _action = action
-  
+
   fun can_be_recursive(): Bool => true
-  
+
   fun name(): String => _name
   fun ref set_name(str: String) => _name = str
 
@@ -35,13 +35,13 @@ class ParseRepeat[TSrc,TVal] is ParseRule[TSrc,TVal]
     elseif _min == 1 then
       desc.append("(" + _child_description(_child, call_stack) + ")+")
     else
-      desc.append("(" + _child_description(_child, call_stack) + "){" 
+      desc.append("(" + _child_description(_child, call_stack) + "){"
         + _min.string() + "," + _max.string() + "}")
     end
     if _name != "" then desc.append(")") end
     desc
-  
-  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): 
+
+  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box):
     (ParseResult[TSrc,TVal] | None) ? =>
     let results = Array[ParseResult[TSrc,TVal]]()
     var count: USize = 0

@@ -53,7 +53,7 @@ class iso _TestParseRuleAnd is UnitTest
   fun apply(h: TestHelper) ? =>
     let rule = ParseAnd[U8,None](ParseLiteral[U8,None]("ab"))
       + ParseLiteral[U8,None]("abcd")
-    
+
     let state = ParseState[U8,None].from_seq("abcd")?
     match state.parse(rule, state.start())?
     | None => h.fail("&ab+abcd rule did not match \"abcd\"")
@@ -66,7 +66,7 @@ class iso _TestParseRuleNot is UnitTest
   fun apply(h: TestHelper) ? =>
     let rule = ParseNot[U8,None](ParseLiteral[U8,None]("ab"))
       + ParseLiteral[U8,None]("cde")
-    
+
     let state = ParseState[U8,None].from_seq("cde")?
     match state.parse(rule, state.start())?
     | None => h.fail("!ab+cde rule did not match \"cde\"")
@@ -77,7 +77,7 @@ class iso _TestParseRuleChoiceOperator is UnitTest
   fun name(): String => "ParseRule_Choice_Operator"
 
   fun apply(h: TestHelper) ? =>
-    let ab_or_bc_rule = ParseLiteral[U8,None]("ab") 
+    let ab_or_bc_rule = ParseLiteral[U8,None]("ab")
       or ParseLiteral[U8,None]("bc")
 
     let match_ab = ParseState[U8,None].from_seq("ab")?
@@ -103,7 +103,7 @@ class iso _TestParseRuleSequenceOperator is UnitTest
 
   fun apply(h: TestHelper) ? =>
     let ab_rule = ParseLiteral[U8,None]("a") + ParseLiteral[U8,None]("b")
-    
+
     let should_match = ParseState[U8,None].from_seq("ab")?
     match should_match.parse(ab_rule, should_match.start())?
     | None => h.fail("ab sequence did not match \"ab\"")
@@ -123,7 +123,7 @@ class iso _TestParseRuleRepeatAction is UnitTest
   fun apply(h: TestHelper) ? =>
     let child = ParseLiteral[U8,U8]("x")
     let rep0 = ParseRepeat[U8,U8](child, 0)
-    
+
     let memo0_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))?
     match memo0_0.parse(rep0, memo0_0.start())?
     | None => h.fail("repeat 0 did not match 0")
@@ -207,7 +207,7 @@ class iso _TestParseRuleSequenceAction is UnitTest
           | let n: USize => sum = sum + n
           end
         end
-        sum      
+        sum
     })
 
     let seg1 = "12345"

@@ -18,7 +18,7 @@ class ParseSequence[TSrc,TVal] is ParseRule[TSrc,TVal]
       _children.push(child)
     end
     _action = action
-  
+
   fun can_be_recursive(): Bool =>
     true
 
@@ -36,13 +36,13 @@ class ParseSequence[TSrc,TVal] is ParseRule[TSrc,TVal]
     if _name != "" then s.append("(" + _name + " = ") end
     s.append("(")
     for (i, child) in _children.pairs() do
-      if i > 0 then s.append(" + ") end      
+      if i > 0 then s.append(" + ") end
       s.append(_child_description(child, call_stack))
     end
     s.append(")")
     if _name != "" then s.append(")") end
     s
-  
+
   fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>
     let results = Array[ParseResult[TSrc,TVal]](_children.size())
     var cur = start

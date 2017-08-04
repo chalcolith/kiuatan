@@ -19,11 +19,11 @@ class ParseChoice[TSrc, TVal] is ParseRule[TSrc,TVal]
       _children.push(child)
     end
     _action = action
-  
+
   fun can_be_recursive(): Bool => true
 
   fun name(): String => _name
-  fun ref set_name(str: String) => _name = str  
+  fun ref set_name(str: String) => _name = str
 
   fun ref unshift(child: ParseRule[TSrc,TVal] box) =>
     _children.unshift(child)
@@ -42,7 +42,7 @@ class ParseChoice[TSrc, TVal] is ParseRule[TSrc,TVal]
     s.append(")")
     if _name != "" then s.append(")") end
     s
-  
+
   fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>
     for rule in _children.values() do
       match memo.parse(rule, start)?

@@ -85,7 +85,7 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
       end
       true
     end
-  
+
   fun box ge(that: box->ParseLoc[T]) : Bool =>
     if _segment is that._segment then
       _index >= that._index
@@ -99,7 +99,7 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
       end
       true
     end
-  
+
   fun box gt(that: box->ParseLoc[T]): Bool =>
     if _segment is that._segment then
       _index > that._index

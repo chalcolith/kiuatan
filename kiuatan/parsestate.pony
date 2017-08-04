@@ -21,7 +21,7 @@ class ParseState[TSrc,TVal]
     else
       ParseLoc[TSrc](_source.head()?, 0)
     end
-  
+
   new from_seq(seq: ReadSeq[TSrc] box, start': (ParseLoc[TSrc] | None) = None) ? =>
     _source = List[ReadSeq[TSrc]].from([as ReadSeq[TSrc]: seq])
     _start = match start'
@@ -46,20 +46,20 @@ class ParseState[TSrc,TVal]
     end
     indent
 
-  fun ref parse(rule: ParseRule[TSrc,TVal] box, 
-                loc: ParseLoc[TSrc] box): 
+  fun ref parse(rule: ParseRule[TSrc,TVal] box,
+                loc: ParseLoc[TSrc] box):
     (ParseResult[TSrc,TVal] | None) ? =>
     let exp = _Expansion[TSrc,TVal](rule, 0)
-    
+
     var depth = _call_stack.size()
     let indent = _get_indent(depth)
-    Debug.out(indent + "parse: looking for " + exp.rule.description() 
+    Debug.out(indent + "parse: looking for " + exp.rule.description()
       + ":" + exp.num.string() + " (" + depth.string() + " deep)")
     if depth > 10 then return None end
 
     match get_result(exp, loc)
-    | let r: ParseResult[TSrc,TVal] => 
-      Debug.out(indent + "got memoized result @" + r.start.string() + "-" 
+    | let r: ParseResult[TSrc,TVal] =>
+      Debug.out(indent + "got memoized result @" + r.start.string() + "-"
         + r.next.string())
       return r
     end
@@ -69,7 +69,7 @@ class ParseState[TSrc,TVal]
       memoize(exp, loc, res)?
       match res
       | let r: ParseResult[TSrc,TVal] =>
-        Debug.out(indent + "got non-recursive result @" + r.start.string() 
+        Debug.out(indent + "got non-recursive result @" + r.start.string()
           + "-" + r.next.string())
       else
         Debug.out(indent + "got non-recursive failure")
@@ -89,8 +89,8 @@ class ParseState[TSrc,TVal]
       return get_result(rec.cur_expansion, loc)
     else
       let rec = _LRRecord[TSrc,TVal](rule, loc)
-      Debug.out(indent + "start LR record; memoize failure for " 
-        + rec.cur_expansion.rule.description() + ":" 
+      Debug.out(indent + "start LR record; memoize failure for "
+        + rec.cur_expansion.rule.description() + ":"
         + rec.cur_expansion.num.string())
 
       memoize(rec.cur_expansion, loc, None)?
@@ -101,13 +101,13 @@ class ParseState[TSrc,TVal]
       while true do
         res = rule.parse(this, loc)?
         match res
-        | (let r: ParseResult[TSrc,TVal]) 
+        | (let r: ParseResult[TSrc,TVal])
           if rec.lr_detected and (r.next > rec.cur_next_loc) =>
           rec.num_expansions = rec.num_expansions + 1
           rec.cur_expansion = _Expansion[TSrc,TVal](rule, rec.num_expansions)
           rec.cur_next_loc = r.next
           rec.cur_result = r
-          Debug.out(indent + "memoize intermediate result @" + r.start.string() 
+          Debug.out(indent + "memoize intermediate result @" + r.start.string()
             + "-" + r.next.string())
           memoize(rec.cur_expansion, loc, r)?
         else
@@ -116,22 +116,22 @@ class ParseState[TSrc,TVal]
           end
           forget_lr_record(rule, loc)
           _call_stack.shift()?
-          if not _call_stack.exists({ (r: _LRRecord[TSrc,TVal] box): Bool => 
+          if not _call_stack.exists({ (r: _LRRecord[TSrc,TVal] box): Bool =>
               r.involved_rules.contains(rule) }) then
             memoize(exp, loc, res)?
           end
 
           match res
           | let r': ParseResult[TSrc,TVal] =>
-            Debug.out(indent + "end LR search; found result @" 
+            Debug.out(indent + "end LR search; found result @"
               + r'.start.string() + "-" + r'.next.string())
           else
             Debug.out(indent + "end LR search; found None")
           end
           break
         end
-        Debug.out(indent + "repeating LR search for " 
-          + rec.cur_expansion.rule.description() + ":" 
+        Debug.out(indent + "repeating LR search for "
+          + rec.cur_expansion.rule.description() + ":"
           + rec.cur_expansion.num.string())
       end
       return res
@@ -152,7 +152,7 @@ class ParseState[TSrc,TVal]
     else
       _memo_tables.insert(exp.rule, _ExpToLocMemo[TSrc,TVal]())?
     end
-    
+
     let loc_memo = try
       exp_memo(exp.num)?
     else

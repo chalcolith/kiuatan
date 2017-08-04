@@ -14,7 +14,7 @@ class ParseLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
     _name = ""
     _expected = expected
     _action = action
-  
+
   fun name(): String => _name
   fun ref set_name(str: String) => _name = str
 
@@ -33,7 +33,7 @@ class ParseLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
       "?Literal?"
     end
 
-  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): 
+  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box):
     (ParseResult[TSrc,TVal] | None) ? =>
     let cur = start.clone()
     for expected in _expected.values() do
@@ -43,10 +43,10 @@ class ParseLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
     end
 
     match _action
-    | None => 
-      ParseResult[TSrc,TVal].from_value(memo, start, cur, 
+    | None =>
+      ParseResult[TSrc,TVal].from_value(memo, start, cur,
         Array[ParseResult[TSrc,TVal]](), None)
     | let action: ParseAction[TSrc,TVal] val =>
-      ParseResult[TSrc,TVal](memo, start, cur, 
+      ParseResult[TSrc,TVal](memo, start, cur,
         Array[ParseResult[TSrc,TVal]](), action)
     end
