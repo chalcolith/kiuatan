@@ -1,6 +1,6 @@
 use "collections"
 
-class ParseRepeat[TSrc,TVal] is ParseRule[TSrc,TVal]
+class RuleRepeat[TSrc,TVal] is ParseRule[TSrc,TVal]
   """
   Matches a number of repetitions of a rule.
   """

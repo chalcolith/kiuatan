@@ -31,11 +31,11 @@ class iso _TestParseLeftRecursion is UnitTest
 
   fun apply(h: TestHelper) ? =>
     // A = A + "cd" | "ab"
-    let ab = ParseLiteral[U8,None]("ab")
-    let cd = ParseLiteral[U8,None]("cd")
+    let ab = RuleLiteral[U8,None]("ab")
+    let cd = RuleLiteral[U8,None]("cd")
 
-    let a = ParseChoice[U8,None](); a.set_name("A")
-    let first = ParseSequence[U8,None]([ a; cd ])
+    let a = RuleChoice[U8,None](); a.set_name("A")
+    let first = RuleSequence[U8,None]([ a; cd ])
     a.push(first)
     a.push(ab)
 
@@ -51,8 +51,8 @@ class iso _TestParseRuleAnd is UnitTest
   fun name(): String => "ParseRule_And"
 
   fun apply(h: TestHelper) ? =>
-    let rule = ParseAnd[U8,None](ParseLiteral[U8,None]("ab"))
-      + ParseLiteral[U8,None]("abcd")
+    let rule = RuleAnd[U8,None](RuleLiteral[U8,None]("ab"))
+      + RuleLiteral[U8,None]("abcd")
 
     let state = ParseState[U8,None].from_seq("abcd")?
     match state.parse(rule, state.start())?
@@ -64,8 +64,8 @@ class iso _TestParseRuleNot is UnitTest
   fun name(): String => "ParseRule_Not"
 
   fun apply(h: TestHelper) ? =>
-    let rule = ParseNot[U8,None](ParseLiteral[U8,None]("ab"))
-      + ParseLiteral[U8,None]("cde")
+    let rule = RuleNot[U8,None](RuleLiteral[U8,None]("ab"))
+      + RuleLiteral[U8,None]("cde")
 
     let state = ParseState[U8,None].from_seq("cde")?
     match state.parse(rule, state.start())?
@@ -77,8 +77,8 @@ class iso _TestParseRuleChoiceOperator is UnitTest
   fun name(): String => "ParseRule_Choice_Operator"
 
   fun apply(h: TestHelper) ? =>
-    let ab_or_bc_rule = ParseLiteral[U8,None]("ab")
-      or ParseLiteral[U8,None]("bc")
+    let ab_or_bc_rule = RuleLiteral[U8,None]("ab")
+      or RuleLiteral[U8,None]("bc")
 
     let match_ab = ParseState[U8,None].from_seq("ab")?
     match match_ab.parse(ab_or_bc_rule, match_ab.start())?
@@ -102,7 +102,7 @@ class iso _TestParseRuleSequenceOperator is UnitTest
   fun name(): String => "ParseRule_Sequence_Operator"
 
   fun apply(h: TestHelper) ? =>
-    let ab_rule = ParseLiteral[U8,None]("a") + ParseLiteral[U8,None]("b")
+    let ab_rule = RuleLiteral[U8,None]("a") + RuleLiteral[U8,None]("b")
 
     let should_match = ParseState[U8,None].from_seq("ab")?
     match should_match.parse(ab_rule, should_match.start())?
@@ -121,8 +121,8 @@ class iso _TestParseRuleRepeatAction is UnitTest
   fun name(): String => "ParseRule_Repeat_Action"
 
   fun apply(h: TestHelper) ? =>
-    let child = ParseLiteral[U8,U8]("x")
-    let rep0 = ParseRepeat[U8,U8](child, 0)
+    let child = RuleLiteral[U8,U8]("x")
+    let rep0 = RuleRepeat[U8,U8](child, 0)
 
     let memo0_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))?
     match memo0_0.parse(rep0, memo0_0.start())?
@@ -134,7 +134,7 @@ class iso _TestParseRuleRepeatAction is UnitTest
     | None => h.fail("repeat 0 did not match 1")
     end
 
-    let rep1 = ParseRepeat[U8,U8](child, 1)
+    let rep1 = RuleRepeat[U8,U8](child, 1)
 
     let memo1_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))?
     match memo1_0.parse(rep1, memo1_0.start())?
@@ -154,12 +154,12 @@ class iso _TestParseRuleChoiceAction is UnitTest
   fun name(): String => "ParseRule_Choice_Action"
 
   fun apply(h: TestHelper) ? =>
-    let a_rule = ParseLiteral[U8,U8]("a")
-    let b_rule = ParseLiteral[U8,U8]("b")
-    let c_rule = ParseLiteral[U8,U8]("c")
+    let a_rule = RuleLiteral[U8,U8]("a")
+    let b_rule = RuleLiteral[U8,U8]("b")
+    let c_rule = RuleLiteral[U8,U8]("c")
 
     let rules = [as ParseRule[U8,U8]: a_rule; b_rule; c_rule]
-    let choice = ParseChoice[U8,U8](rules)
+    let choice = RuleChoice[U8,U8](rules)
 
     let memo1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))?
     match memo1.parse(choice, memo1.start())?
@@ -186,7 +186,7 @@ class iso _TestParseRuleSequenceAction is UnitTest
   fun name(): String => "ParseRule_Sequence_Action"
 
   fun apply(h: TestHelper) ? =>
-    let any_rule = ParseAny[U8,USize]({
+    let any_rule = RuleAny[U8,USize]({
       (ctx: ParseActionContext[U8,USize] box) : USize =>
         try
           let i = ctx.start.clone()
@@ -199,7 +199,7 @@ class iso _TestParseRuleSequenceAction is UnitTest
     })
     let rules = [as ParseRule[U8,USize] box: any_rule; any_rule; any_rule; any_rule; any_rule]
 
-    let seq_rule = ParseSequence[U8,USize](rules, {
+    let seq_rule = RuleSequence[U8,USize](rules, {
       (ctx: ParseActionContext[U8,USize] box) : USize =>
         var sum: USize = 0
         for r in ctx.results.values() do
@@ -237,7 +237,7 @@ class iso _TestParseRuleLiteralAction is UnitTest
 
     let str = "123"
     let memo = ParseState[U8,USize](src)?
-    let literal = ParseLiteral[U8,USize](str, {
+    let literal = RuleLiteral[U8,USize](str, {
       (ctx: ParseActionContext[U8,USize] box) : USize =>
         try
           let s = String
@@ -278,7 +278,7 @@ class iso _TestParseRuleLiteral is UnitTest
 
     let str = "one"
     let memo = ParseState[U8,None](src)?
-    let literal = ParseLiteral[U8,None](str)
+    let literal = RuleLiteral[U8,None](str)
     let result = memo.parse(literal, memo.start())?
 
     match result

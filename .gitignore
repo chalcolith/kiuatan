@@ -1,5 +1,5 @@
 *.exe
 *.ilk
 *.pdb
-build/
+bin/
 .vscode/

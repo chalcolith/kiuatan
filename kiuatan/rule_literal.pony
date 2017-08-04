@@ -1,6 +1,6 @@
 use "collections"
 
-class ParseLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
+class RuleLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
   """
   Matches a literal sequence of inputs.
   """

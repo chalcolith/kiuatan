@@ -1,6 +1,6 @@
 use "collections"
 
-class ParseNot[TSrc,TVal] is ParseRule[TSrc,TVal]
+class RuleNot[TSrc,TVal] is ParseRule[TSrc,TVal]
   """
   Negative lookahead; successfully matches if the child rule does **not**
   match, without advancing the match position.

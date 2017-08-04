@@ -1,6 +1,6 @@
 use "collections"
 
-class ParseAnd[TSrc,TVal] is ParseRule[TSrc,TVal]
+class RuleAnd[TSrc,TVal] is ParseRule[TSrc,TVal]
   """
   Lookahead; matches its child rule without advancing the match position.
 

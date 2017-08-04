@@ -1,16 +1,15 @@
 use "collections"
 
-class ParseChoice[TSrc, TVal] is ParseRule[TSrc,TVal]
+class RuleSequence[TSrc,TVal] is ParseRule[TSrc,TVal]
   """
-  Matches one of a list of rules.  Uses PEG committed choice semantics;
-  does not backtrack once a choice has matched.
+  Matches a sequence of rules.
   """
 
   var _name: String
   let _children: Array[ParseRule[TSrc,TVal] box]
   let _action: (ParseAction[TSrc,TVal] val | None)
 
-  new create(children: ReadSeq[ParseRule[TSrc,TVal] box] box
+  new create(children: ReadSeq[ParseRule[TSrc,TVal] box]
               = Array[ParseRule[TSrc,TVal] box],
              action: (ParseAction[TSrc,TVal] val | None) = None) =>
     _name = ""
@@ -20,7 +19,8 @@ class ParseChoice[TSrc, TVal] is ParseRule[TSrc,TVal]
     end
     _action = action
 
-  fun can_be_recursive(): Bool => true
+  fun can_be_recursive(): Bool =>
+    true
 
   fun name(): String => _name
   fun ref set_name(str: String) => _name = str
@@ -36,7 +36,7 @@ class ParseChoice[TSrc, TVal] is ParseRule[TSrc,TVal]
     if _name != "" then s.append("(" + _name + " = ") end
     s.append("(")
     for (i, child) in _children.pairs() do
-      if i > 0 then s.append(" or ") end
+      if i > 0 then s.append(" + ") end
       s.append(_child_description(child, call_stack))
     end
     s.append(")")
@@ -44,10 +44,15 @@ class ParseChoice[TSrc, TVal] is ParseRule[TSrc,TVal]
     s
 
   fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>
+    let results = Array[ParseResult[TSrc,TVal]](_children.size())
+    var cur = start
     for rule in _children.values() do
-      match memo.parse(rule, start)?
+      match memo.parse(rule, cur)?
       | let r: ParseResult[TSrc,TVal] =>
-        return ParseResult[TSrc,TVal](memo, start, r.next, [r], _action)
+        results.push(r)
+        cur = r.next
+      else
+        return None
       end
     end
-    None
+    ParseResult[TSrc,TVal](memo, start, cur, results, _action)

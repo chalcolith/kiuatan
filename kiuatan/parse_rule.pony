@@ -51,7 +51,7 @@ trait ParseRule[TSrc,TVal]
     (ParseResult[TSrc,TVal] | None) ?
 
   fun add(other: ParseRule[TSrc,TVal]): ParseRule[TSrc,TVal] =>
-    ParseSequence[TSrc,TVal]([this; other], None)
+    RuleSequence[TSrc,TVal]([this; other], None)
 
   fun op_or(other: ParseRule[TSrc,TVal]): ParseRule[TSrc,TVal] =>
-    ParseChoice[TSrc,TVal]([this; other], None)
+    RuleChoice[TSrc,TVal]([this; other], None)

@@ -1,6 +1,6 @@
 use "collections"
 
-class ParseAny[TSrc,TVal] is ParseRule[TSrc,TVal]
+class RuleAny[TSrc,TVal] is ParseRule[TSrc,TVal]
   """
   Matches any single input.
   """
