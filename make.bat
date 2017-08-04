@@ -1,4 +1,9 @@
 @echo off
+where stable > nul
+if errorlevel 1 goto nostable
+where ponyc > nul
+if errorlevel 1 goto noponyc
+
 if "%1"=="clean" goto clean
 
 if not exist bin mkdir bin
@@ -9,21 +14,30 @@ if "%1"=="test" goto test
 
 :build
 stable env ponyc %DEBUG% -o bin kiuatan
-if %ERRORLEVEL% gtr 0 goto error
+if errorlevel 1 goto error
 goto done
 
 :test
 if "%2"=="--debug" set DEBUG="--debug"
 if not exist bin\kiuatan.exe stable env ponyc %DEBUG% -o bin kiuatan
+if errorlevel 1 goto error
 bin\kiuatan.exe --sequential
-if %ERRORLEVEL% gtr 0 goto error
+if errorlevel 1 goto error
 goto done
 
 :clean
 rmdir /s /q bin
 goto done
 
+:nostable
+echo You need "stable.exe" (from https://github.com/ponylang/pony-stable) in your PATH.
+goto error
+
+:noponyc
+echo You need "ponyc.exe" (from https://github.com/ponylang/ponyc) in your PATH.
+goto error
+
 :error
-exit %ERRORLEVEL%
+%COMSPEC% /c exit 1
 
 :done
