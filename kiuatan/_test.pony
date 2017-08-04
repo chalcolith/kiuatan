@@ -24,6 +24,27 @@ actor Main is TestList
     test(_TestParseRuleNot)
     test(_TestParseRuleAnd)
     test(_TestParseLeftRecursion)
+    test(_TestParseRuleClass)
+
+
+class iso _TestParseRuleClass is UnitTest
+  fun name(): String => "ParseRule_Class"
+
+  fun apply(h: TestHelper) ? =>
+    let ab = RuleLiteral[U8]("ab")
+    let bcde = RuleClass[U8].from_iter("bcde".values())
+    let fg = RuleLiteral[U8]("fg")
+    let rule = RuleSequence[U8, None]([ab; bcde; fg])
+
+    let state1 = ParseState[U8].from_seq("abbfg")?
+    match state1.parse(rule, state1.start())?
+    | None => h.fail("state1 did not match")
+    end
+
+    let state2 = ParseState[U8].from_seq("abefg")?
+    match state2.parse(rule, state2.start())?
+    | None => h.fail("state2 did not match")
+    end
 
 
 class iso _TestParseLeftRecursion is UnitTest
@@ -31,17 +52,17 @@ class iso _TestParseLeftRecursion is UnitTest
 
   fun apply(h: TestHelper) ? =>
     // A = A + "cd" | "ab"
-    let ab = RuleLiteral[U8,None]("ab")
-    let cd = RuleLiteral[U8,None]("cd")
+    let ab = RuleLiteral[U8]("ab")
+    let cd = RuleLiteral[U8]("cd")
 
-    let a = RuleChoice[U8,None](); a.set_name("A")
-    let first = RuleSequence[U8,None]([ a; cd ])
+    let a = RuleChoice[U8](); a.set_name("A")
+    let first = RuleSequence[U8]([ a; cd ])
     a.push(first)
     a.push(ab)
 
     Debug.out("RULE A is " + a.description())
 
-    let state = ParseState[U8,None].from_seq("abcd")?
+    let state = ParseState[U8].from_seq("abcd")?
     match state.parse(a, state.start())?
     | None => h.fail("recursive rule did not match")
     end
@@ -51,10 +72,10 @@ class iso _TestParseRuleAnd is UnitTest
   fun name(): String => "ParseRule_And"
 
   fun apply(h: TestHelper) ? =>
-    let rule = RuleAnd[U8,None](RuleLiteral[U8,None]("ab"))
-      + RuleLiteral[U8,None]("abcd")
+    let rule = RuleAnd[U8](RuleLiteral[U8]("ab"))
+      + RuleLiteral[U8]("abcd")
 
-    let state = ParseState[U8,None].from_seq("abcd")?
+    let state = ParseState[U8].from_seq("abcd")?
     match state.parse(rule, state.start())?
     | None => h.fail("&ab+abcd rule did not match \"abcd\"")
     end
@@ -64,10 +85,10 @@ class iso _TestParseRuleNot is UnitTest
   fun name(): String => "ParseRule_Not"
 
   fun apply(h: TestHelper) ? =>
-    let rule = RuleNot[U8,None](RuleLiteral[U8,None]("ab"))
-      + RuleLiteral[U8,None]("cde")
+    let rule = RuleNot[U8](RuleLiteral[U8]("ab"))
+      + RuleLiteral[U8]("cde")
 
-    let state = ParseState[U8,None].from_seq("cde")?
+    let state = ParseState[U8].from_seq("cde")?
     match state.parse(rule, state.start())?
     | None => h.fail("!ab+cde rule did not match \"cde\"")
     end
@@ -77,20 +98,20 @@ class iso _TestParseRuleChoiceOperator is UnitTest
   fun name(): String => "ParseRule_Choice_Operator"
 
   fun apply(h: TestHelper) ? =>
-    let ab_or_bc_rule = RuleLiteral[U8,None]("ab")
-      or RuleLiteral[U8,None]("bc")
+    let ab_or_bc_rule = RuleLiteral[U8]("ab")
+      or RuleLiteral[U8]("bc")
 
-    let match_ab = ParseState[U8,None].from_seq("ab")?
+    let match_ab = ParseState[U8].from_seq("ab")?
     match match_ab.parse(ab_or_bc_rule, match_ab.start())?
     | None => h.fail("ab|bc choice did not match \"ab\"")
     end
 
-    let match_bc = ParseState[U8,None].from_seq("bc")?
+    let match_bc = ParseState[U8].from_seq("bc")?
     match match_bc.parse(ab_or_bc_rule, match_bc.start())?
     | None => h.fail("ab|bc choice did not match \"bc\"")
     end
 
-    let match_de = ParseState[U8,None].from_seq("de")?
+    let match_de = ParseState[U8].from_seq("de")?
     match match_de.parse(ab_or_bc_rule, match_de.start())?
     | None => None
     else
@@ -102,14 +123,14 @@ class iso _TestParseRuleSequenceOperator is UnitTest
   fun name(): String => "ParseRule_Sequence_Operator"
 
   fun apply(h: TestHelper) ? =>
-    let ab_rule = RuleLiteral[U8,None]("a") + RuleLiteral[U8,None]("b")
+    let ab_rule = RuleLiteral[U8]("a") + RuleLiteral[U8]("b")
 
-    let should_match = ParseState[U8,None].from_seq("ab")?
+    let should_match = ParseState[U8].from_seq("ab")?
     match should_match.parse(ab_rule, should_match.start())?
     | None => h.fail("ab sequence did not match \"ab\"")
     end
 
-    let should_not_match = ParseState[U8,None].from_seq("cd")?
+    let should_not_match = ParseState[U8].from_seq("cd")?
     match should_not_match.parse(ab_rule, should_not_match.start())?
     | None => None
     else
@@ -277,13 +298,13 @@ class iso _TestParseRuleLiteral is UnitTest
     let src = List[ReadSeq[U8]].from(segs)
 
     let str = "one"
-    let memo = ParseState[U8,None](src)?
-    let literal = RuleLiteral[U8,None](str)
+    let memo = ParseState[U8](src)?
+    let literal = RuleLiteral[U8](str)
     let result = memo.parse(literal, memo.start())?
 
     match result
     | None => h.fail("literal did not match")
-    | let result': ParseResult[U8,None] =>
+    | let result': ParseResult[U8] =>
       let start = memo.start()
       let next = start +? str.size()
       h.assert_eq[ParseLoc[U8] box](start, result'.start, "match does not start at the correct loc")

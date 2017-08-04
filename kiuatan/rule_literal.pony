@@ -1,6 +1,9 @@
+
 use "collections"
 
-class RuleLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
+class RuleLiteral[
+  TSrc: (Equatable[TSrc] #read & Stringable #read),
+  TVal = None] is ParseRule[TSrc,TVal]
   """
   Matches a literal sequence of inputs.
   """
@@ -19,22 +22,21 @@ class RuleLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
   fun ref set_name(str: String) => _name = str
 
   fun description(call_stack: ParseRuleCallStack[TSrc,TVal] = None): String =>
-    try
-      recover
-        let s = String
-        if _name != "" then s.append("(" + _name + " = ") end
-        s.append("\"")
-        s.append(_expected as this->ReadSeq[U8] box)
-        s.append("\"")
-        if _name != "" then s.append(")") end
-        s
+    recover
+      let s = String
+      if _name != "" then s.append("(" + _name + " = ") end
+      s.append("\"")
+      for item in _expected.values() do
+        s.append(item.string())
       end
-    else
-      "?Literal?"
+      s.append("\"")
+      if _name != "" then s.append(")") end
+      s
     end
 
-  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box):
-    (ParseResult[TSrc,TVal] | None) ? =>
+  fun box parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | None) ?
+  =>
     let cur = start.clone()
     for expected in _expected.values() do
       if not cur.has_next() then return None end
@@ -45,8 +47,8 @@ class RuleLiteral[TSrc: Equatable[TSrc] #read, TVal] is ParseRule[TSrc,TVal]
     match _action
     | None =>
       ParseResult[TSrc,TVal].from_value(memo, start, cur,
-        Array[ParseResult[TSrc,TVal]](), None)
+        Array[ParseResult[TSrc,TVal]], None)
     | let action: ParseAction[TSrc,TVal] val =>
       ParseResult[TSrc,TVal](memo, start, cur,
-        Array[ParseResult[TSrc,TVal]](), action)
+        Array[ParseResult[TSrc,TVal]], action)
     end

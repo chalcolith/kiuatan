@@ -1,7 +1,7 @@
 use "collections"
 use "debug"
 
-class ParseState[TSrc,TVal]
+class ParseState[TSrc,TVal = None]
   """
   Stores the state of a particular match.
   """
@@ -13,7 +13,10 @@ class ParseState[TSrc,TVal]
   let _call_stack: List[_LRRecord[TSrc,TVal]] = _call_stack.create()
   let _cur_recursions: _RuleToLocLR[TSrc,TVal] = _cur_recursions.create()
 
-  new create(source': List[ReadSeq[TSrc]] box, start': (ParseLoc[TSrc] | None) = None) ? =>
+  new create(
+    source': List[ReadSeq[TSrc]] box,
+    start': (ParseLoc[TSrc] | None) = None) ?
+  =>
     _source = source'
     _start = match start'
     | let loc: ParseLoc[TSrc] =>
@@ -22,7 +25,10 @@ class ParseState[TSrc,TVal]
       ParseLoc[TSrc](_source.head()?, 0)
     end
 
-  new from_seq(seq: ReadSeq[TSrc] box, start': (ParseLoc[TSrc] | None) = None) ? =>
+  new from_seq(
+    seq: ReadSeq[TSrc] box,
+    start': (ParseLoc[TSrc] | None) = None) ?
+  =>
     _source = List[ReadSeq[TSrc]].from([as ReadSeq[TSrc]: seq])
     _start = match start'
     | let loc: ParseLoc[TSrc] =>
@@ -37,18 +43,11 @@ class ParseState[TSrc,TVal]
   fun box start(): ParseLoc[TSrc] box =>
     _start
 
-  fun _get_indent(n: USize): String =>
-    var indent: String trn = recover String end
-    var i = n
-    while i > 0 do
-      indent.append("  ")
-      i = i - 1
-    end
-    indent
-
-  fun ref parse(rule: ParseRule[TSrc,TVal] box,
-                loc: ParseLoc[TSrc] box):
-    (ParseResult[TSrc,TVal] | None) ? =>
+  fun ref parse(
+    rule: ParseRule[TSrc,TVal] box,
+    loc: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | None) ?
+  =>
     let exp = _Expansion[TSrc,TVal](rule, 0)
 
     var depth = _call_stack.size()
@@ -57,16 +56,16 @@ class ParseState[TSrc,TVal]
       + ":" + exp.num.string() + " (" + depth.string() + " deep)")
     if depth > 10 then return None end
 
-    match get_result(exp, loc)
+    match _get_result(exp, loc)
     | let r: ParseResult[TSrc,TVal] =>
-      Debug.out(indent + "got memoized result @" + r.start.string() + "-"
+      Debug.out(indent + "got _memoized result @" + r.start.string() + "-"
         + r.next.string())
       return r
     end
 
     if not rule.can_be_recursive() then
       let res = rule.parse(this, loc)?
-      memoize(exp, loc, res)?
+      _memoize(exp, loc, res)?
       match res
       | let r: ParseResult[TSrc,TVal] =>
         Debug.out(indent + "got non-recursive result @" + r.start.string()
@@ -77,7 +76,7 @@ class ParseState[TSrc,TVal]
       return res
     end
 
-    match get_lr_record(rule, loc)
+    match _get_lr_record(rule, loc)
     | let rec: _LRRecord[TSrc,TVal] =>
       Debug.out(indent + "got LR record")
 
@@ -86,15 +85,15 @@ class ParseState[TSrc,TVal]
         if lr.cur_expansion.rule is rule then break end
         rec.involved_rules.set(lr.cur_expansion.rule)
       end
-      return get_result(rec.cur_expansion, loc)
+      return _get_result(rec.cur_expansion, loc)
     else
       let rec = _LRRecord[TSrc,TVal](rule, loc)
-      Debug.out(indent + "start LR record; memoize failure for "
+      Debug.out(indent + "start LR record; _memoize failure for "
         + rec.cur_expansion.rule.description() + ":"
         + rec.cur_expansion.num.string())
 
-      memoize(rec.cur_expansion, loc, None)?
-      start_lr_record(rule, loc, rec)
+      _memoize(rec.cur_expansion, loc, None)?
+      _start_lr_record(rule, loc, rec)
       _call_stack.unshift(rec)
 
       var res: (ParseResult[TSrc,TVal] | None) = None
@@ -107,18 +106,18 @@ class ParseState[TSrc,TVal]
           rec.cur_expansion = _Expansion[TSrc,TVal](rule, rec.num_expansions)
           rec.cur_next_loc = r.next
           rec.cur_result = r
-          Debug.out(indent + "memoize intermediate result @" + r.start.string()
+          Debug.out(indent + "_memoize intermediate result @" + r.start.string()
             + "-" + r.next.string())
-          memoize(rec.cur_expansion, loc, r)?
+          _memoize(rec.cur_expansion, loc, r)?
         else
           if rec.lr_detected then
             res = rec.cur_result
           end
-          forget_lr_record(rule, loc)
+          _forget_lr_record(rule, loc)
           _call_stack.shift()?
           if not _call_stack.exists({ (r: _LRRecord[TSrc,TVal] box): Bool =>
               r.involved_rules.contains(rule) }) then
-            memoize(exp, loc, res)?
+            _memoize(exp, loc, res)?
           end
 
           match res
@@ -137,7 +136,20 @@ class ParseState[TSrc,TVal]
       return res
     end
 
-  fun get_result(exp: _Expansion[TSrc,TVal] box, loc: ParseLoc[TSrc] box): (this->ParseResult[TSrc,TVal] | None) =>
+  fun _get_indent(n: USize): String =>
+    var indent: String trn = recover String end
+    var i = n
+    while i > 0 do
+      indent.append("  ")
+      i = i - 1
+    end
+    indent
+
+  fun _get_result(
+    exp: _Expansion[TSrc,TVal] box,
+    loc: ParseLoc[TSrc] box)
+    : (this->ParseResult[TSrc,TVal] | None)
+  =>
     try
       let exp_memo = _memo_tables(exp.rule)?
       let loc_memo = exp_memo(exp.num)?
@@ -146,7 +158,11 @@ class ParseState[TSrc,TVal]
       None
     end
 
-  fun ref memoize(exp: _Expansion[TSrc,TVal], loc: ParseLoc[TSrc] box, res: (ParseResult[TSrc,TVal] | None)) ? =>
+  fun ref _memoize(
+    exp: _Expansion[TSrc,TVal],
+    loc: ParseLoc[TSrc] box,
+    res: (ParseResult[TSrc,TVal] | None)) ?
+  =>
     let exp_memo = try
       _memo_tables(exp.rule)?
     else
@@ -161,14 +177,18 @@ class ParseState[TSrc,TVal]
 
     loc_memo.insert(loc, res)?
 
-  fun ref forget(exp: _Expansion[TSrc,TVal], loc: ParseLoc[TSrc]) =>
+  fun ref _forget(exp: _Expansion[TSrc,TVal], loc: ParseLoc[TSrc]) =>
     try
       let exp_memo = _memo_tables(exp.rule)?
       let loc_memo = exp_memo(exp.num)?
       loc_memo.remove(loc)?
     end
 
-  fun ref get_lr_record(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box): (_LRRecord[TSrc,TVal] | None) =>
+  fun ref _get_lr_record(
+    rule: ParseRule[TSrc,TVal] box,
+    loc: ParseLoc[TSrc] box)
+    : (_LRRecord[TSrc,TVal] | None)
+  =>
     try
       let loc_lr = _cur_recursions(rule)?
       loc_lr(loc)?
@@ -176,7 +196,11 @@ class ParseState[TSrc,TVal]
       None
     end
 
-  fun ref start_lr_record(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box, rec: _LRRecord[TSrc,TVal]) =>
+  fun ref _start_lr_record(
+    rule: ParseRule[TSrc,TVal] box,
+    loc: ParseLoc[TSrc] box,
+    rec: _LRRecord[TSrc,TVal])
+  =>
     try
       let loc_lr = try
         _cur_recursions(rule)?
@@ -187,19 +211,30 @@ class ParseState[TSrc,TVal]
       loc_lr.insert(loc, rec)?
     end
 
-  fun ref forget_lr_record(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box) =>
+  fun ref _forget_lr_record(
+    rule: ParseRule[TSrc,TVal] box,
+    loc: ParseLoc[TSrc] box)
+  =>
     try
       let loc_lr = _cur_recursions(rule)?
       loc_lr.remove(loc)?
     end
 
 
-type _RuleToExpMemo[TSrc,TVal] is MapIs[ParseRule[TSrc,TVal] box, _ExpToLocMemo[TSrc,TVal]]
-type _ExpToLocMemo[TSrc,TVal] is Map[USize, _LocToResultMemo[TSrc,TVal]]
-type _LocToResultMemo[TSrc,TVal] is Map[ParseLoc[TSrc] box, (ParseResult[TSrc,TVal] | None)]
+type _RuleToExpMemo[TSrc,TVal] is
+  MapIs[ParseRule[TSrc,TVal] box, _ExpToLocMemo[TSrc,TVal]]
 
-type _RuleToLocLR[TSrc,TVal] is MapIs[ParseRule[TSrc,TVal] box, _LocToLR[TSrc,TVal]]
-type _LocToLR[TSrc,TVal] is Map[ParseLoc[TSrc] box, _LRRecord[TSrc,TVal]]
+type _ExpToLocMemo[TSrc,TVal] is
+  Map[USize, _LocToResultMemo[TSrc,TVal]]
+
+type _LocToResultMemo[TSrc,TVal] is
+  Map[ParseLoc[TSrc] box, (ParseResult[TSrc,TVal] | None)]
+
+type _RuleToLocLR[TSrc,TVal] is
+  MapIs[ParseRule[TSrc,TVal] box, _LocToLR[TSrc,TVal]]
+
+type _LocToLR[TSrc,TVal] is
+  Map[ParseLoc[TSrc] box, _LRRecord[TSrc,TVal]]
 
 
 class _Expansion[TSrc,TVal]

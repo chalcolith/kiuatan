@@ -1,6 +1,7 @@
+
 use "collections"
 
-class RuleAnd[TSrc,TVal] is ParseRule[TSrc,TVal]
+class RuleAnd[TSrc,TVal = None] is ParseRule[TSrc,TVal]
   """
   Lookahead; matches its child rule without advancing the match position.
 
@@ -29,8 +30,9 @@ class RuleAnd[TSrc,TVal] is ParseRule[TSrc,TVal]
       "&(" + _child_description(_child, call_stack) + ")"
     end
 
-  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box):
-    (ParseResult[TSrc,TVal] | None) ? =>
+  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | None) ?
+  =>
     match memo.parse(_child, start)?
     | let r: ParseResult[TSrc,TVal] =>
       ParseResult[TSrc,TVal](memo, start, start, Array[ParseResult[TSrc,TVal]],

@@ -3,7 +3,7 @@ use "collections"
 type ParseRuleCallStack[TSrc,TVal] is
   (ListNode[ParseRule[TSrc,TVal] box] | None)
 
-trait ParseRule[TSrc,TVal]
+trait ParseRule[TSrc,TVal = None]
   """
   A rule in a grammar.
   """
@@ -14,11 +14,17 @@ trait ParseRule[TSrc,TVal]
   fun name(): String => ""
   fun ref set_name(str: String) => None
 
+  fun string(): String iso^ =>
+    description().clone()
+
   fun description(call_stack: ParseRuleCallStack[TSrc,TVal] = None): String =>
     "?"
 
-  fun _child_description(child: ParseRule[TSrc,TVal] box,
-                         call_stack: ParseRuleCallStack[TSrc,TVal]): String =>
+  fun _child_description(
+    child: ParseRule[TSrc,TVal] box,
+    call_stack: ParseRuleCallStack[TSrc,TVal])
+    : String
+  =>
     match call_stack
     | let node: ListNode[ParseRule[TSrc,TVal] box] =>
       var cur = node
@@ -47,8 +53,8 @@ trait ParseRule[TSrc,TVal]
       child.description(ListNode[ParseRule[TSrc,TVal] box](this))
     end
 
-  fun parse(memo: ParseState[TSrc,TVal] ref, start: ParseLoc[TSrc] box):
-    (ParseResult[TSrc,TVal] | None) ?
+  fun parse(memo: ParseState[TSrc,TVal] ref, start: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | None) ?
 
   fun add(other: ParseRule[TSrc,TVal]): ParseRule[TSrc,TVal] =>
     RuleSequence[TSrc,TVal]([this; other], None)

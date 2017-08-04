@@ -1,6 +1,7 @@
+
 use "collections"
 
-class RuleAny[TSrc,TVal] is ParseRule[TSrc,TVal]
+class RuleAny[TSrc,TVal = None] is ParseRule[TSrc,TVal]
   """
   Matches any single input.
   """
@@ -22,8 +23,9 @@ class RuleAny[TSrc,TVal] is ParseRule[TSrc,TVal]
       "."
     end
 
-  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box):
-    (ParseResult[TSrc,TVal] | None) ? =>
+  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | None) ?
+  =>
     let cur = start.clone()
     if cur.has_next() then
       cur.next()?
@@ -31,10 +33,10 @@ class RuleAny[TSrc,TVal] is ParseRule[TSrc,TVal]
       match _action
       | None =>
         ParseResult[TSrc,TVal].from_value(memo, start, cur,
-          Array[ParseResult[TSrc,TVal]](), None)
+          Array[ParseResult[TSrc,TVal]], None)
       | let action: ParseAction[TSrc,TVal] val =>
         ParseResult[TSrc,TVal](memo, start, cur,
-          Array[ParseResult[TSrc,TVal]](), action)
+          Array[ParseResult[TSrc,TVal]], action)
       end
     else
       None

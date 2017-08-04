@@ -1,6 +1,7 @@
+
 use "collections"
 
-class RuleChoice[TSrc, TVal] is ParseRule[TSrc,TVal]
+class RuleChoice[TSrc,TVal = None] is ParseRule[TSrc,TVal]
   """
   Matches one of a list of rules.  Uses PEG committed choice semantics;
   does not backtrack once a choice has matched.
@@ -43,7 +44,9 @@ class RuleChoice[TSrc, TVal] is ParseRule[TSrc,TVal]
     if _name != "" then s.append(")") end
     s
 
-  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box): (ParseResult[TSrc,TVal] | None) ? =>
+  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | None) ?
+  =>
     for rule in _children.values() do
       match memo.parse(rule, start)?
       | let r: ParseResult[TSrc,TVal] =>

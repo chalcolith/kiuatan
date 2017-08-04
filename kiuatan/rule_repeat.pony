@@ -1,6 +1,7 @@
+
 use "collections"
 
-class RuleRepeat[TSrc,TVal] is ParseRule[TSrc,TVal]
+class RuleRepeat[TSrc,TVal = None] is ParseRule[TSrc,TVal]
   """
   Matches a number of repetitions of a rule.
   """
@@ -41,8 +42,9 @@ class RuleRepeat[TSrc,TVal] is ParseRule[TSrc,TVal]
     if _name != "" then desc.append(")") end
     desc
 
-  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box):
-    (ParseResult[TSrc,TVal] | None) ? =>
+  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | None) ?
+  =>
     let results = Array[ParseResult[TSrc,TVal]]()
     var count: USize = 0
     var cur = start

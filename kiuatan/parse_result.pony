@@ -1,6 +1,6 @@
-class ParseResult[TSrc,TVal]
+class ParseResult[TSrc,TVal = None]
   """
-  Holds the result of a successful parse.
+  Holds information about the result of a successful parse.
   """
 
   let state: ParseState[TSrc,TVal] box
