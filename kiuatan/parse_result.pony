@@ -1,3 +1,4 @@
+
 class ParseResult[TSrc,TVal = None]
   """
   Holds information about the result of a successful parse.
@@ -66,5 +67,7 @@ class box ParseActionContext[TSrc,TVal]
     next = next'
     results = results'
 
+  fun inputs(): ParseLocIterator[TSrc] =>
+    start.values(next)
 
 type ParseAction[TSrc,TVal] is { (ParseActionContext[TSrc,TVal]): TVal }

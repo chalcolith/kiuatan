@@ -6,7 +6,6 @@ class RuleRepeat[TSrc,TVal = None] is ParseRule[TSrc,TVal]
   Matches a number of repetitions of a rule.
   """
 
-  var _name: String
   let _child: ParseRule[TSrc,TVal] box
   let _min: USize
   let _max: USize
@@ -15,7 +14,6 @@ class RuleRepeat[TSrc,TVal = None] is ParseRule[TSrc,TVal]
   new create(child: ParseRule[TSrc,TVal] box,
              min: USize, max: USize = USize.max_value(),
              action: (ParseAction[TSrc,TVal] val | None) = None) =>
-    _name = ""
     _child = child
     _min = min
     _max = max
@@ -23,12 +21,8 @@ class RuleRepeat[TSrc,TVal = None] is ParseRule[TSrc,TVal]
 
   fun can_be_recursive(): Bool => true
 
-  fun name(): String => _name
-  fun ref set_name(str: String) => _name = str
-
   fun description(call_stack: ParseRuleCallStack[TSrc,TVal] = None): String =>
     let desc: String trn = recover String end
-    if _name != "" then desc.append("(" + _name + " = ") end
     if (_min == 0) and (_max == 1) then
       desc.append("(" + _child_description(_child, call_stack) + ")?")
     elseif _min == 0 then
@@ -39,7 +33,6 @@ class RuleRepeat[TSrc,TVal = None] is ParseRule[TSrc,TVal]
       desc.append("(" + _child_description(_child, call_stack) + "){"
         + _min.string() + "," + _max.string() + "}")
     end
-    if _name != "" then desc.append(")") end
     desc
 
   fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)

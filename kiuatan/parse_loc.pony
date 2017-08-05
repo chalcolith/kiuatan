@@ -1,6 +1,6 @@
 use "collections"
 
-type ParseSegment[T] is ListNode[ReadSeq[T]]
+type ParseSegment[T] is ListNode[ReadSeq[T] box]
 
 class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
   """
@@ -10,17 +10,17 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
   var _segment: ParseSegment[T] box
   var _index: USize
 
-  new create(node': ParseSegment[T] box, index': USize = 0) =>
-    _segment = node'
+  new create(segment': ParseSegment[T] box, index': USize = 0) =>
+    _segment = segment'
     _index = index'
 
-  fun box segment(): box->ParseSegment[T] =>
+  fun segment(): ParseSegment[T] box =>
     _segment
 
-  fun box index() =>
+  fun index() =>
     _index
 
-  fun has_next(): Bool =>
+  fun ref has_next(): Bool =>
     try
       if _index < _segment()?.size() then
         return true
@@ -40,10 +40,13 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
     end
     seq(_index = _index + 1)?
 
-  fun box clone(): ParseLoc[T]^ =>
+  fun clone(): ParseLoc[T]^ =>
     ParseLoc[T](_segment, _index)
 
-  fun box add(n: USize): ParseLoc[T]^ ? =>
+  fun values(next': ParseLoc[T] box): ParseLocIterator[T]^ =>
+    ParseLocIterator[T](this, next')
+
+  fun add(n: USize): ParseLoc[T]^ ? =>
     let cur = clone()
     var i: USize = 0
     while i < n do
@@ -52,13 +55,13 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
     end
     consume cur
 
-  fun box eq(that: box->ParseLoc[T]) : Bool =>
+  fun eq(that: box->ParseLoc[T]) : Bool =>
     (_segment is that._segment) and (_index == that._index)
 
-  fun box ne(that: box->ParseLoc[T]) : Bool =>
+  fun ne(that: box->ParseLoc[T]) : Bool =>
     not ((_segment is that._segment) and (_index == that._index))
 
-  fun box lt(that: box->ParseLoc[T]) : Bool =>
+  fun lt(that: box->ParseLoc[T]) : Bool =>
     if _segment is that._segment then
       _index < that._index
     else
@@ -72,7 +75,7 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
       true
     end
 
-  fun box le(that: box->ParseLoc[T]) : Bool =>
+  fun le(that: box->ParseLoc[T]) : Bool =>
     if _segment is that._segment then
       _index <= that._index
     else
@@ -86,7 +89,7 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
       true
     end
 
-  fun box ge(that: box->ParseLoc[T]) : Bool =>
+  fun ge(that: box->ParseLoc[T]) : Bool =>
     if _segment is that._segment then
       _index >= that._index
     else
@@ -100,7 +103,7 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
       true
     end
 
-  fun box gt(that: box->ParseLoc[T]): Bool =>
+  fun gt(that: box->ParseLoc[T]): Bool =>
     if _segment is that._segment then
       _index > that._index
     else
@@ -114,10 +117,10 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
       true
     end
 
-  fun box hash() : U64 val =>
+  fun hash() : U64 val =>
     HashIs[ParseSegment[T]].hash(_segment) xor U64.from[USize](_index)
 
-  fun box string(): String iso^ =>
+  fun string(): String iso^ =>
     var num: USize = 0
     try
       var cur: ParseSegment[T] box = _segment
@@ -131,3 +134,23 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
     s.append(":")
     s.append(_index.string())
     consume s
+
+
+class ParseLocIterator[T]
+  let _start: ParseLoc[T] box
+  let _next: ParseLoc[T] box
+  var _cur: ParseLoc[T] ref
+
+  new create(start': ParseLoc[T] box, next': ParseLoc[T] box) =>
+    _start = start'.clone()
+    _next = next'.clone()
+    _cur = _start.clone()
+
+  fun ref reset() =>
+    _cur = _start.clone()
+
+  fun ref has_next(): Bool =>
+    _cur.has_next() and (_cur != _next)
+
+  fun ref next(): box->T ? =>
+    _cur.next()?

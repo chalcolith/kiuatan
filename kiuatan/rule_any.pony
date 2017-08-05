@@ -6,22 +6,13 @@ class RuleAny[TSrc,TVal = None] is ParseRule[TSrc,TVal]
   Matches any single input.
   """
 
-  var _name: String
   let _action: (ParseAction[TSrc,TVal] val | None)
 
   new create(action: (ParseAction[TSrc,TVal] val | None) = None) =>
-    _name = ""
     _action = action
 
-  fun name(): String => _name
-  fun ref set_name(str: String) => _name = str
-
   fun description(call_stack: ParseRuleCallStack[TSrc,TVal] = None): String =>
-    if _name != "" then
-      "(" + _name + " = .)"
-    else
-      "."
-    end
+    "."
 
   fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
     : (ParseResult[TSrc,TVal] | None) ?

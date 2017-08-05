@@ -6,14 +6,16 @@ class RuleSequence[TSrc,TVal = None] is ParseRule[TSrc,TVal]
   Matches a sequence of child rules.
   """
 
-  var _name: String
+  let _name: String
   let _children: Array[ParseRule[TSrc,TVal] box]
   let _action: (ParseAction[TSrc,TVal] val | None)
 
-  new create(children: ReadSeq[ParseRule[TSrc,TVal] box]
-              = Array[ParseRule[TSrc,TVal] box],
-             action: (ParseAction[TSrc,TVal] val | None) = None) =>
-    _name = ""
+  new create(
+    children: ReadSeq[ParseRule[TSrc,TVal] box]
+      = Array[ParseRule[TSrc,TVal] box],
+    name': String = "",
+    action: (ParseAction[TSrc,TVal] val | None) = None) =>
+    _name = name'
     _children = Array[ParseRule[TSrc,TVal] box]
     for child in children.values() do
       _children.push(child)
@@ -24,7 +26,6 @@ class RuleSequence[TSrc,TVal = None] is ParseRule[TSrc,TVal]
     true
 
   fun name(): String => _name
-  fun ref set_name(str: String) => _name = str
 
   fun ref unshift(child: ParseRule[TSrc,TVal] box) =>
     _children.unshift(child)

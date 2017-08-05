@@ -12,7 +12,6 @@ trait ParseRule[TSrc,TVal = None]
     false
 
   fun name(): String => ""
-  fun ref set_name(str: String) => None
 
   fun string(): String iso^ =>
     description().clone()
@@ -57,7 +56,7 @@ trait ParseRule[TSrc,TVal = None]
     : (ParseResult[TSrc,TVal] | None) ?
 
   fun add(other: ParseRule[TSrc,TVal]): ParseRule[TSrc,TVal] =>
-    RuleSequence[TSrc,TVal]([this; other], None)
+    RuleSequence[TSrc,TVal]([this; other])
 
   fun op_or(other: ParseRule[TSrc,TVal]): ParseRule[TSrc,TVal] =>
-    RuleChoice[TSrc,TVal]([this; other], None)
+    RuleChoice[TSrc,TVal]([this; other])

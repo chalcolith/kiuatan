@@ -6,7 +6,7 @@ class ParseState[TSrc,TVal = None]
   Stores the state of a particular match.
   """
 
-  let _source: List[ReadSeq[TSrc]] box
+  let _source: List[ReadSeq[TSrc] box] box
   let _start: ParseLoc[TSrc] box
 
   let _memo_tables: _RuleToExpMemo[TSrc,TVal] = _memo_tables.create()
@@ -14,16 +14,17 @@ class ParseState[TSrc,TVal = None]
   let _cur_recursions: _RuleToLocLR[TSrc,TVal] = _cur_recursions.create()
 
   new create(
-    source': List[ReadSeq[TSrc]] box,
+    source': List[ReadSeq[TSrc] box] box,
     start': (ParseLoc[TSrc] | None) = None) ?
   =>
     _source = source'
-    _start = match start'
-    | let loc: ParseLoc[TSrc] =>
-      loc.clone()
-    else
-      ParseLoc[TSrc](_source.head()?, 0)
-    end
+    _start =
+      match start'
+      | let loc: ParseLoc[TSrc] =>
+        loc.clone()
+      else
+        ParseLoc[TSrc](_source.head()?, 0)
+      end
 
   new from_seq(
     seq: ReadSeq[TSrc] box,

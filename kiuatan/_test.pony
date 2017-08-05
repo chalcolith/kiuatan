@@ -55,7 +55,7 @@ class iso _TestParseLeftRecursion is UnitTest
     let ab = RuleLiteral[U8]("ab")
     let cd = RuleLiteral[U8]("cd")
 
-    let a = RuleChoice[U8](); a.set_name("A")
+    let a = RuleChoice[U8](where name' = "A")
     let first = RuleSequence[U8]([ a; cd ])
     a.push(first)
     a.push(ab)
@@ -220,7 +220,7 @@ class iso _TestParseRuleSequenceAction is UnitTest
     })
     let rules = [as ParseRule[U8,USize] box: any_rule; any_rule; any_rule; any_rule; any_rule]
 
-    let seq_rule = RuleSequence[U8,USize](rules, {
+    let seq_rule = RuleSequence[U8,USize](rules, "", {
       (ctx: ParseActionContext[U8,USize] box) : USize =>
         var sum: USize = 0
         for r in ctx.results.values() do
