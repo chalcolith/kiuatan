@@ -11,9 +11,11 @@ class RuleRepeat[TSrc,TVal = None] is ParseRule[TSrc,TVal]
   let _max: USize
   let _action: (ParseAction[TSrc,TVal] val | None)
 
-  new create(child: ParseRule[TSrc,TVal] box,
-             min: USize, max: USize = USize.max_value(),
-             action: (ParseAction[TSrc,TVal] val | None) = None) =>
+  new create(
+    child: ParseRule[TSrc,TVal] box,
+    action: (ParseAction[TSrc,TVal] val | None) = None,
+    min: USize = 0, max: USize = USize.max_value())
+  =>
     _child = child
     _min = min
     _max = max

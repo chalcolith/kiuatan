@@ -58,7 +58,13 @@ class ParseResult[TSrc,TVal = None]
     else
       if ctx.values.size() > 0 then
         try
-          return ctx.values(ctx.values.size()-1)?
+          var i: USize = ctx.values.size()
+          while i > 0 do
+            match ctx.values(i-1)?
+            | let v: TVal! => return v
+            end
+            i = i-1
+          end
         end
       end
     end

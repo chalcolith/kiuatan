@@ -143,7 +143,7 @@ class iso _TestParseRuleRepeatAction is UnitTest
 
   fun apply(h: TestHelper) ? =>
     let child = RuleLiteral[U8,U8]("x")
-    let rep0 = RuleRepeat[U8,U8](child, 0)
+    let rep0 = RuleRepeat[U8,U8](child, None, 0)
 
     let memo0_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))?
     match memo0_0.parse(rep0, memo0_0.start())?
@@ -155,7 +155,7 @@ class iso _TestParseRuleRepeatAction is UnitTest
     | None => h.fail("repeat 0 did not match 1")
     end
 
-    let rep1 = RuleRepeat[U8,U8](child, 1)
+    let rep1 = RuleRepeat[U8,U8](child, None, 1)
 
     let memo1_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))?
     match memo1_0.parse(rep1, memo1_0.start())?
