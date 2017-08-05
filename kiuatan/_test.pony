@@ -208,7 +208,7 @@ class iso _TestParseRuleSequenceAction is UnitTest
 
   fun apply(h: TestHelper) ? =>
     let any_rule = RuleAny[U8,USize](
-      {(ctx: ParseActionContext[U8,USize]) : (USize | None) =>
+      {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
         try
           let i = ctx.start.clone()
           let c = i.next()?
@@ -225,7 +225,7 @@ class iso _TestParseRuleSequenceAction is UnitTest
     let seq_rule = RuleSequence[U8,USize](
       rules,
       "Seq",
-      {(ctx: ParseActionContext[U8,USize]) : (USize | None) =>
+      {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
         var sum: USize = 0
         for r in ctx.results.values() do
           match r.value()
@@ -265,7 +265,7 @@ class iso _TestParseRuleLiteralAction is UnitTest
     let memo = ParseState[U8,USize](src)?
     let literal = RuleLiteral[U8,USize](
       str,
-      {(ctx: ParseActionContext[U8,USize]) : (USize | None) =>
+      {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
         try
           let s = String
           let i = ctx.start.clone()

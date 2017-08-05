@@ -44,7 +44,7 @@ class ParseResult[TSrc,TVal = None]
     end
 
   fun _get_value(parent: (ParseActionContext[TSrc,TVal] | None))
-    : (TVal | None)
+    : (TVal! | None)
   =>
     let ctx = ParseActionContext[TSrc,TVal](state, start, next, children,
       parent)
@@ -54,10 +54,15 @@ class ParseResult[TSrc,TVal = None]
 
     match _act
     | let act: ParseAction[TSrc,TVal] val =>
-      act(ctx)
+      return act(ctx)
     else
-      None
+      if ctx.values.size() > 0 then
+        try
+          return ctx.values(ctx.values.size()-1)?
+        end
+      end
     end
+    None
 
 
 class ParseActionContext[TSrc,TVal]
@@ -89,4 +94,4 @@ class ParseActionContext[TSrc,TVal]
   fun inputs(): ParseLocIterator[TSrc] =>
     start.values(next)
 
-type ParseAction[TSrc,TVal] is {(ParseActionContext[TSrc,TVal]): (TVal | None)}
+type ParseAction[TSrc,TVal] is {(ParseActionContext[TSrc,TVal] box): (TVal | None)}

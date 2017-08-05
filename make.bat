@@ -13,10 +13,15 @@ if not exist bin mkdir bin
 set DEBUG=
 if "%1"=="--debug" set DEBUG="--debug"
 if "%1"=="test" goto test
+if "%1"=="fetch" goto fetch
 
 :build
-stable fetch
 stable env ponyc %DEBUG% -o bin %TARGET%
+if errorlevel 1 goto error
+goto done
+
+:fetch
+stable fetch
 if errorlevel 1 goto error
 goto done
 

@@ -1,5 +1,7 @@
 # Kiuatan
 
+**WORK IN PROGRESS**
+
 Kiuatan ("horse" or "pony" in [Chinook Jargon](https://en.wikipedia.org/wiki/Chinook_Jargon#Chinook_Jargon_words_used_by_English-language_speakers)) is a library for building and running parsers in the [Pony](https://www.ponylang.org) programming language.
 
 - Kiuatan parsers use [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar) semantics, which means choices are ordered, and parsers do not backtrack from successful choices.
