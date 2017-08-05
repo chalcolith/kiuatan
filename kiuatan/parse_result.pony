@@ -9,7 +9,7 @@ class ParseResult[TSrc,TVal = None]
   let next: ParseLoc[TSrc] box
   let children: ReadSeq[ParseResult[TSrc,TVal]] box
   let _act: (ParseAction[TSrc,TVal] val | None)
-  let _res: (TVal! | None)
+  var _res: (TVal! | None)
 
   new create(state': ParseState[TSrc,TVal] box,
              start': ParseLoc[TSrc] box,
@@ -35,20 +35,32 @@ class ParseResult[TSrc,TVal = None]
     _act = None
     _res = res'
 
-  fun box value(): (TVal! | None) =>
+  fun value(): (TVal! | None) =>
     match _res
-    | let res: TVal! => res
+    | let res: TVal! =>
+      res
     else
-      match _act
-      | let act: ParseAction[TSrc,TVal] val =>
-        act(ParseActionContext[TSrc,TVal](state, start, next, children))
-      else
-        None
-      end
+      _get_value(None)
+    end
+
+  fun _get_value(parent: (ParseActionContext[TSrc,TVal] | None))
+    : (TVal | None)
+  =>
+    let ctx = ParseActionContext[TSrc,TVal](state, start, next, children,
+      parent)
+    for child in children.values() do
+      ctx.values.push(child._get_value(ctx))
+    end
+
+    match _act
+    | let act: ParseAction[TSrc,TVal] val =>
+      act(ctx)
+    else
+      None
     end
 
 
-class box ParseActionContext[TSrc,TVal]
+class ParseActionContext[TSrc,TVal]
   """
   Holds the context for a parse action.
   """
@@ -56,18 +68,25 @@ class box ParseActionContext[TSrc,TVal]
   let state: ParseState[TSrc,TVal] box
   let start:  ParseLoc[TSrc] box
   let next: ParseLoc[TSrc] box
-  let results: ReadSeq[ParseResult[TSrc,TVal] box] box
+  let results: ReadSeq[ParseResult[TSrc,TVal]] box
+  let values: Array[(TVal! | None)]
+  let parent: (ParseActionContext[TSrc,TVal] | None)
 
-  new create(state': ParseState[TSrc,TVal] box,
-             start':  ParseLoc[TSrc] box,
-             next': ParseLoc[TSrc] box,
-             results': ReadSeq[ParseResult[TSrc,TVal] box] box) =>
+  new create(
+    state': ParseState[TSrc,TVal] box,
+    start':  ParseLoc[TSrc] box,
+    next': ParseLoc[TSrc] box,
+    results': ReadSeq[ParseResult[TSrc,TVal]] box,
+    parent': (ParseActionContext[TSrc,TVal] | None))
+  =>
     state = state'
     start = start'
     next = next'
     results = results'
+    values = Array[(TVal! | None)]
+    parent = parent'
 
   fun inputs(): ParseLocIterator[TSrc] =>
     start.values(next)
 
-type ParseAction[TSrc,TVal] is { (ParseActionContext[TSrc,TVal]): TVal }
+type ParseAction[TSrc,TVal] is {(ParseActionContext[TSrc,TVal]): (TVal | None)}

@@ -207,8 +207,8 @@ class iso _TestParseRuleSequenceAction is UnitTest
   fun name(): String => "ParseRule_Sequence_Action"
 
   fun apply(h: TestHelper) ? =>
-    let any_rule = RuleAny[U8,USize]({
-      (ctx: ParseActionContext[U8,USize] box) : USize =>
+    let any_rule = RuleAny[U8,USize](
+      {(ctx: ParseActionContext[U8,USize]) : (USize | None) =>
         try
           let i = ctx.start.clone()
           let c = i.next()?
@@ -217,11 +217,15 @@ class iso _TestParseRuleSequenceAction is UnitTest
           end
         end
         0
-    })
-    let rules = [as ParseRule[U8,USize] box: any_rule; any_rule; any_rule; any_rule; any_rule]
+      })
+    let rules =
+      [ as ParseRule[U8,USize] box:
+        any_rule; any_rule; any_rule; any_rule; any_rule]
 
-    let seq_rule = RuleSequence[U8,USize](rules, "", {
-      (ctx: ParseActionContext[U8,USize] box) : USize =>
+    let seq_rule = RuleSequence[U8,USize](
+      rules,
+      "Seq",
+      {(ctx: ParseActionContext[U8,USize]) : (USize | None) =>
         var sum: USize = 0
         for r in ctx.results.values() do
           match r.value()
@@ -229,7 +233,7 @@ class iso _TestParseRuleSequenceAction is UnitTest
           end
         end
         sum
-    })
+      })
 
     let seg1 = "12345"
     let src = List[ReadSeq[U8]].from([as ReadSeq[U8]: seg1])
@@ -241,9 +245,10 @@ class iso _TestParseRuleSequenceAction is UnitTest
     | let r: ParseResult[U8,USize] =>
       match r.value()
       | let sum: USize =>
-        h.assert_eq[USize](15, sum, "sequence action did not return the correct value")
+        h.assert_eq[USize](15, sum,
+          "sequence action did not return the correct value")
       else
-       h.fail("action did not return a value")
+        h.fail("action did not return a value")
       end
     end
 
@@ -258,8 +263,9 @@ class iso _TestParseRuleLiteralAction is UnitTest
 
     let str = "123"
     let memo = ParseState[U8,USize](src)?
-    let literal = RuleLiteral[U8,USize](str, {
-      (ctx: ParseActionContext[U8,USize] box) : USize =>
+    let literal = RuleLiteral[U8,USize](
+      str,
+      {(ctx: ParseActionContext[U8,USize]) : (USize | None) =>
         try
           let s = String
           let i = ctx.start.clone()
@@ -270,7 +276,7 @@ class iso _TestParseRuleLiteralAction is UnitTest
         else
           -1
         end
-    })
+      })
     let result = memo.parse(literal, memo.start())?
 
     match result

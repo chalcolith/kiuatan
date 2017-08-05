@@ -1,4 +1,6 @@
 @echo off
+set TARGET=kiuatan
+
 where stable > nul
 if errorlevel 1 goto nostable
 where ponyc > nul
@@ -13,15 +15,19 @@ if "%1"=="--debug" set DEBUG="--debug"
 if "%1"=="test" goto test
 
 :build
-stable env ponyc %DEBUG% -o bin kiuatan
+stable fetch
+stable env ponyc %DEBUG% -o bin %TARGET%
 if errorlevel 1 goto error
 goto done
 
 :test
 if "%2"=="--debug" set DEBUG="--debug"
-if not exist bin\kiuatan.exe stable env ponyc %DEBUG% -o bin kiuatan
+if not exist bin\%TARGET%.exe (
+  stable fetch
+  stable env ponyc %DEBUG% -o bin %TARGET%
+)
 if errorlevel 1 goto error
-bin\kiuatan.exe --sequential
+bin\%TARGET%.exe --sequential
 if errorlevel 1 goto error
 goto done
 
