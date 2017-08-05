@@ -1,7 +1,7 @@
 
 use "collections"
 
-class RuleAnd[TSrc,TVal = None] is ParseRule[TSrc,TVal]
+class RuleAnd[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   """
   Lookahead; matches its child rule without advancing the match position.
 

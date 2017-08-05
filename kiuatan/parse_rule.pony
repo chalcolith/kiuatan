@@ -1,9 +1,9 @@
 use "collections"
 
-type ParseRuleCallStack[TSrc,TVal] is
+type ParseRuleCallStack[TSrc: Any #read, TVal] is
   (ListNode[ParseRule[TSrc,TVal] box] | None)
 
-trait ParseRule[TSrc,TVal = None]
+trait ParseRule[TSrc: Any #read, TVal = None]
   """
   A rule in a grammar.
   """

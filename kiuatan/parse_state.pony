@@ -1,7 +1,7 @@
 use "collections"
 use "debug"
 
-class ParseState[TSrc,TVal = None]
+class ParseState[TSrc: Any #read, TVal = None]
   """
   Stores the state of a particular match.
   """
@@ -222,23 +222,23 @@ class ParseState[TSrc,TVal = None]
     end
 
 
-type _RuleToExpMemo[TSrc,TVal] is
+type _RuleToExpMemo[TSrc: Any #read, TVal] is
   MapIs[ParseRule[TSrc,TVal] box, _ExpToLocMemo[TSrc,TVal]]
 
-type _ExpToLocMemo[TSrc,TVal] is
+type _ExpToLocMemo[TSrc: Any #read, TVal] is
   Map[USize, _LocToResultMemo[TSrc,TVal]]
 
-type _LocToResultMemo[TSrc,TVal] is
+type _LocToResultMemo[TSrc: Any #read, TVal] is
   Map[ParseLoc[TSrc] box, (ParseResult[TSrc,TVal] | None)]
 
-type _RuleToLocLR[TSrc,TVal] is
+type _RuleToLocLR[TSrc: Any #read, TVal] is
   MapIs[ParseRule[TSrc,TVal] box, _LocToLR[TSrc,TVal]]
 
-type _LocToLR[TSrc,TVal] is
+type _LocToLR[TSrc: Any #read, TVal] is
   Map[ParseLoc[TSrc] box, _LRRecord[TSrc,TVal]]
 
 
-class _Expansion[TSrc,TVal]
+class _Expansion[TSrc: Any #read, TVal]
   let rule: ParseRule[TSrc,TVal] box
   let num: USize
 
@@ -247,7 +247,7 @@ class _Expansion[TSrc,TVal]
     num = num'
 
 
-class _LRRecord[TSrc,TVal]
+class _LRRecord[TSrc: Any #read, TVal]
   var lr_detected: Bool
   var num_expansions: USize
   var cur_expansion: _Expansion[TSrc,TVal]

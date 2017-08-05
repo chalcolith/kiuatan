@@ -1,7 +1,7 @@
 
 use "collections"
 
-class RuleSequence[TSrc,TVal = None] is ParseRule[TSrc,TVal]
+class RuleSequence[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   """
   Matches a sequence of child rules.
   """

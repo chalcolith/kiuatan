@@ -1,7 +1,7 @@
 
 use "collections"
 
-class RuleChoice[TSrc,TVal = None] is ParseRule[TSrc,TVal]
+class RuleChoice[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   """
   Matches one of a list of rules.  Uses PEG committed choice semantics;
   does not backtrack once a choice has matched.

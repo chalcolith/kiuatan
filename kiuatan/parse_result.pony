@@ -1,5 +1,5 @@
 
-class ParseResult[TSrc,TVal = None]
+class ParseResult[TSrc: Any #read,TVal = None]
   """
   Holds information about the result of a successful parse.
   """
@@ -71,7 +71,11 @@ class ParseResult[TSrc,TVal = None]
     None
 
 
-class ParseActionContext[TSrc,TVal]
+type ParseAction[TSrc: Any #read, TVal] is
+  {(ParseActionContext[TSrc,TVal] box): (TVal | None)}
+
+
+class ParseActionContext[TSrc: Any #read, TVal]
   """
   Holds the context for a parse action.
   """
@@ -97,7 +101,9 @@ class ParseActionContext[TSrc,TVal]
     values = Array[(TVal! | None)]
     parent = parent'
 
-  fun inputs(): ParseLocIterator[TSrc] =>
-    start.values(next)
-
-type ParseAction[TSrc,TVal] is {(ParseActionContext[TSrc,TVal] box): (TVal | None)}
+  fun inputs(): Array[box->TSrc] =>
+    let arr = Array[box->TSrc]
+    for item in start.values(next) do
+      arr.push(item)
+    end
+    arr
