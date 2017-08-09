@@ -26,13 +26,13 @@ class RuleRepeat[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   fun description(call_stack: ParseRuleCallStack[TSrc,TVal] = None): String =>
     let desc: String trn = recover String end
     if (_min == 0) and (_max == 1) then
-      desc.append("(" + _child_description(_child, call_stack) + ")?")
+      desc.append("(" + _child_description(call_stack, _child) + ")?")
     elseif _min == 0 then
-      desc.append("(" + _child_description(_child, call_stack) + ")*")
+      desc.append("(" + _child_description(call_stack, _child) + ")*")
     elseif _min == 1 then
-      desc.append("(" + _child_description(_child, call_stack) + ")+")
+      desc.append("(" + _child_description(call_stack, _child) + ")+")
     else
-      desc.append("(" + _child_description(_child, call_stack) + "){"
+      desc.append("(" + _child_description(call_stack, _child) + "){"
         + _min.string() + "," + _max.string() + "}")
     end
     desc

@@ -18,7 +18,7 @@ class RuleNot[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   fun can_be_recursive(): Bool => true
 
   fun description(call_stack: ParseRuleCallStack[TSrc,TVal] = None): String =>
-    "!(" + _child_description(_child, call_stack) + ")"
+    "!(" + _child_description(call_stack, _child) + ")"
 
   fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
     : (ParseResult[TSrc,TVal] | None) ?

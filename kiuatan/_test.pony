@@ -25,6 +25,34 @@ actor Main is TestList
     test(_TestParseRuleAnd)
     test(_TestParseLeftRecursion)
     test(_TestParseRuleClass)
+    test(_TestCalculator)
+
+
+class iso _TestCalculator is UnitTest
+  let _grammar: ParseRule[U8,ISize] = _Calculator()
+
+  fun name(): String => "Calculator"
+
+  fun apply(h: TestHelper) ? =>
+    _run_test(h, "123", 123)?
+
+  fun _run_test(h: TestHelper, input: String, expected: ISize) ? =>
+    let state = ParseState[U8,ISize].from_seq(input)?
+    let result = state.parse(_grammar, state.start())?
+    match result
+    | let result': ParseResult[U8,ISize] =>
+      match result'.value()
+      | let actual: ISize =>
+        if actual == expected then
+          h.log("ok:   " + input + " => " + expected.string())
+        else
+          h.fail("FAIL: " + input + " => " + actual.string()
+            + " expected " + expected.string())
+        end
+        return
+      end
+    end
+    h.fail("FAIL: no result")
 
 
 class iso _TestParseRuleClass is UnitTest

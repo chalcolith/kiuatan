@@ -40,7 +40,7 @@ class RuleChoice[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
     s.append("(")
     for (i, child) in _children.pairs() do
       if i > 0 then s.append(" or ") end
-      s.append(_child_description(child, call_stack))
+      s.append(_child_description(call_stack, child))
     end
     s.append(")")
     if _name != "" then s.append(")") end

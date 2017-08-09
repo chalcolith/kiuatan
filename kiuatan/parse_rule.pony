@@ -1,4 +1,10 @@
+
 use "collections"
+use "debug"
+
+class Wombat
+  new create() =>
+    Debug.out("wombat!")
 
 type ParseRuleCallStack[TSrc: Any #read, TVal] is
   (ListNode[ParseRule[TSrc,TVal] box] | None)
@@ -20,37 +26,68 @@ trait ParseRule[TSrc: Any #read, TVal = None]
     "?"
 
   fun _child_description(
-    child: ParseRule[TSrc,TVal] box,
-    call_stack: ParseRuleCallStack[TSrc,TVal])
+    call_stack: ParseRuleCallStack[TSrc,TVal],
+    child: ParseRule[TSrc,TVal] box)
     : String
   =>
-    match call_stack
-    | let node: ListNode[ParseRule[TSrc,TVal] box] =>
-      var cur = node
-      try
+    //Debug.out("_child_description " + this.name() + " " + child.name())
+    let new_stack =
+      match call_stack
+      | let node: ListNode[ParseRule[TSrc,TVal] box] =>
+        //Debug.out(" found node")
+        var cur = node
         while true do
-          if cur()? is child then
-            if (child.name() == "") or (child.name() == "?") then
-              return "?rule?"
+          try
+            match cur()?
+            | let rule: ParseRule[TSrc,TVal] box =>
+              //Debug.out(" node has rule " + rule.name())
+              if rule is this then
+                //Debug.out(" rule is this")
+                let name' = this.name()
+                if (name' == "") or (name' == "?") then
+                  return "?rule?"
+                else
+                  return name'
+                end
+              else
+                //Debug.out(" rule is NOT this")
+                None
+              end
             else
-              return child.name()
+              //Debug.out(" node has no rule")
+              break
             end
-          end
-          if node.has_next() then
-            cur = match cur.next()
-            | let next: ListNode[ParseRule[TSrc,TVal] box] => next
-            else break end
           else
+            //Debug.out(" error")
+            break
+          end
+          if cur.has_next() then
+            //Debug.out(" cur has next ")
+            cur =
+              match cur.next()
+              | let next: ListNode[ParseRule[TSrc,TVal] box] =>
+                //Debug.out("  next is node")
+                next
+              else
+                //Debug.out("  next is None")
+                break
+              end
+          else
+            //Debug.out(" cur does NOT have next")
             break
           end
         end
+
+        //Debug.out(" pushing this on top of stack")
+        let top = ListNode[ParseRule[TSrc,TVal] box](this)
+        top.append(node)
+        top
+      else
+        //Debug.out(" starting stack with this")
+        ListNode[ParseRule[TSrc,TVal] box](this)
       end
-      let top = ListNode[ParseRule[TSrc,TVal] box](this)
-      node.prepend(top)
-      child.description(top)
-    else
-      child.description(ListNode[ParseRule[TSrc,TVal] box](this))
-    end
+    //Debug.out(" child.description")
+    child.description(new_stack)
 
   fun parse(memo: ParseState[TSrc,TVal] ref, start: ParseLoc[TSrc] box)
     : (ParseResult[TSrc,TVal] | None) ?
