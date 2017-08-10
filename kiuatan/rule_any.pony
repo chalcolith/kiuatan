@@ -11,7 +11,7 @@ class RuleAny[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   new create(action: (ParseAction[TSrc,TVal] val | None) = None) =>
     _action = action
 
-  fun description(call_stack: ParseRuleCallStack[TSrc,TVal] = None): String =>
+  fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
     "."
 
   fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)

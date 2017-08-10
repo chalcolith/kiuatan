@@ -34,13 +34,13 @@ class RuleChoice[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   fun ref push(child: ParseRule[TSrc,TVal] box) =>
     _children.push(child)
 
-  fun description(call_stack: ParseRuleCallStack[TSrc,TVal] = None): String =>
+  fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
     let s: String trn = recover String end
     if _name != "" then s.append("(" + _name + " = ") end
     s.append("(")
     for (i, child) in _children.pairs() do
       if i > 0 then s.append(" or ") end
-      s.append(_child_description(call_stack, child))
+      s.append(child.description(call_stack))
     end
     s.append(")")
     if _name != "" then s.append(")") end

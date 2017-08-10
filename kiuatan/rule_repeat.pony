@@ -23,16 +23,16 @@ class RuleRepeat[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
 
   fun can_be_recursive(): Bool => true
 
-  fun description(call_stack: ParseRuleCallStack[TSrc,TVal] = None): String =>
+  fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
     let desc: String trn = recover String end
     if (_min == 0) and (_max == 1) then
-      desc.append("(" + _child_description(call_stack, _child) + ")?")
+      desc.append("(" + _child.description(call_stack) + ")?")
     elseif _min == 0 then
-      desc.append("(" + _child_description(call_stack, _child) + ")*")
+      desc.append("(" + _child.description(call_stack) + ")*")
     elseif _min == 1 then
-      desc.append("(" + _child_description(call_stack, _child) + ")+")
+      desc.append("(" + _child.description(call_stack) + ")+")
     else
-      desc.append("(" + _child_description(call_stack, _child) + "){"
+      desc.append("(" + _child.description(call_stack) + "){"
         + _min.string() + "," + _max.string() + "}")
     end
     desc

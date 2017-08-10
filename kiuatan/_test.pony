@@ -84,7 +84,7 @@ class iso _TestParseLeftRecursion is UnitTest
     let cd = RuleLiteral[U8]("cd")
 
     let a = RuleChoice[U8](where name' = "A")
-    let first = RuleSequence[U8]([ a; cd ])
+    let first = RuleSequence[U8]([ a; cd ], "First")
     a.push(first)
     a.push(ab)
 

@@ -16,7 +16,7 @@ class RuleLiteral[
     _expected = expected
     _action = action
 
-  fun description(call_stack: ParseRuleCallStack[TSrc,TVal] = None): String =>
+  fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
     recover
       let s = String
       s.append("\"")
