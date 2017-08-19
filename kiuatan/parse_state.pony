@@ -1,9 +1,10 @@
+
 use "collections"
 use "debug"
 
 class ParseState[TSrc: Any #read, TVal = None]
   """
-  Stores the state of a particular match.
+  Stores the state of a particular parse.
   """
 
   let _source: List[ReadSeq[TSrc] box] box
@@ -54,12 +55,12 @@ class ParseState[TSrc: Any #read, TVal = None]
     var depth = _call_stack.size()
     let indent = _get_indent(depth)
     Debug.out(indent + "parse: looking for " + exp.rule.description()
-      + ":" + exp.num.string() + " (" + depth.string() + " deep)")
-    if depth > 10 then return None end
+      + ":" + exp.num.string() + " (" + depth.string() + " deep) at "
+      + loc.string())
 
     match _get_result(exp, loc)
     | let r: ParseResult[TSrc,TVal] =>
-      Debug.out(indent + "got _memoized result @" + r.start.string() + "-"
+      Debug.out(indent + "got memoized result @" + r.start.string() + "-"
         + r.next.string())
       return r
     end
@@ -69,10 +70,12 @@ class ParseState[TSrc: Any #read, TVal = None]
       _memoize(exp, loc, res)?
       match res
       | let r: ParseResult[TSrc,TVal] =>
-        Debug.out(indent + "got non-recursive result @" + r.start.string()
-          + "-" + r.next.string())
+        Debug.out(indent + "memoizing non-recursive result for "
+          + exp.rule.description() + " @" + r.start.string() + "-"
+          + r.next.string())
       else
-        Debug.out(indent + "got non-recursive failure")
+        Debug.out(indent + "memoizing non-recursive failure for "
+          + exp.rule.description() + "; return None")
       end
       return res
     end
@@ -86,10 +89,21 @@ class ParseState[TSrc: Any #read, TVal = None]
         if lr.cur_expansion.rule is rule then break end
         rec.involved_rules.set(lr.cur_expansion.rule)
       end
-      return _get_result(rec.cur_expansion, loc)
+      let res = _get_result(rec.cur_expansion, loc)
+      match res
+      | let res': ParseResult[TSrc,TVal] =>
+        Debug.out(indent + "returning @" + res'.start.string() + "-"
+          + res'.next.string() + " for " + rec.cur_expansion.rule.description()
+          + ":" + rec.cur_expansion.num.string())
+      else
+        Debug.out(indent + "returning None for "
+          + rec.cur_expansion.rule.description()
+          + ":" + rec.cur_expansion.num.string())
+      end
+      return res
     else
       let rec = _LRRecord[TSrc,TVal](rule, loc)
-      Debug.out(indent + "start LR record; _memoize failure for "
+      Debug.out(indent + "start LR record; memoize failure for "
         + rec.cur_expansion.rule.description() + ":"
         + rec.cur_expansion.num.string())
 
@@ -99,6 +113,10 @@ class ParseState[TSrc: Any #read, TVal = None]
 
       var res: (ParseResult[TSrc,TVal] | None) = None
       while true do
+        Debug.out(indent + "LR search for "
+          + rec.cur_expansion.rule.description() + ":"
+          + rec.cur_expansion.num.string()
+          + " @" + loc.string())
         res = rule.parse(this, loc)?
         match res
         | (let r: ParseResult[TSrc,TVal])
@@ -107,8 +125,9 @@ class ParseState[TSrc: Any #read, TVal = None]
           rec.cur_expansion = _Expansion[TSrc,TVal](rule, rec.num_expansions)
           rec.cur_next_loc = r.next
           rec.cur_result = r
-          Debug.out(indent + "_memoize intermediate result @" + r.start.string()
-            + "-" + r.next.string())
+          Debug.out(indent + "memoize intermediate result @" + r.start.string()
+            + "-" + r.next.string() + " for " + rec.cur_expansion.rule.description()
+            + ":" + rec.cur_expansion.num.string())
           _memoize(rec.cur_expansion, loc, r)?
         else
           if rec.lr_detected then
@@ -118,21 +137,25 @@ class ParseState[TSrc: Any #read, TVal = None]
           _call_stack.shift()?
           if not _call_stack.exists({ (r: _LRRecord[TSrc,TVal] box): Bool =>
               r.involved_rules.contains(rule) }) then
+            Debug.out(indent + "not involved; memoizing @" + loc.string()
+              + " for " + rec.cur_expansion.rule.description()
+              + ":" + rec.cur_expansion.num.string())
             _memoize(exp, loc, res)?
           end
 
           match res
           | let r': ParseResult[TSrc,TVal] =>
             Debug.out(indent + "end LR search; found result @"
-              + r'.start.string() + "-" + r'.next.string())
+              + r'.start.string() + "-" + r'.next.string() + " for "
+              + rec.cur_expansion.rule.description() + ":"
+              + rec.cur_expansion.num.string())
           else
-            Debug.out(indent + "end LR search; found None")
+            Debug.out(indent + "end LR search; found None for "
+              + rec.cur_expansion.rule.description()
+              + ":" + rec.cur_expansion.num.string())
           end
           break
         end
-        Debug.out(indent + "repeating LR search for "
-          + rec.cur_expansion.rule.description() + ":"
-          + rec.cur_expansion.num.string())
       end
       return res
     end

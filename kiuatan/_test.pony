@@ -35,6 +35,7 @@ class iso _TestCalculator is UnitTest
 
   fun apply(h: TestHelper) ? =>
     _run_test(h, "123", 123)?
+    _run_test(h, "123 + (4 * 12)", 123 + (4 * 12))?
 
   fun _run_test(h: TestHelper, input: String, expected: ISize) ? =>
     let state = ParseState[U8,ISize].from_seq(input)?

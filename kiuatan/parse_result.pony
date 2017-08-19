@@ -1,4 +1,6 @@
 
+use "itertools"
+
 class ParseResult[TSrc: Any #read,TVal = None]
   """
   Holds information about the result of a successful parse.
@@ -34,6 +36,11 @@ class ParseResult[TSrc: Any #read,TVal = None]
     children = children'
     _act = None
     _res = res'
+
+  fun inputs(): Array[box->TSrc] iso^ =>
+    recover
+      Iter[box->TSrc](start.values(next)).collect(Array[box->TSrc])
+    end
 
   fun value(): (TVal! | None) =>
     match _res
@@ -101,9 +108,7 @@ class ParseActionContext[TSrc: Any #read, TVal]
     values = Array[(TVal! | None)]
     parent = parent'
 
-  fun inputs(): Array[box->TSrc] =>
-    let arr = Array[box->TSrc]
-    for item in start.values(next) do
-      arr.push(item)
+  fun inputs(): Array[box->TSrc] iso^ =>
+    recover
+      Iter[box->TSrc](start.values(next)).collect(Array[box->TSrc])
     end
-    arr

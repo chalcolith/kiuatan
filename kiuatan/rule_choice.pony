@@ -35,6 +35,10 @@ class RuleChoice[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
     _children.push(child)
 
   fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
+    if _name != "" then
+      return _name
+    end
+
     let s: String trn = recover String end
     if _name != "" then s.append("(" + _name + " = ") end
     s.append("(")

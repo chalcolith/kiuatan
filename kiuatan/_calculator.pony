@@ -5,9 +5,9 @@ class _Calculator
 
   ```
   Exp = Add
-  Add = Add WS ('+' | '-') WS Mul
+  Add = Add WS [+-] WS Mul
       | Mul
-  Mul = Mul WS ('*' | '/') WS Num
+  Mul = Mul WS [*/] WS Num
       | Num
   Num = '(' WS Exp WS ')' WS
       | [0-9]+ WS
@@ -38,7 +38,8 @@ class _Calculator
               exp
               ws
               RuleLiteral[U8,ISize](")")
-              ws ])
+              ws
+            ])
           RuleSequence[U8,ISize](
             [ RuleRepeat[U8,ISize](
                 RuleClass[U8,ISize].from_iter("0123456789".values()),
@@ -47,12 +48,14 @@ class _Calculator
                 {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
                   var num: ISize = 0
                   for ch in ctx.inputs().values() do
-                    num = num + (ch.isize() - '0')
+                    num = (num * 10) + (ch.isize() - '0')
                   end
                   num
                 },
                 1)
-              ws ]) ],
+              ws
+            ])
+        ],
         "Num")
 
     // A multiplicative expression can be a multiplicative expression
@@ -62,8 +65,7 @@ class _Calculator
       RuleSequence[U8,ISize](
         [ mul
           ws
-          RuleChoice[U8,ISize](
-            [ RuleLiteral[U8,ISize]("*"); RuleLiteral[U8,ISize]("/") ])
+          RuleClass[U8,ISize].from_iter("*/".values())
           ws
           num ],
         "Mul",
@@ -72,7 +74,9 @@ class _Calculator
           try
             let a = ctx.values(0)? as ISize
             let b = ctx.values(4)? as ISize
-            if ctx.inputs()(0)? == '*' then
+
+            let str = ctx.results(2)?.inputs()
+            if str(0)? == '*' then
               a * b
             else
               a / b
@@ -88,8 +92,7 @@ class _Calculator
       RuleSequence[U8,ISize](
         [ add
           ws
-          RuleChoice[U8,ISize](
-            [ RuleLiteral[U8,ISize]("+"); RuleLiteral[U8,ISize]("-") ])
+          RuleClass[U8,ISize].from_iter("+-".values())
           ws
           mul ],
         "Add",
@@ -97,7 +100,9 @@ class _Calculator
           try
             let a = ctx.values(0)? as ISize
             let b = ctx.values(4)? as ISize
-            if ctx.inputs()(0)? == '+' then
+
+            let str = ctx.results(2)?.inputs()
+            if str(0)? == '+' then
               a + b
             else
               a - b

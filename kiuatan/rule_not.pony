@@ -15,7 +15,8 @@ class RuleNot[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
     _child = child
     _action = action
 
-  fun can_be_recursive(): Bool => true
+  fun can_be_recursive(): Bool =>
+    _child.can_be_recursive()
 
   fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
     "!(" + _child.description(call_stack) + ")"

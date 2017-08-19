@@ -2,7 +2,7 @@
 use "collections"
 
 class RuleClass[
-  TSrc: (Hashable #read & Equatable[TSrc] #read & Stringable),
+  TSrc: (Hashable #read & Equatable[TSrc] #read & Stringable #read),
   TVal = None] is ParseRule[TSrc,TVal]
   """
   Matches any of a set of inputs.
@@ -42,7 +42,6 @@ class RuleClass[
     let cur = start.clone()
     if cur.has_next() then
       let actual = cur.next()?
-
       if _expected.contains(actual) then
         match _action
         | let action: ParseAction[TSrc,TVal] val =>
