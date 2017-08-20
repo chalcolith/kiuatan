@@ -27,7 +27,7 @@ class RuleAnd[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
     : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
   =>
-    match state.memoparse(_child, start)?
+    match state.parse_with_memo(_child, start)?
     | let r: ParseResult[TSrc,TVal] =>
       ParseResult[TSrc,TVal](state, start, start, Array[ParseResult[TSrc,TVal]],
         _action)

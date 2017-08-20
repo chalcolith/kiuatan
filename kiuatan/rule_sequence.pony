@@ -55,7 +55,7 @@ class RuleSequence[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
     let results = Array[ParseResult[TSrc,TVal]](_children.size())
     var cur = start
     for rule in _children.values() do
-      match state.memoparse(rule, cur)?
+      match state.parse_with_memo(rule, cur)?
       | let r: ParseResult[TSrc,TVal] =>
         results.push(r)
         cur = r.next
