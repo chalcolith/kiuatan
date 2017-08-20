@@ -14,6 +14,8 @@ class ParseState[TSrc: Any #read, TVal = None]
   let _call_stack: List[_LRRecord[TSrc,TVal]] = _call_stack.create()
   let _cur_recursions: _RuleToLocLR[TSrc,TVal] = _cur_recursions.create()
 
+  var _last_error: (ParseError[TSrc,TVal] | None) = None
+
   new create(
     source': List[ReadSeq[TSrc] box] box,
     start': (ParseLoc[TSrc] | None) = None) ?
@@ -45,7 +47,6 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun start(): ParseLoc[TSrc] box =>
     _start
 
-
   fun ref parse(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box)
     : (ParseResult[TSrc,TVal] | None) ?
   =>
@@ -53,7 +54,6 @@ class ParseState[TSrc: Any #read, TVal = None]
     | let res: ParseResult[TSrc,TVal] =>
       res
     end
-
 
   fun ref memoparse(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box)
     : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
@@ -81,6 +81,10 @@ class ParseState[TSrc: Any #read, TVal = None]
         Debug.out(indent + "memoizing non-recursive result for "
           + exp.rule.description() + " @" + r.start.string() + "-"
           + r.next.string())
+      | let msg: ParseErrorMessage =>
+        _last_error = ParseError[TSrc,TVal](loc,
+          SetIs[ParseRule[TSrc,TVal] box].>set(rule),
+          [msg])
       else
         Debug.out(indent + "memoizing non-recursive failure for "
           + exp.rule.description() + "; return None")
@@ -157,6 +161,10 @@ class ParseState[TSrc: Any #read, TVal = None]
               + r'.start.string() + "-" + r'.next.string() + " for "
               + rec.cur_expansion.rule.description() + ":"
               + rec.cur_expansion.num.string())
+          | let msg: ParseErrorMessage =>
+            _last_error = ParseError[TSrc,TVal](loc,
+              SetIs[ParseRule[TSrc,TVal] box].>set(rule),
+              [msg])
           else
             Debug.out(indent + "end LR search; found None for "
               + rec.cur_expansion.rule.description()
@@ -252,7 +260,10 @@ class ParseState[TSrc: Any #read, TVal = None]
       loc_lr.remove(loc)?
     end
 
-  fun last_error(): (ParseError[TSrc,TVal] | None) =>
+  fun last_error(): (this->ParseError[TSrc,TVal] | None) =>
+    _last_error
+
+  fun farthest_error(): (ParseError[TSrc,TVal] | None) =>
     var farthest = _start
     let rules = SetIs[ParseRule[TSrc,TVal] box]
     let messages = Array[ParseErrorMessage]

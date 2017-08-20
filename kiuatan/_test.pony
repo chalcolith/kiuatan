@@ -26,11 +26,49 @@ actor Main is TestList
     test(_TestParseLeftRecursion)
     test(_TestParseRuleClass)
     test(_TestCalculator)
+    test(_TestFarthestError)
     test(_TestLastError)
 
 
 class iso _TestLastError is UnitTest
   fun name(): String => "LastError"
+
+  fun apply(h: TestHelper) ? =>
+    let errmsg1 = "expected 'vu'"
+    let errmsg2 = "expected 'ab'"
+    let grammar = RuleChoice[U8](
+      [ RuleSequence[U8](
+          [ RuleLiteral[U8]("zy")
+            RuleLiteral[U8]("xw")
+            RuleChoice[U8]([ RuleLiteral[U8]("vu"); RuleError[U8](errmsg1) ])
+          ])
+        RuleSequence[U8](
+          [ RuleLiteral[U8]("zy")
+            RuleChoice[U8]([ RuleLiteral[U8]("ab"); RuleError[U8](errmsg2) ])
+          ])
+      ])
+
+    let state = ParseState[U8].from_single_seq("zyxwrr")?
+    match state.parse(grammar, state.start())?
+    | None =>
+      match state.farthest_error()
+      | let err: ParseError[U8] =>
+        h.assert_eq[String](errmsg1, err.messages(0)?)
+      else
+        h.fail("farthest error not found")
+      end
+      match state.last_error()
+      | let err: ParseError[U8] =>
+        h.assert_eq[String](errmsg2, err.messages(0)?)
+      else
+        h.fail("last error not found")
+      end
+    else
+      h.fail("text should not parse")
+    end
+
+class iso _TestFarthestError is UnitTest
+  fun name(): String => "FarthestError"
 
   fun apply(h: TestHelper) ? =>
     let errmsg = "expected 'cd'"
@@ -53,14 +91,14 @@ class iso _TestLastError is UnitTest
     let state2 = ParseState[U8].from_single_seq("abzz")?
     match state2.parse(grammar, state2.start())?
     | None =>
-      match state2.last_error()
+      match state2.farthest_error()
       | let err: ParseError[U8] =>
         h.assert_eq[String](errmsg, err.messages(0)?)
       else
-        h.fail("'abzz' failed to give an error")
+        h.fail("'abzz': farthest error not found")
       end
     else
-      h.fail("'abzz' matched 'ab' + 'cd'")
+      h.fail("'abzz' erroneously matched 'ab' + 'cd'")
     end
 
 
