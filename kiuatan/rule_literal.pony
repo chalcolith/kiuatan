@@ -11,8 +11,10 @@ class RuleLiteral[
   let _expected: ReadSeq[TSrc] box
   let _action: (ParseAction[TSrc,TVal] val | None)
 
-  new create(expected: ReadSeq[TSrc] box,
-             action: (ParseAction[TSrc,TVal] val | None) = None) =>
+  new create(
+    expected: ReadSeq[TSrc] box,
+    action: (ParseAction[TSrc,TVal] val | None) = None)
+  =>
     _expected = expected
     _action = action
 
@@ -27,7 +29,7 @@ class RuleLiteral[
       s
     end
 
-  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
     : (ParseResult[TSrc,TVal] | None) ?
   =>
     let cur = start.clone()
@@ -39,9 +41,9 @@ class RuleLiteral[
 
     match _action
     | None =>
-      ParseResult[TSrc,TVal].from_value(memo, start, cur,
+      ParseResult[TSrc,TVal].from_value(state, start, cur,
         Array[ParseResult[TSrc,TVal]], None)
     | let action: ParseAction[TSrc,TVal] val =>
-      ParseResult[TSrc,TVal](memo, start, cur,
+      ParseResult[TSrc,TVal](state, start, cur,
         Array[ParseResult[TSrc,TVal]], action)
     end

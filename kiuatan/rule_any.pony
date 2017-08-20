@@ -14,8 +14,8 @@ class RuleAny[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
     "."
 
-  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
-    : (ParseResult[TSrc,TVal] | None) ?
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
   =>
     let cur = start.clone()
     if cur.has_next() then
@@ -23,10 +23,10 @@ class RuleAny[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
 
       match _action
       | None =>
-        ParseResult[TSrc,TVal].from_value(memo, start, cur,
+        ParseResult[TSrc,TVal].from_value(state, start, cur,
           Array[ParseResult[TSrc,TVal]], None)
       | let action: ParseAction[TSrc,TVal] val =>
-        ParseResult[TSrc,TVal](memo, start, cur,
+        ParseResult[TSrc,TVal](state, start, cur,
           Array[ParseResult[TSrc,TVal]], action)
       end
     else

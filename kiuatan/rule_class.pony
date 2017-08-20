@@ -16,8 +16,10 @@ class RuleClass[
     _expected = expected
     _action = action
 
-  new from_iter(expected: Iterator[TSrc],
-               action: (ParseAction[TSrc,TVal] val | None) = None) =>
+  new from_iter(
+    expected: Iterator[TSrc],
+    action: (ParseAction[TSrc,TVal] val | None) = None)
+  =>
     let expected' = Set[TSrc]
     for item in expected do
       expected'.set(item)
@@ -36,8 +38,8 @@ class RuleClass[
       s
     end
 
-  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
-    : (ParseResult[TSrc,TVal] | None) ?
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
   =>
     let cur = start.clone()
     if cur.has_next() then
@@ -45,10 +47,10 @@ class RuleClass[
       if _expected.contains(actual) then
         match _action
         | let action: ParseAction[TSrc,TVal] val =>
-          return ParseResult[TSrc,TVal](memo, start, cur,
+          return ParseResult[TSrc,TVal](state, start, cur,
             Array[ParseResult[TSrc,TVal]], action)
         | None =>
-          return ParseResult[TSrc,TVal].from_value(memo, start, cur,
+          return ParseResult[TSrc,TVal].from_value(state, start, cur,
             Array[ParseResult[TSrc,TVal]], None)
         end
       end

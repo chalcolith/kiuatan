@@ -24,12 +24,12 @@ class RuleAnd[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
     "&(" + _child.description(call_stack) + ")"
 
-  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
-    : (ParseResult[TSrc,TVal] | None) ?
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
   =>
-    match memo.parse(_child, start)?
+    match state.memoparse(_child, start)?
     | let r: ParseResult[TSrc,TVal] =>
-      ParseResult[TSrc,TVal](memo, start, start, Array[ParseResult[TSrc,TVal]],
+      ParseResult[TSrc,TVal](state, start, start, Array[ParseResult[TSrc,TVal]],
         _action)
     else
       None

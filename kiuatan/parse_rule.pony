@@ -66,8 +66,8 @@ trait ParseRule[TSrc: Any #read, TVal = None]
 
   fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String
 
-  fun parse(memo: ParseState[TSrc,TVal] ref, start: ParseLoc[TSrc] box)
-    : (ParseResult[TSrc,TVal] | None) ?
+  fun parse(state: ParseState[TSrc,TVal] ref, start: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
 
   fun add(other: ParseRule[TSrc,TVal]): ParseRule[TSrc,TVal] =>
     RuleSequence[TSrc,TVal]([this; other])

@@ -27,7 +27,7 @@ class ParseState[TSrc: Any #read, TVal = None]
         ParseLoc[TSrc](_source.head()?, 0)
       end
 
-  new from_seq(
+  new from_single_seq(
     seq: ReadSeq[TSrc] box,
     start': (ParseLoc[TSrc] | None) = None) ?
   =>
@@ -39,16 +39,24 @@ class ParseState[TSrc: Any #read, TVal = None]
       ParseLoc[TSrc](_source.head()?, 0)
     end
 
-  fun box source(): List[ReadSeq[TSrc] box] box =>
+  fun source(): List[ReadSeq[TSrc] box] box =>
     _source
 
-  fun box start(): ParseLoc[TSrc] box =>
+  fun start(): ParseLoc[TSrc] box =>
     _start
 
-  fun ref parse(
-    rule: ParseRule[TSrc,TVal] box,
-    loc: ParseLoc[TSrc] box)
+
+  fun ref parse(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box)
     : (ParseResult[TSrc,TVal] | None) ?
+  =>
+    match memoparse(rule, loc)?
+    | let res: ParseResult[TSrc,TVal] =>
+      res
+    end
+
+
+  fun ref memoparse(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
   =>
     let exp = _Expansion[TSrc,TVal](rule, 0)
 
@@ -111,7 +119,7 @@ class ParseState[TSrc: Any #read, TVal = None]
       _start_lr_record(rule, loc, rec)
       _call_stack.unshift(rec)
 
-      var res: (ParseResult[TSrc,TVal] | None) = None
+      var res: (ParseResult[TSrc,TVal] | ParseErrorMessage | None) = None
       while true do
         Debug.out(indent + "LR search for "
           + rec.cur_expansion.rule.description() + ":"
@@ -172,7 +180,7 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun _get_result(
     exp: _Expansion[TSrc,TVal] box,
     loc: ParseLoc[TSrc] box)
-    : (this->ParseResult[TSrc,TVal] | None)
+    : (this->ParseResult[TSrc,TVal] | ParseErrorMessage | None)
   =>
     try
       let exp_memo = _memo_tables(exp.rule)?
@@ -185,7 +193,7 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun ref _memoize(
     exp: _Expansion[TSrc,TVal],
     loc: ParseLoc[TSrc] box,
-    res: (ParseResult[TSrc,TVal] | None)) ?
+    res: (ParseResult[TSrc,TVal] | ParseErrorMessage | None)) ?
   =>
     let exp_memo = try
       _memo_tables(exp.rule)?
@@ -244,6 +252,49 @@ class ParseState[TSrc: Any #read, TVal = None]
       loc_lr.remove(loc)?
     end
 
+  fun last_error(): (ParseError[TSrc,TVal] | None) =>
+    var farthest = _start
+    let rules = SetIs[ParseRule[TSrc,TVal] box]
+    let messages = Array[ParseErrorMessage]
+    for (rule, exp_memo) in _memo_tables.pairs() do
+      for (exp, loc_memo) in exp_memo.pairs() do
+        for (loc, res) in loc_memo.pairs() do
+          match res
+          | let msg: ParseErrorMessage =>
+            if not (loc < farthest) then
+              if not (loc == farthest) then
+                farthest = loc
+                rules.clear()
+                messages.clear()
+              end
+              rules.set(rule)
+              messages.push(msg)
+            end
+          end
+        end
+      end
+    end
+    if rules.size() > 0 then
+      ParseError[TSrc,TVal](farthest, rules, messages)
+    end
+
+
+class ParseError[TSrc: Any #read, TVal = None]
+  let loc: ParseLoc[TSrc] box
+  let rules: SetIs[ParseRule[TSrc,TVal] box] box
+  let messages: Array[ParseErrorMessage] box
+
+  new create(
+    loc': ParseLoc[TSrc] box,
+    rules': SetIs[ParseRule[TSrc,TVal] box] box,
+    msg': Array[ParseErrorMessage] box)
+  =>
+    loc = loc'
+    rules = rules'
+    messages = msg'
+
+
+type ParseErrorMessage is String
 
 type _RuleToExpMemo[TSrc: Any #read, TVal] is
   MapIs[ParseRule[TSrc,TVal] box, _ExpToLocMemo[TSrc,TVal]]
@@ -252,7 +303,7 @@ type _ExpToLocMemo[TSrc: Any #read, TVal] is
   Map[USize, _LocToResultMemo[TSrc,TVal]]
 
 type _LocToResultMemo[TSrc: Any #read, TVal] is
-  Map[ParseLoc[TSrc] box, (ParseResult[TSrc,TVal] | None)]
+  Map[ParseLoc[TSrc] box, (ParseResult[TSrc,TVal] | ParseErrorMessage | None)]
 
 type _RuleToLocLR[TSrc: Any #read, TVal] is
   MapIs[ParseRule[TSrc,TVal] box, _LocToLR[TSrc,TVal]]
@@ -276,7 +327,7 @@ class _LRRecord[TSrc: Any #read, TVal]
   var cur_expansion: _Expansion[TSrc,TVal]
   var cur_next_loc: ParseLoc[TSrc] box
   var cur_result: (ParseResult[TSrc,TVal] | None)
-  var involved_rules: SetIs[ParseRule[TSrc,TVal] tag]
+  var involved_rules: SetIs[ParseRule[TSrc,TVal] box]
 
   new create(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box) =>
     lr_detected = false
@@ -284,4 +335,4 @@ class _LRRecord[TSrc: Any #read, TVal]
     cur_expansion = _Expansion[TSrc,TVal](rule, num_expansions)
     cur_next_loc = loc
     cur_result = None
-    involved_rules = SetIs[ParseRule[TSrc,TVal] tag]
+    involved_rules = SetIs[ParseRule[TSrc,TVal] box]

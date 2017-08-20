@@ -50,13 +50,13 @@ class RuleChoice[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
     if _name != "" then s.append(")") end
     s
 
-  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
-    : (ParseResult[TSrc,TVal] | None) ?
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
   =>
     for rule in _children.values() do
-      match memo.parse(rule, start)?
+      match state.memoparse(rule, start)?
       | let r: ParseResult[TSrc,TVal] =>
-        return ParseResult[TSrc,TVal](memo, start, r.next, [r], _action)
+        return ParseResult[TSrc,TVal](state, start, r.next, [r], _action)
       end
     end
     None

@@ -49,13 +49,13 @@ class RuleSequence[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
     if _name != "" then s.append(")") end
     s
 
-  fun parse(memo: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
     : (ParseResult[TSrc,TVal] | None) ?
   =>
     let results = Array[ParseResult[TSrc,TVal]](_children.size())
     var cur = start
     for rule in _children.values() do
-      match memo.parse(rule, cur)?
+      match state.memoparse(rule, cur)?
       | let r: ParseResult[TSrc,TVal] =>
         results.push(r)
         cur = r.next
@@ -63,4 +63,4 @@ class RuleSequence[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
         return None
       end
     end
-    ParseResult[TSrc,TVal](memo, start, cur, results, _action)
+    ParseResult[TSrc,TVal](state, start, cur, results, _action)
