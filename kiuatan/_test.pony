@@ -1,3 +1,4 @@
+
 use "collections"
 use "debug"
 use "itertools"
@@ -48,10 +49,10 @@ class iso _TestLastError is UnitTest
           ])
       ])
 
-    let state = ParseState[U8].from_single_seq("zyxwrr")?
-    match state.parse(grammar, state.start())?
+    let state = ParseState[U8].from_single_seq("zyxwrr")
+    match state.parse(grammar)?
     | None =>
-      match state.farthest_error()
+      match state.farthest_error()?
       | let err: ParseError[U8] =>
         h.assert_eq[String](errmsg1, err.messages(0)?)
       else
@@ -83,15 +84,15 @@ class iso _TestFarthestError is UnitTest
       ]
     )
 
-    let state1 = ParseState[U8].from_single_seq("abcd")?
-    match state1.parse(grammar, state1.start())?
+    let state1 = ParseState[U8].from_single_seq("abcd")
+    match state1.parse(grammar)?
     | None => h.fail("'abcd' failed to match 'ab' + 'cd'")
     end
 
-    let state2 = ParseState[U8].from_single_seq("abzz")?
-    match state2.parse(grammar, state2.start())?
+    let state2 = ParseState[U8].from_single_seq("abzz")
+    match state2.parse(grammar)?
     | None =>
-      match state2.farthest_error()
+      match state2.farthest_error()?
       | let err: ParseError[U8] =>
         h.assert_eq[String](errmsg, err.messages(0)?)
       else
@@ -112,8 +113,8 @@ class iso _TestCalculator is UnitTest
     _run_test(h, "123 + (4 * 12)", 123 + (4 * 12))?
 
   fun _run_test(h: TestHelper, input: String, expected: ISize) ? =>
-    let state = ParseState[U8,ISize].from_single_seq(input)?
-    let result = state.parse(_grammar, state.start())?
+    let state = ParseState[U8,ISize].from_single_seq(input)
+    let result = state.parse(_grammar)?
     match result
     | let result': ParseResult[U8,ISize] =>
       match result'.value()
@@ -139,13 +140,13 @@ class iso _TestParseRuleClass is UnitTest
     let fg = RuleLiteral[U8]("fg")
     let rule = RuleSequence[U8, None]([ab; bcde; fg])
 
-    let state1 = ParseState[U8].from_single_seq("abbfg")?
-    match state1.parse(rule, state1.start())?
+    let state1 = ParseState[U8].from_single_seq("abbfg")
+    match state1.parse(rule)?
     | None => h.fail("state1 did not match")
     end
 
-    let state2 = ParseState[U8].from_single_seq("abefg")?
-    match state2.parse(rule, state2.start())?
+    let state2 = ParseState[U8].from_single_seq("abefg")
+    match state2.parse(rule)?
     | None => h.fail("state2 did not match")
     end
 
@@ -165,8 +166,8 @@ class iso _TestParseLeftRecursion is UnitTest
 
     Debug.out("RULE A is " + a.description())
 
-    let state = ParseState[U8].from_single_seq("abcd")?
-    match state.parse(a, state.start())?
+    let state = ParseState[U8].from_single_seq("abcd")
+    match state.parse(a)?
     | None => h.fail("recursive rule did not match")
     end
 
@@ -178,8 +179,8 @@ class iso _TestParseRuleAnd is UnitTest
     let rule = RuleAnd[U8](RuleLiteral[U8]("ab"))
       + RuleLiteral[U8]("abcd")
 
-    let state = ParseState[U8].from_single_seq("abcd")?
-    match state.parse(rule, state.start())?
+    let state = ParseState[U8].from_single_seq("abcd")
+    match state.parse(rule)?
     | None => h.fail("&ab+abcd rule did not match \"abcd\"")
     end
 
@@ -191,8 +192,8 @@ class iso _TestParseRuleNot is UnitTest
     let rule = RuleNot[U8](RuleLiteral[U8]("ab"))
       + RuleLiteral[U8]("cde")
 
-    let state = ParseState[U8].from_single_seq("cde")?
-    match state.parse(rule, state.start())?
+    let state = ParseState[U8].from_single_seq("cde")
+    match state.parse(rule)?
     | None => h.fail("!ab+cde rule did not match \"cde\"")
     end
 
@@ -204,18 +205,18 @@ class iso _TestParseRuleChoiceOperator is UnitTest
     let ab_or_bc_rule = RuleLiteral[U8]("ab")
       or RuleLiteral[U8]("bc")
 
-    let match_ab = ParseState[U8].from_single_seq("ab")?
-    match match_ab.parse(ab_or_bc_rule, match_ab.start())?
+    let match_ab = ParseState[U8].from_single_seq("ab")
+    match match_ab.parse(ab_or_bc_rule)?
     | None => h.fail("ab|bc choice did not match \"ab\"")
     end
 
-    let match_bc = ParseState[U8].from_single_seq("bc")?
-    match match_bc.parse(ab_or_bc_rule, match_bc.start())?
+    let match_bc = ParseState[U8].from_single_seq("bc")
+    match match_bc.parse(ab_or_bc_rule)?
     | None => h.fail("ab|bc choice did not match \"bc\"")
     end
 
-    let match_de = ParseState[U8].from_single_seq("de")?
-    match match_de.parse(ab_or_bc_rule, match_de.start())?
+    let match_de = ParseState[U8].from_single_seq("de")
+    match match_de.parse(ab_or_bc_rule)?
     | None => None
     else
       h.fail("ab|bc choice matched \"de\" erroneously")
@@ -228,13 +229,13 @@ class iso _TestParseRuleSequenceOperator is UnitTest
   fun apply(h: TestHelper) ? =>
     let ab_rule = RuleLiteral[U8]("a") + RuleLiteral[U8]("b")
 
-    let should_match = ParseState[U8].from_single_seq("ab")?
-    match should_match.parse(ab_rule, should_match.start())?
+    let should_match = ParseState[U8].from_single_seq("ab")
+    match should_match.parse(ab_rule)?
     | None => h.fail("ab sequence did not match \"ab\"")
     end
 
-    let should_not_match = ParseState[U8].from_single_seq("cd")?
-    match should_not_match.parse(ab_rule, should_not_match.start())?
+    let should_not_match = ParseState[U8].from_single_seq("cd")
+    match should_not_match.parse(ab_rule)?
     | None => None
     else
       h.fail("ab sequence matched \"cd\" erroneously")
@@ -248,25 +249,25 @@ class iso _TestParseRuleRepeatAction is UnitTest
     let child = RuleLiteral[U8,U8]("x")
     let rep0 = RuleRepeat[U8,U8](child, None, 0)
 
-    let memo0_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))?
-    match memo0_0.parse(rep0, memo0_0.start())?
+    let memo0_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))
+    match memo0_0.parse(rep0)?
     | None => h.fail("repeat 0 did not match 0")
     end
 
-    let memo0_1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "x"]))?
-    match memo0_1.parse(rep0, memo0_1.start())?
+    let memo0_1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "x"]))
+    match memo0_1.parse(rep0)?
     | None => h.fail("repeat 0 did not match 1")
     end
 
     let rep1 = RuleRepeat[U8,U8](child, None, 1)
 
-    let memo1_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))?
-    match memo1_0.parse(rep1, memo1_0.start())?
+    let memo1_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))
+    match memo1_0.parse(rep1)?
     | let _: ParseResult[U8,U8] => h.fail("repeat 1 matched 0")
     end
 
-    let memo1_1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "xx"]))?
-    match memo1_1.parse(rep1, memo1_1.start())?
+    let memo1_1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "xx"]))
+    match memo1_1.parse(rep1)?
     | let r: ParseResult[U8,U8] =>
       let n = r.children.size()
       h.assert_eq[USize](2, n, "repeat 1 did not match 2 xes")
@@ -285,23 +286,23 @@ class iso _TestParseRuleChoiceAction is UnitTest
     let rules = [as ParseRule[U8,U8]: a_rule; b_rule; c_rule]
     let choice = RuleChoice[U8,U8](rules)
 
-    let memo1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))?
-    match memo1.parse(choice, memo1.start())?
+    let memo1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))
+    match memo1.parse(choice)?
     | None => h.fail("choice a did not match")
     end
 
-    let memo2 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "b"]))?
-    match memo2.parse(choice, memo2.start())?
+    let memo2 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "b"]))
+    match memo2.parse(choice)?
     | None => h.fail("choice b did not match")
     end
 
-    let memo3 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "c"]))?
-    match memo3.parse(choice, memo3.start())?
+    let memo3 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "c"]))
+    match memo3.parse(choice)?
     | None => h.fail("choice c did not match")
     end
 
-    let memo4 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "z"]))?
-    match memo4.parse(choice, memo4.start())?
+    let memo4 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "z"]))
+    match memo4.parse(choice)?
     | let _: ParseResult[U8,U8] => h.fail("choice z matched erroneously")
     end
 
@@ -340,8 +341,8 @@ class iso _TestParseRuleSequenceAction is UnitTest
 
     let seg1 = "12345"
     let src = List[ReadSeq[U8]].from([as ReadSeq[U8]: seg1])
-    let memo = ParseState[U8,USize](src)?
-    let result = memo.parse(seq_rule, memo.start())?
+    let memo = ParseState[U8,USize](src)
+    let result = memo.parse(seq_rule)?
 
     match result
     | None => h.fail("sequence did not match")
@@ -365,7 +366,7 @@ class iso _TestParseRuleLiteralAction is UnitTest
     let src = List[ReadSeq[U8]].from(segs)
 
     let str = "123"
-    let memo = ParseState[U8,USize](src)?
+    let memo = ParseState[U8,USize](src)
     let literal = RuleLiteral[U8,USize](
       str,
       {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
@@ -380,12 +381,12 @@ class iso _TestParseRuleLiteralAction is UnitTest
           -1
         end
       })
-    let result = memo.parse(literal, memo.start())?
+    let result = memo.parse(literal)?
 
     match result
     | None => h.fail("literal did not match")
     | let result': ParseResult[U8,USize] =>
-      let start = memo.start()
+      let start = memo.start()?
       let next = start +? str.size()
       h.assert_eq[ParseLoc[U8] box](start, result'.start, "match does not start at the correct loc")
       h.assert_eq[ParseLoc[U8] box](next, result'.next, "match does not end at the correct loc")
@@ -407,14 +408,14 @@ class iso _TestParseRuleLiteral is UnitTest
     let src = List[ReadSeq[U8]].from(segs)
 
     let str = "one"
-    let memo = ParseState[U8](src)?
+    let memo = ParseState[U8](src)
     let literal = RuleLiteral[U8](str)
-    let result = memo.parse(literal, memo.start())?
+    let result = memo.parse(literal)?
 
     match result
     | None => h.fail("literal did not match")
     | let result': ParseResult[U8] =>
-      let start = memo.start()
+      let start = memo.start()?
       let next = start +? str.size()
       h.assert_eq[ParseLoc[U8] box](start, result'.start, "match does not start at the correct loc")
       h.assert_eq[ParseLoc[U8] box](next, result'.next, "match does not end at the correct loc")

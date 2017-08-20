@@ -4,11 +4,10 @@ use "debug"
 
 class ParseState[TSrc: Any #read, TVal = None]
   """
-  Stores the state of a particular parse.
+  Stores the state of a particular attempt to parse some input.
   """
 
   let _source: List[ReadSeq[TSrc] box] box
-  let _start: ParseLoc[TSrc] box
 
   let _memo_tables: _RuleToExpMemo[TSrc,TVal] = _memo_tables.create()
   let _call_stack: List[_LRRecord[TSrc,TVal]] = _call_stack.create()
@@ -16,41 +15,47 @@ class ParseState[TSrc: Any #read, TVal = None]
 
   var _last_error: (ParseError[TSrc,TVal] | None) = None
 
-  new create(
-    source': List[ReadSeq[TSrc] box] box,
-    start': (ParseLoc[TSrc] | None) = None) ?
-  =>
+  new create(source': List[ReadSeq[TSrc] box] box) =>
+    """
+    Creates a new parse state using `source'` as the linked list of input
+    sequences.
+    """
     _source = source'
-    _start =
-      match start'
-      | let loc: ParseLoc[TSrc] =>
-        loc.clone()
+
+  new from_single_seq(seq: ReadSeq[TSrc] box) =>
+    """
+    Creates a new parse state from a single sequence of inputs.
+    """
+    _source = List[ReadSeq[TSrc]].from([as ReadSeq[TSrc]: seq])
+
+  fun source(): List[ReadSeq[TSrc] box] box =>
+    """
+    Returns the input source used by this parse state.
+    """
+    _source
+
+  fun start(): ParseLoc[TSrc] ? =>
+    ParseLoc[TSrc](_source.head()?, 0)
+
+  fun ref parse(
+    rule: ParseRule[TSrc,TVal] box,
+    loc: (ParseLoc[TSrc] box | None) = None)
+    : (ParseResult[TSrc,TVal] | None) ?
+  =>
+    """
+    Attempt to parse the input against a particular grammar rule, starting
+    at a particular location.  If `loc` is `None`, then the parse will begin
+    at the beginning of the source.
+    """
+    let start' =
+      match loc
+      | let start'': ParseLoc[TSrc] box =>
+        start''
       else
         ParseLoc[TSrc](_source.head()?, 0)
       end
 
-  new from_single_seq(
-    seq: ReadSeq[TSrc] box,
-    start': (ParseLoc[TSrc] | None) = None) ?
-  =>
-    _source = List[ReadSeq[TSrc]].from([as ReadSeq[TSrc]: seq])
-    _start = match start'
-    | let loc: ParseLoc[TSrc] =>
-      loc.clone()
-    else
-      ParseLoc[TSrc](_source.head()?, 0)
-    end
-
-  fun source(): List[ReadSeq[TSrc] box] box =>
-    _source
-
-  fun start(): ParseLoc[TSrc] box =>
-    _start
-
-  fun ref parse(rule: ParseRule[TSrc,TVal] box, loc: ParseLoc[TSrc] box)
-    : (ParseResult[TSrc,TVal] | None) ?
-  =>
-    match memoparse(rule, loc)?
+    match memoparse(rule, start')?
     | let res: ParseResult[TSrc,TVal] =>
       res
     end
@@ -263,8 +268,8 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun last_error(): (this->ParseError[TSrc,TVal] | None) =>
     _last_error
 
-  fun farthest_error(): (ParseError[TSrc,TVal] | None) =>
-    var farthest = _start
+  fun farthest_error(): (ParseError[TSrc,TVal] | None) ? =>
+    var farthest: ParseLoc[TSrc] box = ParseLoc[TSrc](_source.head()?, 0)
     let rules = SetIs[ParseRule[TSrc,TVal] box]
     let messages = Array[ParseErrorMessage]
     for (rule, exp_memo) in _memo_tables.pairs() do
