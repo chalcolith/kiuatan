@@ -55,7 +55,7 @@ class RuleRepeat[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
       count = count + 1
     end
     if (count >= _min) then
-      ParseResult[TSrc,TVal](state, start, cur, results, _action)
+      ParseResult[TSrc,TVal](state, start, cur, this, results, _action)
     else
       None
     end

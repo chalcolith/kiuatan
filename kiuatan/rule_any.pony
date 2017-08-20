@@ -21,14 +21,8 @@ class RuleAny[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
     if cur.has_next() then
       cur.next()?
 
-      match _action
-      | None =>
-        ParseResult[TSrc,TVal].from_value(state, start, cur,
-          Array[ParseResult[TSrc,TVal]], None)
-      | let action: ParseAction[TSrc,TVal] val =>
-        ParseResult[TSrc,TVal](state, start, cur,
-          Array[ParseResult[TSrc,TVal]], action)
-      end
+      ParseResult[TSrc,TVal](state, start, cur, this,
+        Array[ParseResult[TSrc,TVal]], _action)
     else
       None
     end

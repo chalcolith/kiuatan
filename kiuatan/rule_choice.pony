@@ -56,7 +56,7 @@ class RuleChoice[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
     for rule in _children.values() do
       match state.parse_with_memo(rule, start)?
       | let r: ParseResult[TSrc,TVal] =>
-        return ParseResult[TSrc,TVal](state, start, r.next, [r], _action)
+        return ParseResult[TSrc,TVal](state, start, r.next, this, [r], _action)
       end
     end
     None

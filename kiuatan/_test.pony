@@ -104,7 +104,7 @@ class iso _TestFarthestError is UnitTest
 
 
 class iso _TestCalculator is UnitTest
-  let _grammar: ParseRule[U8,ISize] = _Calculator()
+  let _grammar: ParseRule[U8,ISize] = _Calculator.generate()
 
   fun name(): String => "Calculator"
 
@@ -269,7 +269,7 @@ class iso _TestParseRuleRepeatAction is UnitTest
     let memo1_1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "xx"]))
     match memo1_1.parse(rep1)
     | let r: ParseResult[U8,U8] =>
-      let n = r.children.size()
+      let n = r.results.size()
       h.assert_eq[USize](2, n, "repeat 1 did not match 2 xes")
     | None => h.fail("repeat 1 did not match 2")
     end
@@ -314,7 +314,7 @@ class iso _TestParseRuleSequenceAction is UnitTest
     let any_rule = RuleAny[U8,USize](
       {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
         try
-          let i = ctx.start.clone()
+          let i = ctx.result.start.clone()
           let c = i.next()?
           if (c >= '0') and (c <= '9') then
             return USize.from[U8](c - '0')
@@ -331,7 +331,7 @@ class iso _TestParseRuleSequenceAction is UnitTest
       "Seq",
       {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
         var sum: USize = 0
-        for r in ctx.results.values() do
+        for r in ctx.result.results.values() do
           match r.value()
           | let n: USize => sum = sum + n
           end
@@ -372,8 +372,8 @@ class iso _TestParseRuleLiteralAction is UnitTest
       {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
         try
           let s = String
-          let i = ctx.start.clone()
-          while i.has_next() and (i != ctx.next) do
+          let i = ctx.result.start.clone()
+          while i.has_next() and (i != ctx.result.next) do
             s.push(i.next()?)
           end
           s.usize()?

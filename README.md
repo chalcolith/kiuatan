@@ -1,11 +1,12 @@
 # Kiuatan
 
-**WORK IN PROGRESS**
-
 Kiuatan ("horse" or "pony" in [Chinook Jargon](https://en.wikipedia.org/wiki/Chinook_Jargon#Chinook_Jargon_words_used_by_English-language_speakers)) is a library for building and running parsers in the [Pony](https://www.ponylang.org) programming language.
 
-- Kiuatan parsers use [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar) semantics, which means choices are ordered, and parsers do not backtrack from successful choices.
-- Parsers are "packrat" parsers; they memoize intermediate results, resulting in linear-time parsing.
+- Kiuatan uses [Parsing Expression Grammar](https://en.wikipedia.org/wiki/Parsing_expression_grammar) semantics, which means:
+  - Choices are ordered, i.e. the parser will always try to parse alternatives in the order they are declared.
+  - Sequences are greedy, i.e. the parser will not backtrack from the end of a sequence.
+  - Parsers do not backtrack from successful choices.
+- Kiuatan parsers are "packrat" parsers; they memoize intermediate results, resulting in linear-time parsing.
 - Parsers use Mederios et al's [algorithm](https://arxiv.org/abs/1207.0443) to handle unlimited left-recursion.
 
 ## Obtaining Kiuatan
@@ -15,7 +16,7 @@ Kiuatan ("horse" or "pony" in [Chinook Jargon](https://en.wikipedia.org/wiki/Chi
 The easiest way to incorporate Kiuatan into your Pony project is to use [Pony-Stable](https://github.com/ponylang/pony-stable).  Once you have it installed, `cd` to your project's directory and type:
 
 ```bash
-stable add github kulibali/kiuatan
+stable add github kulibali/kiuatan --tag=0.1.0
 ```
 
 This will clone the `kiuatan` repository and add it under the `.deps` directory in your project.  To build your project, Pony-Stable will take care of setting the correct `PONYPATH` environment variable for you, e.g.:
@@ -34,26 +35,59 @@ cd kiuatan
 make && make test
 ```
 
-To use Kiuatan in a project you will need to add `kiuatan/bin` to your `PONYPATH` environment variable.
+To use Kiuatan in a project you will need to add `kiuatan/kiuatan` to your `PONYPATH` environment variable.
 
 ## Overview
 
-Kiuatan is very flexible. Kiuatan grammars are designed to match over linked lists of sequences of items of any type `TSrc` that is `(Equatable[TSrc #read] #read & Stringable #read)`.  (The idea behind this is that you can match not just a single string, but a series of strings stored in a linked list.)
+Kiuatan grammars are designed to match over sequences of items of any type `TSrc` that is `(Equatable[TSrc #read] #read & Stringable #read)`, not just characters.
 
-There are a few fundamental concepts:
+> In fact, Kiuatan grammars match over linked lists of sequences of items.  For example, you can match over a linked list of strings as if it were a single input string.  You can throw out the parse results for a single node of the linked list and start over, retaining the results for the other nodes.  This might be useful for dynamically parsing source code in an editor.
+
+### Workflow
+
+In order to use Kiuatan to parse some inputs, do the following:
+
+- Build a top-level grammar rule out of the various combinators that implement the [ParseRule](http://kulibali.github.io/kiuatan/kiuatan-ParseRule/) trait (see below).
+- Construct a [ParseState](http://kulibali.github.io/kiuatan/kiuatan-ParseState/) object that references a list of sequences of inputs.
+- Call `ParseState.parse()` with the top-level grammar rule.
+
+> Note that you can call `parse()` multiple times on the same parse state; subsequent calls will use the results memoized during previous calls.  You can also clear the memo for a particular input segment and parse again (e.g. if that segment has changed by being edited).
+
+### Results
+
+If the parse is successful, you will obtain a [ParseResult](http://kulibali.github.io/kiuatan/kiuatan-ParseResult/) object.  This contains information about the starting and ending positions of the top-level parse rule, as well as results from parsing child rules.
+
+### Custom Result Values
+
+When constructing grammar rules, you can provide lambda functions that act in the context of a parse result and construct a custom value for you.
+
+When you call `ParseResult.value()` on a parse result, it traverses the tree of child results in depth-first post-order, calling the provided lambda functions.  The [ParseActionContext](http://kulibali.github.io/kiuatan/kiuatan-ParseActionContext) contains an array of the child results' values.
+
+> For convenience, the result value of a rule without a lambda function is the last non-`None` value of its child result values.  This allows custom result values to "bubble up" without having to explicitly copy them to parent contexts.
+
+### Error Handling
+
+Kiuatan has a few features for error handling.  You can use the special [RuleError](http://kulibali.github.io/kiuatan/kiuatan-RuleError) combinator to record error messages in the grammar.  The [ParseState](http://kulibali.github.io/kiuatan/kiuatan-ParseState/) class has a few functions for obtaining information about errors:
+
+- `last_error()`: returns information about the last error encountered during parsing.
+- `farthest_error()`: returns information about the error encountered at the farthest position from the start.
+- `errors(loc)`: returns information about all the rules that failed at a particular location, as well as any error messages that were recorded.
+
+## Details
 
 ### [ParseRule](http://kulibali.github.io/kiuatan/kiuatan-ParseRule/)
 
-A parse rule represents a grammar that you want to use for parsing. Kiuatan provides several classes that you can use to construct grammars.
+A parse rule represents a grammar that you want to use for parsing. Kiuatan provides several combinator classes that you can use to construct grammar rules.
 
 - [RuleLiteral](http://kulibali.github.io/kiuatan/kiuatan-RuleLiteral/): matches a literal sequence of source items, e.g. a literal string, if you are matching over characters.
 - [RuleClass](http://kulibali.github.io/kiuatan/kiuatan-RuleClass/): matches any one of a set of source items, e.g. a set of possible characters.
-- [RuleAny](http://kulibali.github.io/kiuatan/kiuatan-RuleAny/): matches any single input.
-- [RuleSequence](http://kulibali.github.io/kiuatan/kiuatan-RuleSequence/): matches a sequence of sub-rules.  If any one of the sub-rules fails to match, the whole sequence fails.
-- [RuleChoice](http://kulibali.github.io/kiuatan/kiuatan-RuleChoice/): tries to match one or more sub-rules in order, and succeeds on the first match.  A choice rule will not backtrack to a further choice if one has already succeeded.
-- [RuleRepeat](http://kulibali.github.io/kiuatan/kiuatan-RuleRepeat/): matches a sub-rule repeatedly.  You can optionally specify a mininum number of times to match, and/or a maximum number of times.
-- [RuleAnd](http://kulibali.github.io/kiuatan/kiuatan-RuleAnd/): Matches a sub-rule; if it succeeds, the rule itself succeeds, but the parse location does not advance.  Used for lookahead.
-- [RuleNot](http://kulibali.github.io/kiuatan/kiuatan-RuleNot/): Matches a sub-rule; if it **fails**, the rule itself succeeds, but the parse location does not advance.
+- [RuleAny](http://kulibali.github.io/kiuatan/kiuatan-RuleAny/): matches any single input, regardless of what it is.
+- [RuleSequence](http://kulibali.github.io/kiuatan/kiuatan-RuleSequence/): matches a sequence of child rules.  If any one of the child rules fails to match, the whole sequence fails.
+- [RuleChoice](http://kulibali.github.io/kiuatan/kiuatan-RuleChoice/): tries to match one or more child rules in order, and succeeds on the first match.  A choice rule will not backtrack to a further choice if one has already succeeded.
+- [RuleRepeat](http://kulibali.github.io/kiuatan/kiuatan-RuleRepeat/): matches a child rule repeatedly.  You can optionally specify a mininum and/or maximum number of times to match.
+- [RuleAnd](http://kulibali.github.io/kiuatan/kiuatan-RuleAnd/): Matches a child rule; if the child succeeds, the rule itself succeeds, but the parse location does not advance.  Used for lookahead.
+- [RuleNot](http://kulibali.github.io/kiuatan/kiuatan-RuleNot/): Matches a child rule; if the child **fails**, the rule itself succeeds, but the parse location does not advance.  Used for negative lookahead.
+- [RuleError](http://kulibali.github.io/kiuatan/kiuatan-RuleError): Fails the match and records an error message for the match position.
 
 ### [ParseLoc](http://kulibali.github.io/kiuatan/kiuatan-ParseLoc/)
 
@@ -65,45 +99,160 @@ A parse result stores the results of a successful parse.  Parse results have a n
 
 - `start`: the parse location in the input where the parse began.
 - `next`: the parse location just past the end of where the parse ended.
-- `children`: results obtained from sub-rules.
+- `results`: results obtained from child rules.
+- `inputs()`: copies the inputs that were matched into an array for easy perusal.
 
-### [ParseState]()
+### [ParseActionContext](http://kulibali.github.io/kiuatan/kiuatan-ParseActionContext)
 
-A parse state manages a single instance of parsing some input using a rule.
+A parse action context contains information useful when building custom values from a parse result tree:
+
+- `parent`: the parent action context.  Note that the parent's `children` will not have been populated when the lambda function is called.
+- `result`: the parse result for which this value is being generated.
+- `children`: the custom result values of the current rule's children.
+
+### [ParseState](http://kulibali.github.io/kiuatan/kiuatan-ParseState/)
+
+A parse state holds the memo for parsing a particular sequence of input.  A few methods of note:
+
+- `parse(rule, loc)`: attempts to parse the input at the given location (the start of the input by default) using the given grammar rule.
+- `last_error()`: returns information about the last error encountered during parsing.
+- `farthest_error()`: returns information about the error encountered at the farthest position from the start.
+- `errors(loc)`: returns information about all the rules that failed at a particular location, as well as any error messages that were recorded.
+- `forget_segment(segment)`: clears the memo of any results that were memoized in a given segment of input.
 
 ## Example
 
-The following example is a Pony program that implements a simple mathematical expression parser.
+The following example is a Pony class that creates a simple mathematical expression parser.
 
 ```pony
 
 use "kiuatan"
 
-actor Main
+primitive Calculator
   """
   An example of very simple expression parser for the following grammar:
 
   Exp = Add
-  Add = Add WS ('+' | '-') WS Mul
+  Add = Add WS [+-] WS Mul
       | Mul
-  Mul = Mul WS ('*' | '/') WS Num
+  Mul = Mul WS [*/] WS Num
       | Num
-  Num = '(' WS Exp WS ')' WS
+  Num = '(' WS Exp ')' WS
       | [0-9]+ WS
+  WS = [ \t]*
   """
 
-  new create(env: Env) =>
-    let exp = RuleSequence[U8]()
-    let ws = RuleRepeat[U8](RuleClass[U8].from_iter(" \t".values()), 0)
-    let num = RuleChoice[U8](
-      [ RuleSequence[U8](
-          [ RuleLiteral[U8]("(")
-            ws
-            exp
-            ws
-            RuleLiteral[U8](")")
-          ])
-      ])
+  fun generate(): ParseRule[U8,ISize] =>
+    // We pre-declare the Exp rule so we can use it later for recursion.
+    let exp = RuleSequence[U8,ISize](Array[ParseRule[U8,ISize]], "Exp")
+
+    // A simple whitespace rule: 0 or more repeats of space or tab.
+    let ws =
+      RuleRepeat[U8,ISize](
+        RuleClass[U8,ISize].from_iter(" \t".values()),
+        None,
+        0)
+
+    // A number can be either an expression in parentheses, or a string
+    // of digits.
+    let num =
+      RuleChoice[U8,ISize](
+        [ RuleSequence[U8,ISize](
+            [ RuleLiteral[U8,ISize]("(")
+              ws
+              exp
+              RuleLiteral[U8,ISize](")")
+              ws
+            ])
+          RuleSequence[U8,ISize](
+            [ RuleRepeat[U8,ISize](
+                RuleClass[U8,ISize].from_iter("0123456789".values()),
+                // A semantic action that converts the string of digits to a
+                // decimal number.
+                {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
+                  var num: ISize = 0
+                  for ch in ctx.inputs().values() do
+                    num = (num * 10) + (ch.isize() - '0')
+                  end
+                  num
+                },
+                1)
+              ws
+            ])
+        ],
+        "Num"  // A name for the rule, for debugging convenience.
+      )
+
+    // A multiplicative expression can be a multiplicative expression
+    // then a * or /, then a number; or a number.
+    let mul = RuleChoice[U8,ISize](Array[ParseRule[U8,ISize]], "Mul")
+    mul.push(
+      RuleSequence[U8,ISize](
+        [ mul
+          ws
+          RuleClass[U8,ISize].from_iter("*/".values())
+          ws
+          num ],
+        "Mul", // A name for the rule, for debugging convenience.
+        // A semantic action that multiplies or divides the operands.
+        {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
+          try
+            let a = ctx.values(0)? as ISize
+            let b = ctx.values(4)? as ISize
+
+            let str = ctx.results(2)?.inputs()
+            if str(0)? == '*' then
+              a * b
+            else
+              a / b
+            end
+          end
+        }))
+    mul.push(num)
+
+    // An additive expression can be an additive expression then a + or -,
+    // then a multiplicative expression; or a number.
+    let add = RuleChoice[U8,ISize](Array[ParseRule[U8,ISize]], "Add")
+    add.push(
+      RuleSequence[U8,ISize](
+        [ add
+          ws
+          RuleClass[U8,ISize].from_iter("+-".values())
+          ws
+          mul ],
+        "Add", // A name for the rule, for debugging convenience.
+        {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
+          try
+            let a = ctx.values(0)? as ISize
+            let b = ctx.values(4)? as ISize
+
+            let str = ctx.results(2)?.inputs()
+            if str(0)? == '+' then
+              a + b
+            else
+              a - b
+            end
+          end
+        }))
+    add.push(mul)
+
+    exp.push(add)
+    exp
+```
+
+To use this grammar for parsing, you can do something like the following:
+
+```pony
+
+let grammar = Calculator.generate()
+let state = ParseState[U8,ISize].from_single_seq("123 + (4 * 12)")
+match state.parse(grammar)
+| let result: ParseResult[U8,ISize] =>
+  match result.value()
+  | let actual: ISize =>
+    // actual should equal 171
+  end
+end
 
 ```
 

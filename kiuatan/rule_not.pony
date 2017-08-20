@@ -28,6 +28,6 @@ class RuleNot[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
     | let r: ParseResult[TSrc,TVal] =>
       None
     else
-      ParseResult[TSrc,TVal](state, start, start,
+      ParseResult[TSrc,TVal](state, start, start, this,
         Array[ParseResult[TSrc,TVal]], _action)
     end

@@ -63,4 +63,4 @@ class RuleSequence[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
         return None
       end
     end
-    ParseResult[TSrc,TVal](state, start, cur, results, _action)
+    ParseResult[TSrc,TVal](state, start, cur, this, results, _action)

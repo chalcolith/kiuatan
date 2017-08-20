@@ -29,8 +29,8 @@ class RuleAnd[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   =>
     match state.parse_with_memo(_child, start)?
     | let r: ParseResult[TSrc,TVal] =>
-      ParseResult[TSrc,TVal](state, start, start, Array[ParseResult[TSrc,TVal]],
-        _action)
+      ParseResult[TSrc,TVal](state, start, start, this,
+        Array[ParseResult[TSrc,TVal]], _action)
     else
       None
     end

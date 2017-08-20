@@ -1,3 +1,6 @@
+"""
+This is module-level documentation.
+"""
 
 use "collections"
 
@@ -43,18 +46,22 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun farthest_error(): (this->ParseError[TSrc,TVal] | None) =>
     _farthest_error
 
-  fun failed_rules(loc: ParseLoc[TSrc] box): SetIs[ParseRule[TSrc,TVal] box] =>
+  fun errors(loc: ParseLoc[TSrc] box): ParseError[TSrc,TVal] =>
     let rules = SetIs[ParseRule[TSrc,TVal] box]
+    let messages = Set[ParseErrorMessage]
     for (rule, exp_memo) in _memo_tables.pairs() do
       for (exp, loc_memo) in exp_memo.pairs() do
         try
           match loc_memo(loc)?
-          | None => rules.set(rule)
+          | let msg: ParseErrorMessage =>
+            messages.set(msg)
+          | None =>
+            rules.set(rule)
           end
         end
       end
     end
-    rules
+    ParseError[TSrc,TVal](loc, rules, messages)
 
   fun ref parse(
     rule: ParseRule[TSrc,TVal] box,

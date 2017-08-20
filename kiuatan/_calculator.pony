@@ -1,5 +1,5 @@
 
-class _Calculator
+primitive _Calculator
   """
   An example of very simple expression parser for the following grammar:
 
@@ -9,15 +9,13 @@ class _Calculator
       | Mul
   Mul = Mul WS [*/] WS Num
       | Num
-  Num = '(' WS Exp WS ')' WS
+  Num = '(' WS Exp ')' WS
       | [0-9]+ WS
   WS = [ \t]*
   ```
   """
 
-  let _top: ParseRule[U8,ISize]
-
-  new create() =>
+  fun generate(): ParseRule[U8,ISize] =>
     // We pre-declare the Exp rule so we can use it later for recursion.
     let exp = RuleSequence[U8,ISize](Array[ParseRule[U8,ISize]], "Exp")
 
@@ -36,7 +34,6 @@ class _Calculator
             [ RuleLiteral[U8,ISize]("(")
               ws
               exp
-              ws
               RuleLiteral[U8,ISize](")")
               ws
             ])
@@ -47,7 +44,7 @@ class _Calculator
                 // decimal number.
                 {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
                   var num: ISize = 0
-                  for ch in ctx.inputs().values() do
+                  for ch in ctx.result.inputs().values() do
                     num = (num * 10) + (ch.isize() - '0')
                   end
                   num
@@ -72,10 +69,10 @@ class _Calculator
         // A semantic action that multiplies or divides the operands.
         {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
           try
-            let a = ctx.values(0)? as ISize
-            let b = ctx.values(4)? as ISize
+            let a = ctx.children(0)? as ISize
+            let b = ctx.children(4)? as ISize
 
-            let str = ctx.results(2)?.inputs()
+            let str = ctx.result.results(2)?.inputs()
             if str(0)? == '*' then
               a * b
             else
@@ -98,10 +95,10 @@ class _Calculator
         "Add",
         {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
           try
-            let a = ctx.values(0)? as ISize
-            let b = ctx.values(4)? as ISize
+            let a = ctx.children(0)? as ISize
+            let b = ctx.children(4)? as ISize
 
-            let str = ctx.results(2)?.inputs()
+            let str = ctx.result.results(2)?.inputs()
             if str(0)? == '+' then
               a + b
             else
@@ -112,7 +109,4 @@ class _Calculator
     add.push(mul)
 
     exp.push(add)
-    _top = exp
-
-  fun apply(): this->ParseRule[U8,ISize] =>
-    _top
+    exp

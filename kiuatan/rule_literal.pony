@@ -39,11 +39,5 @@ class RuleLiteral[
       if expected != actual then return None end
     end
 
-    match _action
-    | None =>
-      ParseResult[TSrc,TVal].from_value(state, start, cur,
-        Array[ParseResult[TSrc,TVal]], None)
-    | let action: ParseAction[TSrc,TVal] val =>
-      ParseResult[TSrc,TVal](state, start, cur,
-        Array[ParseResult[TSrc,TVal]], action)
-    end
+    ParseResult[TSrc,TVal](state, start, cur, this,
+      Array[ParseResult[TSrc,TVal]], _action)

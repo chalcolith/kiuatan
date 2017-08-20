@@ -11,13 +11,11 @@ class RuleError[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
     ( ParseErrorMessage
     | {(ParseState[TSrc,TVal], ParseLoc[TSrc] box): ParseErrorMessage} val )
 
-  new create(msg: ParseErrorMessage) =>
-    _msg = msg
-
-  new from_state(f:
-    {(ParseState[TSrc,TVal], ParseLoc[TSrc] box): ParseErrorMessage} val)
+  new create(msg:
+    ( ParseErrorMessage
+    | {(ParseState[TSrc,TVal], ParseLoc[TSrc] box): ParseErrorMessage} val))
   =>
-    _msg = f
+    _msg = msg
 
   fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
     "!"
