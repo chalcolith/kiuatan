@@ -37,6 +37,10 @@ make && make test
 
 To use Kiuatan in a project you will need to add `kiuatan/kiuatan` to your `PONYPATH` environment variable.
 
+### API Documentation
+
+You can find API documentation [here](http://kulibali.github.io/kiuatan/kiuatan--index/).
+
 ## Overview
 
 Kiuatan grammars are designed to match over sequences of items of any type `TSrc` that is `(Equatable[TSrc #read] #read & Stringable #read)`, not just characters.
