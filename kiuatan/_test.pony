@@ -459,7 +459,7 @@ class iso _TestParseLocListPrimitive is UnitTest
     let actual = List[ReadSeq[U32]].from(aa)
     let loc = ParseLoc[U32](actual.head()?)
 
-    let expected = Chain[U32]([a1.values(); a2.values()].values())
+    let expected = Iter[U32].chain([a1.values(); a2.values()].values())
 
     for e in expected do
       h.assert_true(loc.has_next())
