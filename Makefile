@@ -1,28 +1,51 @@
+target := kiuatan
+config ?= release
 
-debug ?= no
+SRC_DIR ?= $(target)
+BUILD_DIR ?= build/$(config)
+binary := $(BUILD_DIR)/$(target)
 
-ifeq ($(debug),no)
+ifdef config
+  ifeq (,$(filter $(config),debug release))
+    $(error Unknown configuration "$(config)")
+  endif
+endif
+
+ifeq ($(config),release)
 	PONYC = ponyc
 else
 	PONYC = ponyc --debug
 endif
 
-SOURCE_FILES := $(shell find . -name \*.pony)
+ifneq ($(wildcard .git),)
+  tag := $(shell cat VERSION)-$(shell git rev-parse --short HEAD)
+else
+  tag := $(shell cat VERSION)
+endif
 
-bin/kiuatan: ${SOURCE_FILES}
-	mkdir -p bin
-	${PONYC} kiuatan -o bin
+SOURCE_FILES := $(shell find $(SRC_DIR) -name \*.pony)
+VERSION := "$(tag) [$(config)]"
+GEN_FILES_IN := $(shell find $(SRC_DIR) -name \*.pony.in)
+GEN_FILES = $(patsubst %.pony.in, %.pony, $(GEN_FILES_IN))
 
-docs: ${SOURCE_FILES}
-	mkdir -p bin
-	${PONYC} --docs kiuatan -o bin
+%.pony: %.pony.in
+	sed s/%%VERSION%%/$(VERSION)/ $< > $@
 
-test: bin/kiuatan
-	bin/kiuatan
+all: $(binary)
+
+$(binary): $(GEN_FILES) $(SOURCE_FILES) | $(BUILD_DIR)
+	${PONYC} $(SRC_DIR) -o $(BUILD_DIR)
+
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+docs: $(SOURCE_FILES) $(BUILD_DIR)
+	$(PONYC) --docs $(target) -o $(BUILD_DIR)
+
+test: $(binary)
+	$(binary)
 
 clean:
-	rm -rf bin
-
-all: bin/kiuatan
+	rm -rf $(BUILD_DIR)
 
 .PHONY: all
