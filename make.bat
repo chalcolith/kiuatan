@@ -43,7 +43,7 @@ setlocal enableextensions disabledelayedexpansion
 for /f "delims=" %%i in ('type %TARGET%\version.pony.in ^& break ^> %TARGET%\version.pony') do (
   set "line=%%i"
   setlocal enabledelayedexpansion
-  >>stable\version.pony echo(!line:%%%%VERSION%%%%=%VERSION%!
+  >>%TARGET%\version.pony echo(!line:%%%%VERSION%%%%=%VERSION%!
   endlocal
 )
 :noversion
@@ -67,7 +67,7 @@ if errorlevel 1 goto error
 goto done
 
 :clean
-rmdir /s /q %BUILDDIR%
+if exist %BUILDDIR% rmdir /s /q %BUILDDIR%
 goto done
 
 :help
