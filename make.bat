@@ -1,8 +1,8 @@
 @echo off
 set TARGET=kiuatan
 
-if "%1"=="help" goto help
-if "%1"=="--help" goto help
+if "%1"=="help" goto usage
+if "%1"=="--help" goto usage
 
 where stable > nul
 if errorlevel 1 goto nostable
@@ -70,8 +70,8 @@ goto done
 if exist %BUILDDIR% rmdir /s /q %BUILDDIR%
 goto done
 
-:help
-echo Usage: make (help|clean|build|test) [config=debug|release]
+:usage
+echo Usage: make (help^|clean^|build^|test) [config=debug^|release]
 goto done
 
 :nostable
