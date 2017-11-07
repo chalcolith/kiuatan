@@ -42,18 +42,14 @@ trait ParseRule[TSrc: Any #read, TVal = None]
       var cur = call_stack'.head()?
       while true do
         try
-          match cur()?
-          | let rule: ParseRule[TSrc,TVal] box =>
-            if rule is this then
-              let name' = this.name()
-              if (name' == "") or (name' == "?") then
-                return "?rule?"
-              else
-                return name'
-              end
+          let rule: ParseRule[TSrc,TVal] box = cur()?
+          if rule is this then
+            let name' = this.name()
+            if (name' == "") or (name' == "?") then
+              return "?rule?"
+            else
+              return name'
             end
-          else
-            break
           end
         end
 
