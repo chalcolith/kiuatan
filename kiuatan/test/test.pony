@@ -4,32 +4,7 @@ use "debug"
 use "itertools"
 use "ponytest"
 
-actor Main is TestList
-  new create(env: Env) =>
-    PonyTest(env, this)
-
-  new make() =>
-    None
-
-  fun tag tests(test: PonyTest) =>
-    test(_TestParseLocPrimitive)
-    test(_TestParseLocClass)
-    test(_TestParseLocListPrimitive)
-    test(_TestParseRuleLiteral)
-    test(_TestParseRuleLiteralAction)
-    test(_TestParseRuleSequenceAction)
-    test(_TestParseRuleChoiceAction)
-    test(_TestParseRuleRepeatAction)
-    test(_TestParseRuleSequenceOperator)
-    test(_TestParseRuleChoiceOperator)
-    test(_TestParseRuleNot)
-    test(_TestParseRuleAnd)
-    test(_TestParseLeftRecursion)
-    test(_TestParseRuleClass)
-    test(_TestCalculator)
-    test(_TestFarthestError)
-    test(_TestLastError)
-
+use ".."
 
 class iso _TestLastError is UnitTest
   fun name(): String => "LastError"
@@ -104,7 +79,7 @@ class iso _TestFarthestError is UnitTest
 
 
 class iso _TestCalculator is UnitTest
-  let _grammar: ParseRule[U8,ISize] = _Calculator.generate()
+  let _grammar: ParseRule[U8,ISize] = Calculator.generate()
 
   fun name(): String => "Calculator"
 

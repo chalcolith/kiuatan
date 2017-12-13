@@ -47,27 +47,33 @@ for /f "delims=" %%i in ('type %TARGET%\version.pony.in ^& break ^> %TARGET%\ver
   endlocal
 )
 :noversion
-stable env ponyc %DEBUG% -o %BUILDDIR% %TARGET%
+echo stable env ponyc %DEBUG% -o %BUILDDIR% %TARGET%\test
+stable env ponyc %DEBUG% -o %BUILDDIR% %TARGET%\test
 if errorlevel 1 goto error
 goto done
 
 :fetch
+echo stable fetch
 stable fetch
 if errorlevel 1 goto error
 goto done
 
 :test
-if not exist %BUILDDIR%\%TARGET%.exe (
-  stable fetch
-  stable env ponyc %DEBUG% -o %BUILDDIR% %TARGET%
+if not exist %BUILDDIR%\test.exe (
+  echo stable env ponyc %DEBUG% -o %BUILDDIR% %TARGET%\test
+  stable env ponyc %DEBUG% -o %BUILDDIR% %TARGET%\test
 )
 if errorlevel 1 goto error
-%BUILDDIR%\%TARGET%.exe --sequential
+echo %BUILDDIR%\test.exe --sequential
+%BUILDDIR%\test.exe --sequential
 if errorlevel 1 goto error
 goto done
 
 :clean
-if exist %BUILDDIR% rmdir /s /q %BUILDDIR%
+if exist %BUILDDIR% (
+  echo rmdir /s /q %BUILDDIR%
+  rmdir /s /q %BUILDDIR%
+)
 goto done
 
 :usage

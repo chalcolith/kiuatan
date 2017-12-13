@@ -1,5 +1,7 @@
 
-primitive _Calculator
+use ".."
+
+primitive Calculator
   """
   An example of very simple expression parser for the following grammar:
 

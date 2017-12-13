@@ -3,7 +3,7 @@ config ?= release
 
 SRC_DIR ?= $(target)
 BUILD_DIR ?= build/$(config)
-binary := $(BUILD_DIR)/$(target)
+binary := $(BUILD_DIR)/test
 
 ifdef config
   ifeq (,$(filter $(config),debug release))
@@ -31,21 +31,20 @@ GEN_FILES = $(patsubst %.pony.in, %.pony, $(GEN_FILES_IN))
 %.pony: %.pony.in
 	sed s/%%VERSION%%/$(VERSION)/ $< > $@
 
-all: $(binary)
+all: test
+.PHONY: all docs test clean
 
 $(binary): $(GEN_FILES) $(SOURCE_FILES) | $(BUILD_DIR)
-	${PONYC} $(SRC_DIR) -o $(BUILD_DIR)
+	stable env ${PONYC} $(SRC_DIR) -o $(BUILD_DIR)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 docs: $(SOURCE_FILES) $(BUILD_DIR)
-	$(PONYC) --docs $(target) -o $(BUILD_DIR)
+	stable env $(PONYC) --docs $(target) -o $(BUILD_DIR)
 
 test: $(binary)
 	$(binary)
 
 clean:
 	rm -rf $(BUILD_DIR)
-
-.PHONY: all
