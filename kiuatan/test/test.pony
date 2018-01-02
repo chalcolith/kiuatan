@@ -12,17 +12,20 @@ class iso _TestLastError is UnitTest
   fun apply(h: TestHelper) ? =>
     let errmsg1 = "expected 'vu'"
     let errmsg2 = "expected 'ab'"
-    let grammar = RuleChoice[U8](
-      [ RuleSequence[U8](
-          [ RuleLiteral[U8]("zy")
-            RuleLiteral[U8]("xw")
-            RuleChoice[U8]([ RuleLiteral[U8]("vu"); RuleError[U8](errmsg1) ])
-          ])
-        RuleSequence[U8](
-          [ RuleLiteral[U8]("zy")
-            RuleChoice[U8]([ RuleLiteral[U8]("ab"); RuleError[U8](errmsg2) ])
-          ])
-      ])
+    let grammar = 
+      ParseRule[U8](
+        "G",
+        RuleChoice[U8](
+          [ RuleSequence[U8](
+              [ RuleLiteral[U8]("zy")
+                RuleLiteral[U8]("xw")
+                RuleChoice[U8]([ RuleLiteral[U8]("vu"); RuleError[U8](errmsg1) ])
+              ])
+            RuleSequence[U8](
+              [ RuleLiteral[U8]("zy")
+                RuleChoice[U8]([ RuleLiteral[U8]("ab"); RuleError[U8](errmsg2) ])
+              ])
+          ]))
 
     let state = ParseState[U8].from_single_seq("zyxwrr")
     match state.parse(grammar)
@@ -49,15 +52,16 @@ class iso _TestFarthestError is UnitTest
   fun apply(h: TestHelper) ? =>
     let errmsg = "expected 'cd'"
 
-    let grammar = RuleSequence[U8](
-      [ RuleLiteral[U8]("ab")
-        RuleChoice[U8](
-          [ RuleLiteral[U8]("cd")
-            RuleError[U8](errmsg)
-          ]
-        )
-      ]
-    )
+    let grammar = 
+      ParseRule[U8](
+        "G",
+        RuleSequence[U8](
+          [ RuleLiteral[U8]("ab")
+            RuleChoice[U8](
+              [ RuleLiteral[U8]("cd")
+                RuleError[U8](errmsg)
+              ])
+          ]))
 
     let state1 = ParseState[U8].from_single_seq("abcd")
     match state1.parse(grammar)
@@ -106,14 +110,14 @@ class iso _TestCalculator is UnitTest
     h.fail("FAIL: no result")
 
 
-class iso _TestParseRuleClass is UnitTest
-  fun name(): String => "ParseRule_Class"
+class iso _TestRuleNodeClass is UnitTest
+  fun name(): String => "RuleNode_Class"
 
   fun apply(h: TestHelper) =>
     let ab = RuleLiteral[U8]("ab")
     let bcde = RuleClass[U8].from_iter("bcde".values())
     let fg = RuleLiteral[U8]("fg")
-    let rule = RuleSequence[U8, None]([ab; bcde; fg])
+    let rule = ParseRule[U8]("Rule", RuleSequence[U8, None]([ab; bcde; fg]))
 
     let state1 = ParseState[U8].from_single_seq("abbfg")
     match state1.parse(rule)
@@ -134,10 +138,8 @@ class iso _TestParseLeftRecursion is UnitTest
     let ab = RuleLiteral[U8]("ab")
     let cd = RuleLiteral[U8]("cd")
 
-    let a = RuleChoice[U8](where name' = "A")
-    let first = RuleSequence[U8]([ a; cd ], "First")
-    a.push(first)
-    a.push(ab)
+    let a = ParseRule[U8]("A")
+    a.set_child(RuleChoice[U8]([ RuleSequence[U8]([ a; cd ]); ab ]))
 
     Debug.out("RULE A is " + a.description())
 
@@ -147,12 +149,12 @@ class iso _TestParseLeftRecursion is UnitTest
     end
 
 
-class iso _TestParseRuleAnd is UnitTest
-  fun name(): String => "ParseRule_And"
+class iso _TestRuleNodeAnd is UnitTest
+  fun name(): String => "RuleNode_And"
 
   fun apply(h: TestHelper) =>
-    let rule = RuleAnd[U8](RuleLiteral[U8]("ab"))
-      + RuleLiteral[U8]("abcd")
+    let rule = ParseRule[U8]("R", RuleAnd[U8](RuleLiteral[U8]("ab"))
+      + RuleLiteral[U8]("abcd"))
 
     let state = ParseState[U8].from_single_seq("abcd")
     match state.parse(rule)
@@ -160,12 +162,12 @@ class iso _TestParseRuleAnd is UnitTest
     end
 
 
-class iso _TestParseRuleNot is UnitTest
-  fun name(): String => "ParseRule_Not"
+class iso _TestRuleNodeNot is UnitTest
+  fun name(): String => "RuleNode_Not"
 
   fun apply(h: TestHelper) =>
-    let rule = RuleNot[U8](RuleLiteral[U8]("ab"))
-      + RuleLiteral[U8]("cde")
+    let rule = ParseRule[U8]("R", RuleNot[U8](RuleLiteral[U8]("ab"))
+      + RuleLiteral[U8]("cde"))
 
     let state = ParseState[U8].from_single_seq("cde")
     match state.parse(rule)
@@ -173,12 +175,12 @@ class iso _TestParseRuleNot is UnitTest
     end
 
 
-class iso _TestParseRuleChoiceOperator is UnitTest
-  fun name(): String => "ParseRule_Choice_Operator"
+class iso _TestRuleNodeChoiceOperator is UnitTest
+  fun name(): String => "RuleNode_Choice_Operator"
 
   fun apply(h: TestHelper) =>
-    let ab_or_bc_rule = RuleLiteral[U8]("ab")
-      or RuleLiteral[U8]("bc")
+    let ab_or_bc_rule = ParseRule[U8]("R", RuleLiteral[U8]("ab")
+      or RuleLiteral[U8]("bc"))
 
     let match_ab = ParseState[U8].from_single_seq("ab")
     match match_ab.parse(ab_or_bc_rule)
@@ -198,11 +200,12 @@ class iso _TestParseRuleChoiceOperator is UnitTest
     end
 
 
-class iso _TestParseRuleSequenceOperator is UnitTest
-  fun name(): String => "ParseRule_Sequence_Operator"
+class iso _TestRuleNodeSequenceOperator is UnitTest
+  fun name(): String => "RuleNode_Sequence_Operator"
 
   fun apply(h: TestHelper) =>
-    let ab_rule = RuleLiteral[U8]("a") + RuleLiteral[U8]("b")
+    let ab_rule = ParseRule[U8]("R", RuleLiteral[U8]("a") 
+      + RuleLiteral[U8]("b"))
 
     let should_match = ParseState[U8].from_single_seq("ab")
     match should_match.parse(ab_rule)
@@ -217,12 +220,12 @@ class iso _TestParseRuleSequenceOperator is UnitTest
     end
 
 
-class iso _TestParseRuleRepeatAction is UnitTest
-  fun name(): String => "ParseRule_Repeat_Action"
+class iso _TestRuleNodeRepeatAction is UnitTest
+  fun name(): String => "RuleNode_Repeat_Action"
 
   fun apply(h: TestHelper) =>
     let child = RuleLiteral[U8,U8]("x")
-    let rep0 = RuleRepeat[U8,U8](child, None, 0)
+    let rep0 = ParseRule[U8,U8]("R", RuleRepeat[U8,U8](child, None, 0))
 
     let memo0_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))
     match memo0_0.parse(rep0)
@@ -234,7 +237,7 @@ class iso _TestParseRuleRepeatAction is UnitTest
     | None => h.fail("repeat 0 did not match 1")
     end
 
-    let rep1 = RuleRepeat[U8,U8](child, None, 1)
+    let rep1 = ParseRule[U8,U8]("R", RuleRepeat[U8,U8](child, None, 1))
 
     let memo1_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))
     match memo1_0.parse(rep1)
@@ -250,16 +253,16 @@ class iso _TestParseRuleRepeatAction is UnitTest
     end
 
 
-class iso _TestParseRuleChoiceAction is UnitTest
-  fun name(): String => "ParseRule_Choice_Action"
+class iso _TestRuleNodeChoiceAction is UnitTest
+  fun name(): String => "RuleNode_Choice_Action"
 
   fun apply(h: TestHelper) =>
     let a_rule = RuleLiteral[U8,U8]("a")
     let b_rule = RuleLiteral[U8,U8]("b")
     let c_rule = RuleLiteral[U8,U8]("c")
 
-    let rules = [as ParseRule[U8,U8]: a_rule; b_rule; c_rule]
-    let choice = RuleChoice[U8,U8](rules)
+    let rules = [as RuleNode[U8,U8]: a_rule; b_rule; c_rule]
+    let choice = ParseRule[U8,U8]("C", RuleChoice[U8,U8](rules))
 
     let memo1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))
     match memo1.parse(choice)
@@ -282,8 +285,8 @@ class iso _TestParseRuleChoiceAction is UnitTest
     end
 
 
-class iso _TestParseRuleSequenceAction is UnitTest
-  fun name(): String => "ParseRule_Sequence_Action"
+class iso _TestRuleNodeSequenceAction is UnitTest
+  fun name(): String => "RuleNode_Sequence_Action"
 
   fun apply(h: TestHelper) =>
     let any_rule = RuleAny[U8,USize](
@@ -298,21 +301,23 @@ class iso _TestParseRuleSequenceAction is UnitTest
         0
       })
     let rules =
-      [ as ParseRule[U8,USize] box:
+      [ as RuleNode[U8,USize] box:
         any_rule; any_rule; any_rule; any_rule; any_rule]
 
-    let seq_rule = RuleSequence[U8,USize](
-      rules,
-      "Seq",
-      {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
-        var sum: USize = 0
-        for r in ctx.result.results.values() do
-          match r.value()
-          | let n: USize => sum = sum + n
-          end
-        end
-        sum
-      })
+    let seq_rule = 
+      ParseRule[U8,USize](
+        "Seq",
+        RuleSequence[U8,USize](
+          rules,
+          {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
+            var sum: USize = 0
+            for r in ctx.result.results.values() do
+              match r.value()
+              | let n: USize => sum = sum + n
+              end
+            end
+            sum
+          }))
 
     let seg1 = "12345"
     let src = List[ReadSeq[U8]].from([as ReadSeq[U8]: seg1])
@@ -332,8 +337,8 @@ class iso _TestParseRuleSequenceAction is UnitTest
     end
 
 
-class iso _TestParseRuleLiteralAction is UnitTest
-  fun name(): String => "ParseRule_Literal_Action"
+class iso _TestRuleNodeLiteralAction is UnitTest
+  fun name(): String => "RuleNode_Literal_Action"
 
   fun apply(h: TestHelper) ? =>
     let seg1 = "123 456 789"
@@ -342,20 +347,23 @@ class iso _TestParseRuleLiteralAction is UnitTest
 
     let str = "123"
     let memo = ParseState[U8,USize](src)
-    let literal = RuleLiteral[U8,USize](
-      str,
-      {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
-        try
-          let s = String
-          let i = ctx.result.start.clone()
-          while i.has_next() and (i != ctx.result.next) do
-            s.push(i.next()?)
-          end
-          s.usize()?
-        else
-          -1
-        end
-      })
+    let literal = 
+      ParseRule[U8,USize](
+        "Literal",
+        RuleLiteral[U8,USize](
+          str,
+          {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
+            try
+              let s = String
+              let i = ctx.result.start.clone()
+              while i.has_next() and (i != ctx.result.next) do
+                s.push(i.next()?)
+              end
+              s.usize()?
+            else
+              -1
+            end
+          }))
     let result = memo.parse(literal)
 
     match result
@@ -374,8 +382,8 @@ class iso _TestParseRuleLiteralAction is UnitTest
     end
 
 
-class iso _TestParseRuleLiteral is UnitTest
-  fun name(): String => "ParseRule_Literal"
+class iso _TestRuleNodeLiteral is UnitTest
+  fun name(): String => "RuleNode_Literal"
 
   fun apply(h: TestHelper) ? =>
     let seg1 = "one two three"
@@ -384,7 +392,7 @@ class iso _TestParseRuleLiteral is UnitTest
 
     let str = "one"
     let memo = ParseState[U8](src)
-    let literal = RuleLiteral[U8](str)
+    let literal = ParseRule[U8]("L", RuleLiteral[U8](str))
     let result = memo.parse(literal)
 
     match result

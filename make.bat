@@ -15,6 +15,12 @@ if "%1"=="clean" (
   shift
 )
 
+set GOTOTEST=false
+if "%1"=="test" (
+  set GOTOTEST=true
+  shift
+)
+
 set CONFIG=release
 set DEBUG=
 if "%1"=="config" (
@@ -29,7 +35,7 @@ if "%1"=="config" (
 set BUILDDIR=build\%CONFIG%
 
 if "%GOTOCLEAN%"=="true" goto clean
-if "%1"=="test" goto test
+if "%GOTOTEST%"=="true" goto test
 if "%1"=="fetch" goto fetch
 
 :build

@@ -1,7 +1,5 @@
 
-use "collections"
-
-class RuleAny[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
+class RuleAny[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
   """
   Matches any single input.
   """
@@ -11,7 +9,9 @@ class RuleAny[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   new create(action: (ParseAction[TSrc,TVal] val | None) = None) =>
     _action = action
 
-  fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
+  fun is_terminal(): Bool => true
+
+  fun _description(stack: Seq[RuleNode[TSrc,TVal] tag]): String =>
     "."
 
   fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)

@@ -3,7 +3,7 @@ use "collections"
 
 class RuleClass[
   TSrc: (Hashable #read & Equatable[TSrc] #read & Stringable #read),
-  TVal = None] is ParseRule[TSrc,TVal]
+  TVal = None] is RuleNode[TSrc,TVal]
   """
   Matches any of a set of inputs.
   """
@@ -27,7 +27,9 @@ class RuleClass[
     _expected = expected'
     _action = action
 
-  fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
+  fun is_terminal(): Bool => true
+
+  fun _description(stack: Seq[RuleNode[TSrc,TVal] tag]): String =>
     recover
       let s = String
       s.append("[")

@@ -1,9 +1,7 @@
 
-use "collections"
-
 class RuleLiteral[
   TSrc: (Equatable[TSrc] #read & Stringable #read),
-  TVal = None] is ParseRule[TSrc,TVal]
+  TVal = None] is RuleNode[TSrc,TVal]
   """
   Matches a literal sequence of inputs.
   """
@@ -17,8 +15,10 @@ class RuleLiteral[
   =>
     _expected = expected
     _action = action
+  
+  fun is_terminal(): Bool => true
 
-  fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
+  fun _description(stack: Seq[RuleNode[TSrc,TVal] tag]): String =>
     recover
       let s = String
       s.append("\"")

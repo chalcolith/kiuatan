@@ -9,7 +9,7 @@ class ParseResult[TSrc: Any #read,TVal = None]
   let state: ParseState[TSrc,TVal] box
   let start: ParseLoc[TSrc] box
   let next: ParseLoc[TSrc] box
-  let rule: ParseRule[TSrc,TVal] box
+  let rule: RuleNode[TSrc,TVal] box
   let results: ReadSeq[ParseResult[TSrc,TVal]] box
   let _res: (TVal! | ParseAction[TSrc,TVal] val | None)
 
@@ -17,7 +17,7 @@ class ParseResult[TSrc: Any #read,TVal = None]
     state': ParseState[TSrc,TVal] box,
     start': ParseLoc[TSrc] box,
     next': ParseLoc[TSrc] box,
-    rule': ParseRule[TSrc,TVal] box,
+    rule': RuleNode[TSrc,TVal] box,
     results': ReadSeq[ParseResult[TSrc,TVal]] box,
     res': (TVal | ParseAction[TSrc,TVal] val | None))
   =>

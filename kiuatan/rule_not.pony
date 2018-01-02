@@ -1,25 +1,23 @@
 
-use "collections"
-
-class RuleNot[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
+class RuleNot[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
   """
-  Negative lookahead; successfully matches if the child rule does **not**
+  Negative lookahead; successfully matches if the child node does **not**
   match, without advancing the match position.
   """
 
-  let _child: ParseRule[TSrc,TVal] box
+  let _child: RuleNode[TSrc,TVal] box
   let _action: (ParseAction[TSrc,TVal] val | None)
 
-  new create(child: ParseRule[TSrc,TVal] box,
+  new create(child: RuleNode[TSrc,TVal] box,
     action: (ParseAction[TSrc,TVal] val | None) = None) =>
     _child = child
     _action = action
 
-  fun can_be_recursive(): Bool =>
-    _child.can_be_recursive()
+  fun is_terminal(): Bool =>
+    _child.is_terminal()
 
-  fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
-    "!(" + _child.description(call_stack) + ")"
+  fun _description(stack: Seq[RuleNode[TSrc,TVal] tag]): String =>
+    "!(" + _child.description(stack) + ")"
 
   fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
     : (ParseResult[TSrc,TVal] | None) ?

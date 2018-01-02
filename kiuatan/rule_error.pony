@@ -1,8 +1,5 @@
 
-use "collections"
-use "itertools"
-
-class RuleError[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
+class RuleError[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
   """
   Causes the match to fail and records an error message.
   """
@@ -17,7 +14,9 @@ class RuleError[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   =>
     _msg = msg
 
-  fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
+  fun is_terminal(): Bool => true
+
+  fun _description(stack: Seq[RuleNode[TSrc,TVal] tag]): String =>
     "!"
 
   fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)

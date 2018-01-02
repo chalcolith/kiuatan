@@ -1,52 +1,40 @@
 
-use "collections"
-
-class RuleSequence[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
+class RuleSequence[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
   """
-  Matches a sequence of child rules.
+  Matches a sequence of child nodes.
   """
 
-  let _name: String
-  let _children: Array[ParseRule[TSrc,TVal] box]
+  let _children: Array[RuleNode[TSrc,TVal] box]
   let _action: (ParseAction[TSrc,TVal] val | None)
 
   new create(
-    children: ReadSeq[ParseRule[TSrc,TVal] box]
-      = Array[ParseRule[TSrc,TVal] box],
-    name': String = "",
-    action: (ParseAction[TSrc,TVal] val | None) = None) =>
-    _name = name'
-    _children = Array[ParseRule[TSrc,TVal] box]
+    children: ReadSeq[RuleNode[TSrc,TVal] box]
+      = Array[RuleNode[TSrc,TVal] box],
+    action: (ParseAction[TSrc,TVal] val | None) = None)
+  =>
+    _children = Array[RuleNode[TSrc,TVal] box]
     for child in children.values() do
       _children.push(child)
     end
     _action = action
 
-  fun can_be_recursive(): Bool =>
-    true
+  fun is_terminal(): Bool =>
+    false
 
-  fun name(): String => _name
-
-  fun ref unshift(child: ParseRule[TSrc,TVal] box) =>
+  fun ref unshift(child: RuleNode[TSrc,TVal] box) =>
     _children.unshift(child)
 
-  fun ref push(child: ParseRule[TSrc,TVal] box) =>
+  fun ref push(child: RuleNode[TSrc,TVal] box) =>
     _children.push(child)
 
-  fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
-    if _name != "" then
-      return _name
-    end
-
+  fun _description(stack: Seq[RuleNode[TSrc,TVal] tag]): String =>
     let s: String trn = recover String end
-    if _name != "" then s.append("(" + _name + " = ") end
     s.append("(")
     for (i, child) in _children.pairs() do
       if i > 0 then s.append(" + ") end
-      s.append(child.description(call_stack))
+      s.append(child.description(stack))
     end
     s.append(")")
-    if _name != "" then s.append(")") end
     s
 
   fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
@@ -54,11 +42,11 @@ class RuleSequence[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
   =>
     let results = Array[ParseResult[TSrc,TVal]](_children.size())
     var cur = start
-    for rule in _children.values() do
-      match state.parse_with_memo(rule, cur)?
-      | let r: ParseResult[TSrc,TVal] =>
-        results.push(r)
-        cur = r.next
+    for child in _children.values() do
+      match state.parse_with_memo(child, cur)?
+      | let res: ParseResult[TSrc,TVal] =>
+        results.push(res)
+        cur = res.next
       else
         return None
       end

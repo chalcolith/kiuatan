@@ -1,18 +1,16 @@
 
-use "collections"
-
-class RuleRepeat[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
+class RuleRepeat[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
   """
-  Matches a number of repetitions of a rule.
+  Matches a number of repetitions of a child node.
   """
 
-  let _child: ParseRule[TSrc,TVal] box
+  let _child: RuleNode[TSrc,TVal] box
   let _min: USize
   let _max: USize
   let _action: (ParseAction[TSrc,TVal] val | None)
 
   new create(
-    child: ParseRule[TSrc,TVal] box,
+    child: RuleNode[TSrc,TVal] box,
     action: (ParseAction[TSrc,TVal] val | None) = None,
     min: USize = 0, max: USize = USize.max_value())
   =>
@@ -21,19 +19,19 @@ class RuleRepeat[TSrc: Any #read, TVal = None] is ParseRule[TSrc,TVal]
     _max = max
     _action = action
 
-  fun can_be_recursive(): Bool =>
-    _child.can_be_recursive()
+  fun is_terminal(): Bool =>
+    _child.is_terminal()
 
-  fun _description(call_stack: List[ParseRule[TSrc,TVal] box]): String =>
+  fun _description(stack: Seq[RuleNode[TSrc,TVal] tag]): String =>
     let desc: String trn = recover String end
     if (_min == 0) and (_max == 1) then
-      desc.append("(" + _child.description(call_stack) + ")?")
+      desc.append("(" + _child.description(stack) + ")?")
     elseif _min == 0 then
-      desc.append("(" + _child.description(call_stack) + ")*")
+      desc.append("(" + _child.description(stack) + ")*")
     elseif _min == 1 then
-      desc.append("(" + _child.description(call_stack) + ")+")
+      desc.append("(" + _child.description(stack) + ")+")
     else
-      desc.append("(" + _child.description(call_stack) + "){"
+      desc.append("(" + _child.description(stack) + "){"
         + _min.string() + "," + _max.string() + "}")
     end
     desc
