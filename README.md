@@ -37,10 +37,6 @@ make && make test
 
 To use Kiuatan in a project you will need to add `kiuatan/kiuatan` to your `PONYPATH` environment variable.
 
-### API Documentation
-
-You can find API documentation [here](http://kulibali.github.io/kiuatan/kiuatan--index/).
-
 ## Overview
 
 Kiuatan grammars are designed to match over sequences of items of any type `TSrc` that is `(Equatable[TSrc #read] #read & Stringable #read)`, not just characters.
@@ -51,7 +47,7 @@ Kiuatan grammars are designed to match over sequences of items of any type `TSrc
 
 In order to use Kiuatan to parse some inputs, do the following:
 
-- Build a top-level grammar rule out of the various combinators that implement the [ParseRule](http://kulibali.github.io/kiuatan/kiuatan-ParseRule/) trait (see below).
+- Build a top-level grammar rule out of the various combinators that implement the [RuleNode](http://kulibali.github.io/kiuatan/kiuatan-RuleNode/) trait (see below).
 - Construct a [ParseState](http://kulibali.github.io/kiuatan/kiuatan-ParseState/) object that references a list of sequences of inputs.
 - Call `ParseState.parse()` with the top-level grammar rule.
 
@@ -63,7 +59,7 @@ If the parse is successful, you will obtain a [ParseResult](http://kulibali.gith
 
 ### Custom Result Values
 
-When constructing grammar rules, you can provide lambda functions that act in the context of a parse result and construct a custom value for you.
+When constructing grammar rules, you can provide lambda functions for any node in the rule that act in the context of a parse result and construct a custom value for you.
 
 When you call `ParseResult.value()` on a parse result, it traverses the tree of child results in depth-first post-order, calling the provided lambda functions.  The [ParseActionContext](http://kulibali.github.io/kiuatan/kiuatan-ParseActionContext) contains an array of the child results' values.
 
@@ -81,16 +77,20 @@ Kiuatan has a few features for error handling.  You can use the special [RuleErr
 
 ### [ParseRule](http://kulibali.github.io/kiuatan/kiuatan-ParseRule/)
 
-A parse rule represents a grammar that you want to use for parsing. Kiuatan provides several combinator classes that you can use to construct grammar rules.
+A parse rule is a named rule (terminal or non-terminal) in the grammar.  Left-recursion detection and handling only applies to parse rules, so it is safe to include them as children of nodes in themselves or other rules.  Do not use other types of nodes recursively!
+
+### [RuleNode](http://kulibali.github.io/kiuatan/kiuatan-RuleNode/)
+
+A parse node represents a grammar that you want to use for parsing. Kiuatan provides several combinator classes that you can use to construct grammar rules.
 
 - [RuleLiteral](http://kulibali.github.io/kiuatan/kiuatan-RuleLiteral/): matches a literal sequence of source items, e.g. a literal string, if you are matching over characters.
 - [RuleClass](http://kulibali.github.io/kiuatan/kiuatan-RuleClass/): matches any one of a set of source items, e.g. a set of possible characters.
 - [RuleAny](http://kulibali.github.io/kiuatan/kiuatan-RuleAny/): matches any single input, regardless of what it is.
-- [RuleSequence](http://kulibali.github.io/kiuatan/kiuatan-RuleSequence/): matches a sequence of child rules.  If any one of the child rules fails to match, the whole sequence fails.
-- [RuleChoice](http://kulibali.github.io/kiuatan/kiuatan-RuleChoice/): tries to match one or more child rules in order, and succeeds on the first match.  A choice rule will not backtrack to a further choice if one has already succeeded.
-- [RuleRepeat](http://kulibali.github.io/kiuatan/kiuatan-RuleRepeat/): matches a child rule repeatedly.  You can optionally specify a mininum and/or maximum number of times to match.
-- [RuleAnd](http://kulibali.github.io/kiuatan/kiuatan-RuleAnd/): Matches a child rule; if the child succeeds, the rule itself succeeds, but the parse location does not advance.  Used for lookahead.
-- [RuleNot](http://kulibali.github.io/kiuatan/kiuatan-RuleNot/): Matches a child rule; if the child **fails**, the rule itself succeeds, but the parse location does not advance.  Used for negative lookahead.
+- [RuleSequence](http://kulibali.github.io/kiuatan/kiuatan-RuleSequence/): matches a sequence of child nodes.  If any one of the child nodes fails to match, the whole sequence fails.
+- [RuleChoice](http://kulibali.github.io/kiuatan/kiuatan-RuleChoice/): tries to match one or more child nodes in order, and succeeds on the first match.  A choice node will not backtrack to a further choice if one has already succeeded.
+- [RuleRepeat](http://kulibali.github.io/kiuatan/kiuatan-RuleRepeat/): matches a child node repeatedly.  You can optionally specify a mininum and/or maximum number of times to match.
+- [RuleAnd](http://kulibali.github.io/kiuatan/kiuatan-RuleAnd/): Matches a child node; if the child succeeds, the node itself succeeds, but the parse location does not advance.  Used for lookahead.
+- [RuleNot](http://kulibali.github.io/kiuatan/kiuatan-RuleNot/): Matches a child node; if the child **fails**, the node itself succeeds, but the parse location does not advance.  Used for negative lookahead.
 - [RuleError](http://kulibali.github.io/kiuatan/kiuatan-RuleError): Fails the match and records an error message for the match position.
 
 ### [ParseLoc](http://kulibali.github.io/kiuatan/kiuatan-ParseLoc/)
@@ -136,6 +136,7 @@ primitive Calculator
   """
   An example of very simple expression parser for the following grammar:
 
+  ```
   Exp = Add
   Add = Add WS [+-] WS Mul
       | Mul
@@ -144,103 +145,108 @@ primitive Calculator
   Num = '(' WS Exp ')' WS
       | [0-9]+ WS
   WS = [ \t]*
+  ```
   """
 
   fun generate(): ParseRule[U8,ISize] =>
     // We pre-declare the Exp rule so we can use it later for recursion.
-    let exp = RuleSequence[U8,ISize](Array[ParseRule[U8,ISize]], "Exp")
+    let exp = ParseRule[U8,ISize]("Exp")
 
     // A simple whitespace rule: 0 or more repeats of space or tab.
-    let ws =
-      RuleRepeat[U8,ISize](
-        RuleClass[U8,ISize].from_iter(" \t".values()),
-        None,
-        0)
+    let ws = 
+      ParseRule[U8,ISize].terminal(
+        "WS",
+        RuleRepeat[U8,ISize](
+          RuleClass[U8,ISize].from_iter(" \t".values()),
+          None,
+          0))
 
     // A number can be either an expression in parentheses, or a string
     // of digits.
     let num =
-      RuleChoice[U8,ISize](
-        [ RuleSequence[U8,ISize](
-            [ RuleLiteral[U8,ISize]("(")
-              ws
-              exp
-              RuleLiteral[U8,ISize](")")
-              ws
-            ])
-          RuleSequence[U8,ISize](
-            [ RuleRepeat[U8,ISize](
-                RuleClass[U8,ISize].from_iter("0123456789".values()),
-                // A semantic action that converts the string of digits to a
-                // decimal number.
-                {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
-                  var num: ISize = 0
-                  for ch in ctx.inputs().values() do
-                    num = (num * 10) + (ch.isize() - '0')
-                  end
-                  num
-                },
-                1)
-              ws
-            ])
-        ],
-        "Num"  // A name for the rule, for debugging convenience.
-      )
+      ParseRule[U8,ISize](
+        "Num",
+        RuleChoice[U8,ISize](
+          [ RuleSequence[U8,ISize](
+              [ RuleLiteral[U8,ISize]("(")
+                ws
+                exp
+                RuleLiteral[U8,ISize](")")
+                ws
+              ])
+            RuleSequence[U8,ISize](
+              [ RuleRepeat[U8,ISize](
+                  RuleClass[U8,ISize].from_iter("0123456789".values()),
+                  // A semantic action that converts the string of digits to a
+                  // decimal number.
+                  {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
+                    var num: ISize = 0
+                    for ch in ctx.result.inputs().values() do
+                      num = (num * 10) + (ch.isize() - '0')
+                    end
+                    num
+                  },
+                  1)
+                ws
+              ])
+          ]))
 
     // A multiplicative expression can be a multiplicative expression
     // then a * or /, then a number; or a number.
-    let mul = RuleChoice[U8,ISize](Array[ParseRule[U8,ISize]], "Mul")
-    mul.push(
-      RuleSequence[U8,ISize](
-        [ mul
-          ws
-          RuleClass[U8,ISize].from_iter("*/".values())
-          ws
-          num ],
-        "Mul", // A name for the rule, for debugging convenience.
-        // A semantic action that multiplies or divides the operands.
-        {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
-          try
-            let a = ctx.values(0)? as ISize
-            let b = ctx.values(4)? as ISize
+    let mul = ParseRule[U8,ISize]("Mul")
+    mul.set_child(
+      RuleChoice[U8,ISize](
+        [ RuleSequence[U8,ISize](
+            [ mul
+              ws
+              RuleClass[U8,ISize].from_iter("*/".values())
+              ws
+              num ],
+            // A semantic action that multiplies or divides the operands.
+            {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
+              try
+                let a = ctx.children(0)? as ISize
+                let b = ctx.children(4)? as ISize
 
-            let str = ctx.results(2)?.inputs()
-            if str(0)? == '*' then
-              a * b
-            else
-              a / b
-            end
-          end
-        }))
-    mul.push(num)
+                let str = ctx.result.results(2)?.inputs()
+                if str(0)? == '*' then
+                  a * b
+                else
+                  a / b
+                end
+              end
+            })
+          num 
+        ]))
 
     // An additive expression can be an additive expression then a + or -,
-    // then a multiplicative expression; or a number.
-    let add = RuleChoice[U8,ISize](Array[ParseRule[U8,ISize]], "Add")
-    add.push(
-      RuleSequence[U8,ISize](
-        [ add
-          ws
-          RuleClass[U8,ISize].from_iter("+-".values())
-          ws
-          mul ],
-        "Add", // A name for the rule, for debugging convenience.
-        {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
-          try
-            let a = ctx.values(0)? as ISize
-            let b = ctx.values(4)? as ISize
+    // then a multiplicative expression; or a multiplicative expression.
+    let add = ParseRule[U8,ISize]("Add")
+    add.set_child(
+      RuleChoice[U8,ISize](
+        [ RuleSequence[U8,ISize](
+            [ add
+              ws
+              RuleClass[U8,ISize].from_iter("+-".values())
+              ws
+              mul ],
+            {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
+              try
+                let a = ctx.children(0)? as ISize
+                let b = ctx.children(4)? as ISize
 
-            let str = ctx.results(2)?.inputs()
-            if str(0)? == '+' then
-              a + b
-            else
-              a - b
-            end
-          end
-        }))
-    add.push(mul)
+                let str = ctx.result.results(2)?.inputs()
+                if str(0)? == '+' then
+                  a + b
+                else
+                  a - b
+                end
+              end
+            })
+          mul 
+        ]))
 
-    exp.push(add)
+    exp.set_child(add)
     exp
 ```
 
