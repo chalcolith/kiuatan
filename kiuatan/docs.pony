@@ -48,7 +48,7 @@ Kiuatan grammars are designed to match over sequences of items of any type `TSrc
 
 In order to use Kiuatan to parse some inputs, do the following:
 
-- Build a top-level grammar rule out of the various combinators that implement the [RuleNode](http://kulibali.github.io/kiuatan/kiuatan-RuleNode/) trait (see below).
+- Build a top-level grammar rule of type [ParseRule](http://kulibali.github.io/kiuatan/kiuatan-ParseRule/) out of the various combinators that implement the [RuleNode](http://kulibali.github.io/kiuatan/kiuatan-RuleNode/) trait (see below).
 - Construct a [ParseState](http://kulibali.github.io/kiuatan/kiuatan-ParseState/) object that references a list of sequences of inputs.
 - Call `ParseState.parse()` with the top-level grammar rule.
 
