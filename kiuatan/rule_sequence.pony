@@ -37,13 +37,14 @@ class RuleSequence[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
     s.append(")")
     s
 
-  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | None) ?
   =>
     let results = Array[ParseResult[TSrc,TVal]](_children.size())
     var cur = start
     for child in _children.values() do
-      match state.parse_with_memo(child, cur)?
+      match state.parse_with_memo(child, cur, cs)?
       | let res: ParseResult[TSrc,TVal] =>
         results.push(res)
         cur = res.next

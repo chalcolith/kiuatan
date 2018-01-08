@@ -74,10 +74,11 @@ class ParseRule[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
       "()"
     end
 
-  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box, 
+    cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
   =>
     match _child
     | let child: RuleNode[TSrc,TVal] box =>
-      state.parse_with_memo(child, start)?
+      state.parse_with_memo(child, start, cs)?
     end

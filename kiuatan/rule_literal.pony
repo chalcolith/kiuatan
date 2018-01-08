@@ -29,7 +29,8 @@ class RuleLiteral[
       s
     end
 
-  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | None) ?
   =>
     let cur = start.clone()

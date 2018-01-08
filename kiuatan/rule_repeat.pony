@@ -36,14 +36,15 @@ class RuleRepeat[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
     end
     desc
 
-  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | None) ?
   =>
     let results = Array[ParseResult[TSrc,TVal]]()
     var count: USize = 0
     var cur = start
     while count < _max do
-      match state.parse_with_memo(_child, cur)?
+      match state.parse_with_memo(_child, cur, cs)?
       | let r: ParseResult[TSrc,TVal] =>
         results.push(r)
         cur = r.next

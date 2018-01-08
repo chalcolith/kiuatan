@@ -2,6 +2,10 @@
 use "collections"
 use "debug"
 
+class CallState[TSrc: Any #read, TVal = None]
+  let call_stack: List[_LRRecord[TSrc,TVal]] = call_stack.create()
+  let recursions: _RuleToLocLR[TSrc,TVal] = recursions.create()
+
 class ParseState[TSrc: Any #read, TVal = None]
   """
   Stores the state of a particular attempt to parse some input.
@@ -10,8 +14,6 @@ class ParseState[TSrc: Any #read, TVal = None]
   let _source: List[ReadSeq[TSrc] box] box
 
   let _memo_tables: _RuleToExpMemo[TSrc,TVal] = _memo_tables.create()
-  let _call_stack: List[_LRRecord[TSrc,TVal]] = _call_stack.create()
-  let _cur_recursions: _RuleToLocLR[TSrc,TVal] = _cur_recursions.create()
 
   var _last_error: (ParseError[TSrc,TVal] | None) = None
   var _farthest_error: (ParseError[TSrc,TVal] | None) = None
@@ -80,7 +82,7 @@ class ParseState[TSrc: Any #read, TVal = None]
           ParseLoc[TSrc](_source.head()?, 0)
         end
 
-      match parse_with_memo(rule, start')?
+      match parse_with_memo(rule, start', CallState[TSrc,TVal])?
       | let res: ParseResult[TSrc,TVal] =>
         res
       end
@@ -88,7 +90,8 @@ class ParseState[TSrc: Any #read, TVal = None]
 
   fun ref parse_with_memo(
     rule: RuleNode[TSrc,TVal] box,
-    loc: ParseLoc[TSrc] box)
+    loc: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
   =>
     let base_expansion = _Expansion[TSrc,TVal](rule, 0)
@@ -100,14 +103,14 @@ class ParseState[TSrc: Any #read, TVal = None]
         result
       else
         if rule.is_terminal() then
-          _parse_non_recursive(rule, base_expansion, loc)?
+          _parse_non_recursive(rule, base_expansion, loc, cs)?
         else
-          _parse_recursive(rule, base_expansion, loc)?
+          _parse_recursive(rule, base_expansion, loc, cs)?
         end
       end
     else
       // do not memoize non-named nodes' successes, but record their errors
-      let res = rule.parse(this, loc)?
+      let res = rule.parse(this, loc, cs)?
       match res
       | let msg: ParseErrorMessage =>
         _record_error(rule, msg, loc)
@@ -118,10 +121,11 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun ref _parse_non_recursive(
     rule: RuleNode[TSrc,TVal] box,
     expansion: _Expansion[TSrc,TVal],
-    loc: ParseLoc[TSrc] box)
+    loc: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
   =>
-    let res = rule.parse(this, loc)?
+    let res = rule.parse(this, loc, cs)?
     _memoize(expansion, loc, res)?
     match res
     | let msg: ParseErrorMessage =>
@@ -132,24 +136,26 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun ref _parse_recursive(
     rule: RuleNode[TSrc,TVal] box,
     exp: _Expansion[TSrc,TVal],
-    loc: ParseLoc[TSrc] box)
+    loc: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
   =>
-    match _get_lr_record(rule, loc)
+    match _get_lr_record(rule, loc, cs)
     | let rec: _LRRecord[TSrc,TVal] =>
-      _parse_existing_lr(rule, rec, loc)
+      _parse_existing_lr(rule, rec, loc, cs)
     else
-      _parse_new_lr(rule, exp, loc)?
+      _parse_new_lr(rule, exp, loc, cs)?
     end
 
   fun ref _parse_existing_lr(
     rule: RuleNode[TSrc,TVal] box,
     rec: _LRRecord[TSrc,TVal],
-    loc: ParseLoc[TSrc] box)
+    loc: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | ParseErrorMessage | None)
   =>
     rec.lr_detected = true
-    for lr in _call_stack.values() do
+    for lr in cs.call_stack.values() do
       if lr.cur_expansion.rule is rule then break end
       rec.involved_rules.set(lr.cur_expansion.rule)
     end
@@ -158,17 +164,18 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun ref _parse_new_lr(
     rule: RuleNode[TSrc,TVal] box,
     exp: _Expansion[TSrc,TVal],
-    loc: ParseLoc[TSrc] box)
+    loc: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
   =>
     let rec = _LRRecord[TSrc,TVal](rule, loc)
     _memoize(rec.cur_expansion, loc, None)?
-    _start_lr_record(rule, loc, rec)
-    _call_stack.unshift(rec)
+    _start_lr_record(rule, loc, cs, rec)
+    cs.call_stack.unshift(rec)
 
     var res: (ParseResult[TSrc,TVal] | ParseErrorMessage | None) = None
     while true do
-      res = rule.parse(this, loc)?
+      res = rule.parse(this, loc, cs)?
       match res
       | let r: ParseResult[TSrc,TVal]
         if rec.lr_detected and (r.next > rec.cur_next_loc) =>
@@ -181,9 +188,9 @@ class ParseState[TSrc: Any #read, TVal = None]
         if rec.lr_detected then
           res = rec.cur_result
         end
-        _forget_lr_record(rule, loc)
-        _call_stack.shift()?
-        if not _call_stack.exists(
+        _forget_lr_record(rule, loc, cs)
+        cs.call_stack.shift()?
+        if not cs.call_stack.exists(
           {(r: _LRRecord[TSrc,TVal] box): Bool =>
             r.involved_rules.contains(rule) }) then
           _memoize(exp, loc, res)?
@@ -293,11 +300,12 @@ class ParseState[TSrc: Any #read, TVal = None]
 
   fun ref _get_lr_record(
     rule: RuleNode[TSrc,TVal] box,
-    loc: ParseLoc[TSrc] box)
+    loc: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
     : (_LRRecord[TSrc,TVal] | None)
   =>
     try
-      let loc_lr = _cur_recursions(rule)?
+      let loc_lr = cs.recursions(rule)?
       loc_lr(loc)?
     else
       None
@@ -306,13 +314,14 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun ref _start_lr_record(
     rule: RuleNode[TSrc,TVal] box,
     loc: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal],
     rec: _LRRecord[TSrc,TVal])
   =>
     try
       let loc_lr = try
-        _cur_recursions(rule)?
+        cs.recursions(rule)?
       else
-        _cur_recursions.insert(rule, _LocToLR[TSrc,TVal]())?
+        cs.recursions.insert(rule, _LocToLR[TSrc,TVal]())?
       end
 
       loc_lr.insert(loc, rec)?
@@ -320,17 +329,18 @@ class ParseState[TSrc: Any #read, TVal = None]
 
   fun ref _forget_lr_record(
     rule: RuleNode[TSrc,TVal] box,
-    loc: ParseLoc[TSrc] box)
+    loc: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
   =>
     try
-      let loc_lr = _cur_recursions(rule)?
+      let loc_lr = cs.recursions(rule)?
       loc_lr.remove(loc)?
     end
 
-  fun _dbg(s: String val) =>
+  fun _dbg(s: String val, cs: CallState[TSrc,TVal]) =>
     ifdef debug then
       let s' = String
-      for i in Range(0, _call_stack.size()) do
+      for i in Range(0, cs.call_stack.size()) do
         s'.append("  ")
       end
       s'.append(s)

@@ -40,7 +40,8 @@ class RuleClass[
       s
     end
 
-  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
   =>
     let cur = start.clone()

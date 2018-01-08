@@ -19,7 +19,8 @@ class RuleError[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
   fun _description(stack: Seq[RuleNode[TSrc,TVal] tag]): String =>
     "!"
 
-  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box)
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | ParseErrorMessage | None)
   =>
     match _msg

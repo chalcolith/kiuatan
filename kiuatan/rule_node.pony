@@ -46,7 +46,8 @@ trait RuleNode[TSrc: Any #read, TVal = None]
 
   fun _description(stack: Seq[RuleNode[TSrc,TVal] tag]): String
 
-  fun parse(state: ParseState[TSrc,TVal] ref, start: ParseLoc[TSrc] box)
+  fun parse(state: ParseState[TSrc,TVal] ref, start: ParseLoc[TSrc] box,
+    cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
     """
     Attempt to parse the input.
