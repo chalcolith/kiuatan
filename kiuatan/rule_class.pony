@@ -48,7 +48,7 @@ class RuleClass[
     if cur.has_next() then
       let actual = cur.next()?
       if _expected.contains(actual) then
-        ParseResult[TSrc,TVal](state, start, cur, this,
-          Array[ParseResult[TSrc,TVal]], _action)
+        ParseResult[TSrc,TVal](start, cur, this, Array[ParseResult[TSrc,TVal]],
+          _action)
       end
     end

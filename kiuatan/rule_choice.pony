@@ -40,11 +40,11 @@ class RuleChoice[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
   fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box,
     cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
-  =>  
+  =>
     for child in _children.values() do
       match state.parse_with_memo(child, start, cs)?
       | let r: ParseResult[TSrc,TVal] =>
-        return ParseResult[TSrc,TVal](state, start, r.next, this, [r], _action)
+        return ParseResult[TSrc,TVal](start, r.next, this, [r], _action)
       end
     end
     None

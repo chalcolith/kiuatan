@@ -6,26 +6,23 @@ class ParseResult[TSrc: Any #read,TVal = None]
   Holds information about the result of a successful parse. The result includes
   a child result for each child rule of the grammar.
   """
-  let state: ParseState[TSrc,TVal] box
-  let start: ParseLoc[TSrc] box
-  let next: ParseLoc[TSrc] box
-  let rule: RuleNode[TSrc,TVal] box
-  let results: ReadSeq[ParseResult[TSrc,TVal]] box
+  let start: ParseLoc[TSrc] val
+  let next: ParseLoc[TSrc] val
+  let rule: RuleNode[TSrc,TVal] tag
+  let sub_results: ReadSeq[ParseResult[TSrc,TVal]] box
   let _res: (TVal! | ParseAction[TSrc,TVal] val | None)
 
   new create(
-    state': ParseState[TSrc,TVal] box,
     start': ParseLoc[TSrc] box,
     next': ParseLoc[TSrc] box,
-    rule': RuleNode[TSrc,TVal] box,
-    results': ReadSeq[ParseResult[TSrc,TVal]] box,
+    rule': RuleNode[TSrc,TVal] tag,
+    sub_results': ReadSeq[ParseResult[TSrc,TVal]] box,
     res': (TVal | ParseAction[TSrc,TVal] val | None))
   =>
-    state = state'
     start = start'.clone()
     next = next'.clone()
     rule = rule'
-    results = results'
+    sub_results = sub_results'
     _res = res'
 
   fun inputs(): Array[box->TSrc] iso^ =>
@@ -58,8 +55,8 @@ class ParseResult[TSrc: Any #read,TVal = None]
     : (TVal! | None)
   =>
     let ctx = ParseActionContext[TSrc,TVal](parent, this)
-    for child in results.values() do
-      ctx.children.push(child._get_value(ctx))
+    for child in sub_results.values() do
+      ctx.sub_values.push(child._get_value(ctx))
     end
 
     match _res
@@ -69,7 +66,7 @@ class ParseResult[TSrc: Any #read,TVal = None]
       act(ctx)
     else
       var last: (TVal! | None) = None
-      for v in ctx.children.values() do
+      for v in ctx.sub_values.values() do
         match v
         | let v': TVal! =>
           last = v'
@@ -92,18 +89,18 @@ class ParseActionContext[TSrc: Any #read, TVal]
 
   - `parent`: the parent rule's action's context (the parent's `values` field
     will **not** yet be populated).
-  - `result`: the parse result for which this value is being generated.
-  - `children`: the values obtained from child rules' actions.
+  - `cur_result`: the parse result for which this value is being generated.
+  - `sub_values`: the values obtained from child rules' actions.
   """
 
   let parent: (ParseActionContext[TSrc,TVal] | None)
-  let result: ParseResult[TSrc,TVal] box
-  let children: Array[(TVal! | None)]
+  let cur_result: ParseResult[TSrc,TVal] box
+  let sub_values: Array[(TVal! | None)]
 
   new create(
     parent': (ParseActionContext[TSrc,TVal] | None),
-    result': ParseResult[TSrc,TVal] box)
+    cur_result': ParseResult[TSrc,TVal] box)
   =>
     parent = parent'
-    result = result'
-    children = Array[(TVal! | None)]
+    cur_result = cur_result'
+    sub_values = Array[(TVal! | None)]

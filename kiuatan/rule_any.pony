@@ -22,8 +22,8 @@ class RuleAny[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
     if cur.has_next() then
       cur.next()?
 
-      ParseResult[TSrc,TVal](state, start, cur, this,
-        Array[ParseResult[TSrc,TVal]], _action)
+      ParseResult[TSrc,TVal](start, cur, this, Array[ParseResult[TSrc,TVal]],
+        _action)
     else
       None
     end

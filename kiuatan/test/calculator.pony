@@ -22,7 +22,7 @@ primitive Calculator
     let exp = ParseRule[U8,ISize]("Exp")
 
     // A simple whitespace rule: 0 or more repeats of space or tab.
-    let ws = 
+    let ws =
       ParseRule[U8,ISize].terminal(
         "WS",
         RuleRepeat[U8,ISize](
@@ -50,7 +50,7 @@ primitive Calculator
                   // decimal number.
                   {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
                     var num: ISize = 0
-                    for ch in ctx.result.inputs().values() do
+                    for ch in ctx.cur_result.inputs().values() do
                       num = (num * 10) + (ch.isize() - '0')
                     end
                     num
@@ -74,10 +74,10 @@ primitive Calculator
             // A semantic action that multiplies or divides the operands.
             {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
               try
-                let a = ctx.children(0)? as ISize
-                let b = ctx.children(4)? as ISize
+                let a = ctx.sub_values(0)? as ISize
+                let b = ctx.sub_values(4)? as ISize
 
-                let str = ctx.result.results(2)?.inputs()
+                let str = ctx.cur_result.sub_results(2)?.inputs()
                 if str(0)? == '*' then
                   a * b
                 else
@@ -85,7 +85,7 @@ primitive Calculator
                 end
               end
             })
-          num 
+          num
         ]))
 
     // An additive expression can be an additive expression then a + or -,
@@ -101,10 +101,10 @@ primitive Calculator
               mul ],
             {(ctx: ParseActionContext[U8,ISize] box) : (ISize | None) =>
               try
-                let a = ctx.children(0)? as ISize
-                let b = ctx.children(4)? as ISize
+                let a = ctx.sub_values(0)? as ISize
+                let b = ctx.sub_values(4)? as ISize
 
-                let str = ctx.result.results(2)?.inputs()
+                let str = ctx.cur_result.sub_results(2)?.inputs()
                 if str(0)? == '+' then
                   a + b
                 else
@@ -112,7 +112,7 @@ primitive Calculator
                 end
               end
             })
-          mul 
+          mul
         ]))
 
     exp.set_child(add)

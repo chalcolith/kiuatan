@@ -12,7 +12,7 @@ class iso _TestLastError is UnitTest
   fun apply(h: TestHelper) ? =>
     let errmsg1 = "expected 'vu'"
     let errmsg2 = "expected 'ab'"
-    let grammar = 
+    let grammar =
       ParseRule[U8](
         "G",
         RuleChoice[U8](
@@ -52,7 +52,7 @@ class iso _TestFarthestError is UnitTest
   fun apply(h: TestHelper) ? =>
     let errmsg = "expected 'cd'"
 
-    let grammar = 
+    let grammar =
       ParseRule[U8](
         "G",
         RuleSequence[U8](
@@ -204,7 +204,7 @@ class iso _TestRuleNodeSequenceOperator is UnitTest
   fun name(): String => "RuleNode_Sequence_Operator"
 
   fun apply(h: TestHelper) =>
-    let ab_rule = ParseRule[U8]("R", RuleLiteral[U8]("a") 
+    let ab_rule = ParseRule[U8]("R", RuleLiteral[U8]("a")
       + RuleLiteral[U8]("b"))
 
     let should_match = ParseState[U8].from_single_seq("ab")
@@ -247,7 +247,7 @@ class iso _TestRuleNodeRepeatAction is UnitTest
     let memo1_1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "xx"]))
     match memo1_1.parse(rep1)
     | let r: ParseResult[U8,U8] =>
-      let n = r.results.size()
+      let n = r.sub_results.size()
       h.assert_eq[USize](2, n, "repeat 1 did not match 2 xes")
     | None => h.fail("repeat 1 did not match 2")
     end
@@ -292,7 +292,7 @@ class iso _TestRuleNodeSequenceAction is UnitTest
     let any_rule = RuleAny[U8,USize](
       {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
         try
-          let i = ctx.result.start.clone()
+          let i = ctx.cur_result.start.clone()
           let c = i.next()?
           if (c >= '0') and (c <= '9') then
             return USize.from[U8](c - '0')
@@ -304,14 +304,14 @@ class iso _TestRuleNodeSequenceAction is UnitTest
       [ as RuleNode[U8,USize] box:
         any_rule; any_rule; any_rule; any_rule; any_rule]
 
-    let seq_rule = 
+    let seq_rule =
       ParseRule[U8,USize](
         "Seq",
         RuleSequence[U8,USize](
           rules,
           {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
             var sum: USize = 0
-            for r in ctx.result.results.values() do
+            for r in ctx.cur_result.sub_results.values() do
               match r.value()
               | let n: USize => sum = sum + n
               end
@@ -347,7 +347,7 @@ class iso _TestRuleNodeLiteralAction is UnitTest
 
     let str = "123"
     let memo = ParseState[U8,USize](src)
-    let literal = 
+    let literal =
       ParseRule[U8,USize](
         "Literal",
         RuleLiteral[U8,USize](
@@ -355,8 +355,8 @@ class iso _TestRuleNodeLiteralAction is UnitTest
           {(ctx: ParseActionContext[U8,USize] box) : (USize | None) =>
             try
               let s = String
-              let i = ctx.result.start.clone()
-              while i.has_next() and (i != ctx.result.next) do
+              let i = ctx.cur_result.start.clone()
+              while i.has_next() and (i != ctx.cur_result.next) do
                 s.push(i.next()?)
               end
               s.usize()?

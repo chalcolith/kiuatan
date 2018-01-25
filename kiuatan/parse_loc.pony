@@ -61,12 +61,12 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
     end
     seq(_index = _index + 1)?
 
-  fun clone(): ParseLoc[T]^ =>
+  fun clone(): ParseLoc[T] trn^ =>
     """
     Creates a clone of this location pointing to the same index in the same
     segment.
     """
-    ParseLoc[T](_segment, _index)
+    recover ParseLoc[T](_segment, _index) end
 
   fun values(next': ParseLoc[T] box): ParseLocIterator[T]^ =>
     """

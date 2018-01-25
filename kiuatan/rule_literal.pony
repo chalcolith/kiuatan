@@ -15,7 +15,7 @@ class RuleLiteral[
   =>
     _expected = expected
     _action = action
-  
+
   fun is_terminal(): Bool => true
 
   fun _description(stack: Seq[RuleNode[TSrc,TVal] tag]): String =>
@@ -40,5 +40,5 @@ class RuleLiteral[
       if expected != actual then return None end
     end
 
-    ParseResult[TSrc,TVal](state, start, cur, this,
-      Array[ParseResult[TSrc,TVal]], _action)
+    ParseResult[TSrc,TVal](start, cur, this, Array[ParseResult[TSrc,TVal]],
+      _action)
