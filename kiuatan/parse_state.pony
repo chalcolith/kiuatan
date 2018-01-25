@@ -75,6 +75,7 @@ class ParseState[TSrc: Any #read, TVal = None]
         | let start'': ParseLoc[TSrc] val =>
           start''.clone()
         else
+          // why can't we recover this?
           ParseLoc[TSrc](_source.head()?, 0).clone()
         end
 
@@ -90,7 +91,8 @@ class ParseState[TSrc: Any #read, TVal = None]
     cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) ?
   =>
-    let base_expansion = _Expansion[TSrc,TVal](rule, 0)
+    let base_expansion: _Expansion[TSrc,TVal] val =
+      recover _Expansion[TSrc,TVal](rule, 0) end
 
     match rule
     | let _: ParseRule[TSrc,TVal] box =>
@@ -116,7 +118,7 @@ class ParseState[TSrc: Any #read, TVal = None]
 
   fun ref _parse_non_recursive(
     rule: RuleNode[TSrc,TVal] box,
-    expansion: _Expansion[TSrc,TVal],
+    expansion: _Expansion[TSrc,TVal] val,
     loc: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) ?
@@ -131,7 +133,7 @@ class ParseState[TSrc: Any #read, TVal = None]
 
   fun ref _parse_recursive(
     rule: RuleNode[TSrc,TVal] box,
-    exp: _Expansion[TSrc,TVal],
+    exp: _Expansion[TSrc,TVal] val,
     loc: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) ?
@@ -159,7 +161,7 @@ class ParseState[TSrc: Any #read, TVal = None]
 
   fun ref _parse_new_lr(
     rule: RuleNode[TSrc,TVal] box,
-    exp: _Expansion[TSrc,TVal],
+    exp: _Expansion[TSrc,TVal] val,
     loc: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
     : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) ?
@@ -176,7 +178,8 @@ class ParseState[TSrc: Any #read, TVal = None]
       | let r: ParseResult[TSrc,TVal] val
         if rec.lr_detected and (r.next > rec.cur_next_loc) =>
         rec.num_expansions = rec.num_expansions + 1
-        rec.cur_expansion = _Expansion[TSrc,TVal](rule, rec.num_expansions)
+        rec.cur_expansion =
+          recover _Expansion[TSrc,TVal](rule, rec.num_expansions) end
         rec.cur_next_loc = r.next
         rec.cur_result = r
         _memoize(rec.cur_expansion, loc, r)?
@@ -239,7 +242,7 @@ class ParseState[TSrc: Any #read, TVal = None]
     end
 
   fun _get_memoized_result(
-    exp: _Expansion[TSrc,TVal] box,
+    exp: _Expansion[TSrc,TVal] val,
     loc: ParseLoc[TSrc] val)
     : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None)
   =>
@@ -252,7 +255,7 @@ class ParseState[TSrc: Any #read, TVal = None]
     end
 
   fun ref _memoize(
-    exp: _Expansion[TSrc,TVal],
+    exp: _Expansion[TSrc,TVal] val,
     loc: ParseLoc[TSrc] val,
     res: (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None)) ?
   =>
@@ -270,7 +273,7 @@ class ParseState[TSrc: Any #read, TVal = None]
 
     loc_memo.insert(loc, res)?
 
-  fun ref _forget(exp: _Expansion[TSrc,TVal], loc: ParseLoc[TSrc] val) =>
+  fun ref _forget(exp: _Expansion[TSrc,TVal] val, loc: ParseLoc[TSrc] val) =>
     try
       let exp_memo = _memo_tables(exp.rule)?
       let loc_memo = exp_memo(exp.num)?
@@ -341,9 +344,11 @@ class ParseState[TSrc: Any #read, TVal = None]
       Debug.out(s)
     end
 
-  fun _dbg_res(res: (ParseResult[TSrc,TVal] | ParseErrorMessage | None)) =>
+  fun _dbg_res(res:
+    (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None))
+  =>
     match res
-    | let r: ParseResult[TSrc,TVal] =>
+    | let r: ParseResult[TSrc,TVal] val =>
       Debug.out("  => [" + r.start.string() + "," + r.next.string() + ")")
     | let m: ParseErrorMessage =>
       Debug.out("  => " + m)
@@ -403,7 +408,7 @@ class _Expansion[TSrc: Any #read, TVal]
 class _LRRecord[TSrc: Any #read, TVal]
   var lr_detected: Bool
   var num_expansions: USize
-  var cur_expansion: _Expansion[TSrc,TVal]
+  var cur_expansion: _Expansion[TSrc,TVal] val
   var cur_next_loc: ParseLoc[TSrc] val
   var cur_result: (ParseResult[TSrc,TVal] val | None)
   var involved_rules: SetIs[RuleNode[TSrc,TVal] tag]
@@ -411,7 +416,7 @@ class _LRRecord[TSrc: Any #read, TVal]
   new create(rule: RuleNode[TSrc,TVal] tag, loc: ParseLoc[TSrc] val) =>
     lr_detected = false
     num_expansions = 1
-    cur_expansion = _Expansion[TSrc,TVal](rule, num_expansions)
+    cur_expansion = recover _Expansion[TSrc,TVal](rule, num_expansions) end
     cur_next_loc = loc
     cur_result = None
     involved_rules = SetIs[RuleNode[TSrc,TVal] tag]

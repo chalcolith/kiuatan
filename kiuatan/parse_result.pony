@@ -13,8 +13,8 @@ class ParseResult[TSrc: Any #read,TVal = None]
   let _res: (TVal! | ParseAction[TSrc,TVal] val | None)
 
   new create(
-    start': ParseLoc[TSrc] box,
-    next': ParseLoc[TSrc] box,
+    start': ParseLoc[TSrc] val,
+    next': ParseLoc[TSrc] val,
     rule': RuleNode[TSrc,TVal] tag,
     sub_results': ReadSeq[ParseResult[TSrc,TVal] val] val,
     res': (TVal | ParseAction[TSrc,TVal] val | None))
