@@ -95,7 +95,7 @@ class iso _TestCalculator is UnitTest
     let state = ParseState[U8,ISize].from_single_seq(input)
     let result = state.parse(_grammar)
     match result
-    | let result': ParseResult[U8,ISize] =>
+    | let result': ParseResult[U8,ISize] val =>
       match result'.value()
       | let actual: ISize =>
         if actual == expected then
@@ -241,12 +241,12 @@ class iso _TestRuleNodeRepeatAction is UnitTest
 
     let memo1_0 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "a"]))
     match memo1_0.parse(rep1)
-    | let _: ParseResult[U8,U8] => h.fail("repeat 1 matched 0")
+    | let _: ParseResult[U8,U8] val => h.fail("repeat 1 matched 0")
     end
 
     let memo1_1 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "xx"]))
     match memo1_1.parse(rep1)
-    | let r: ParseResult[U8,U8] =>
+    | let r: ParseResult[U8,U8] val =>
       let n = r.sub_results.size()
       h.assert_eq[USize](2, n, "repeat 1 did not match 2 xes")
     | None => h.fail("repeat 1 did not match 2")
@@ -281,7 +281,7 @@ class iso _TestRuleNodeChoiceAction is UnitTest
 
     let memo4 = ParseState[U8,U8](List[ReadSeq[U8]].from([as ReadSeq[U8]: "z"]))
     match memo4.parse(choice)
-    | let _: ParseResult[U8,U8] => h.fail("choice z matched erroneously")
+    | let _: ParseResult[U8,U8] val => h.fail("choice z matched erroneously")
     end
 
 
@@ -326,7 +326,7 @@ class iso _TestRuleNodeSequenceAction is UnitTest
 
     match result
     | None => h.fail("sequence did not match")
-    | let r: ParseResult[U8,USize] =>
+    | let r: ParseResult[U8,USize] val =>
       match r.value()
       | let sum: USize =>
         h.assert_eq[USize](15, sum,
@@ -368,7 +368,7 @@ class iso _TestRuleNodeLiteralAction is UnitTest
 
     match result
     | None => h.fail("literal did not match")
-    | let result': ParseResult[U8,USize] =>
+    | let result': ParseResult[U8,USize] val =>
       let start = memo.start()?
       let next = start +? str.size()
       h.assert_eq[ParseLoc[U8] box](start, result'.start, "match does not start at the correct loc")
@@ -397,7 +397,7 @@ class iso _TestRuleNodeLiteral is UnitTest
 
     match result
     | None => h.fail("literal did not match")
-    | let result': ParseResult[U8] =>
+    | let result': ParseResult[U8] val =>
       let start = memo.start()?
       let next = start +? str.size()
       h.assert_eq[ParseLoc[U8] box](start, result'.start, "match does not start at the correct loc")

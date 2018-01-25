@@ -5,12 +5,13 @@ class RuleError[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
   """
 
   let _msg:
-    ( ParseErrorMessage
-    | {(ParseState[TSrc,TVal], ParseLoc[TSrc] box): ParseErrorMessage} val )
+    ( ParseErrorMessage val
+    | {(ParseState[TSrc,TVal], ParseLoc[TSrc] val): ParseErrorMessage val} val )
 
   new create(msg:
-    ( ParseErrorMessage
-    | {(ParseState[TSrc,TVal], ParseLoc[TSrc] box): ParseErrorMessage} val))
+    ( ParseErrorMessage val
+    | {(ParseState[TSrc,TVal], ParseLoc[TSrc] val):
+        ParseErrorMessage val} val ))
   =>
     _msg = msg
 
@@ -19,15 +20,15 @@ class RuleError[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
   fun _description(stack: Seq[RuleNode[TSrc,TVal] tag]): String =>
     "!"
 
-  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box,
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
-    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None)
+    : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None)
   =>
     match _msg
-    | let str: ParseErrorMessage =>
+    | let str: ParseErrorMessage val =>
       str
     | let f:
-      {(ParseState[TSrc,TVal], ParseLoc[TSrc] box): ParseErrorMessage} val
+      {(ParseState[TSrc,TVal], ParseLoc[TSrc] val): ParseErrorMessage val} val
     =>
       f(state, start)
     end

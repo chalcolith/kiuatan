@@ -2,10 +2,6 @@
 use "collections"
 use "debug"
 
-class CallState[TSrc: Any #read, TVal = None]
-  let call_stack: List[_LRRecord[TSrc,TVal]] = call_stack.create()
-  let recursions: _RuleToLocLR[TSrc,TVal] = recursions.create()
-
 class ParseState[TSrc: Any #read, TVal = None]
   """
   Stores the state of a particular attempt to parse some input.
@@ -46,8 +42,8 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun farthest_error(): (this->ParseError[TSrc,TVal] | None) =>
     _farthest_error
 
-  fun errors(loc: ParseLoc[TSrc] box): ParseError[TSrc,TVal] =>
-    let rules = SetIs[RuleNode[TSrc,TVal] box]
+  fun errors(loc: ParseLoc[TSrc] val): ParseError[TSrc,TVal] =>
+    let rules = SetIs[RuleNode[TSrc,TVal] tag]
     let messages = Set[ParseErrorMessage]
     for (rule, exp_memo) in _memo_tables.pairs() do
       for (exp, loc_memo) in exp_memo.pairs() do
@@ -65,8 +61,8 @@ class ParseState[TSrc: Any #read, TVal = None]
 
   fun ref parse(
     rule: ParseRule[TSrc,TVal] box,
-    loc: (ParseLoc[TSrc] box | None) = None)
-    : (ParseResult[TSrc,TVal] | None)
+    loc: (ParseLoc[TSrc] val | None) = None)
+    : (ParseResult[TSrc,TVal] val | None)
   =>
     """
     Attempts to parse the input against a particular grammar rule, starting
@@ -74,32 +70,32 @@ class ParseState[TSrc: Any #read, TVal = None]
     at the beginning of the source.
     """
     try
-      let start' =
+      let start': ParseLoc[TSrc] val =
         match loc
-        | let start'': ParseLoc[TSrc] box =>
-          start''
+        | let start'': ParseLoc[TSrc] val =>
+          start''.clone()
         else
-          ParseLoc[TSrc](_source.head()?, 0)
+          ParseLoc[TSrc](_source.head()?, 0).clone()
         end
 
       match parse_with_memo(rule, start', CallState[TSrc,TVal])?
-      | let res: ParseResult[TSrc,TVal] =>
+      | let res: ParseResult[TSrc,TVal] val =>
         res
       end
     end
 
   fun ref parse_with_memo(
     rule: RuleNode[TSrc,TVal] box,
-    loc: ParseLoc[TSrc] box,
+    loc: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
-    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
+    : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) ?
   =>
     let base_expansion = _Expansion[TSrc,TVal](rule, 0)
 
     match rule
     | let _: ParseRule[TSrc,TVal] box =>
       match _get_memoized_result(base_expansion, loc)
-      | let result: ParseResult[TSrc,TVal] =>
+      | let result: ParseResult[TSrc,TVal] val =>
         result
       else
         if rule.is_terminal() then
@@ -121,9 +117,9 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun ref _parse_non_recursive(
     rule: RuleNode[TSrc,TVal] box,
     expansion: _Expansion[TSrc,TVal],
-    loc: ParseLoc[TSrc] box,
+    loc: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
-    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
+    : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) ?
   =>
     let res = rule.parse(this, loc, cs)?
     _memoize(expansion, loc, res)?
@@ -136,9 +132,9 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun ref _parse_recursive(
     rule: RuleNode[TSrc,TVal] box,
     exp: _Expansion[TSrc,TVal],
-    loc: ParseLoc[TSrc] box,
+    loc: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
-    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
+    : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) ?
   =>
     match _get_lr_record(rule, loc, cs)
     | let rec: _LRRecord[TSrc,TVal] =>
@@ -150,9 +146,9 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun ref _parse_existing_lr(
     rule: RuleNode[TSrc,TVal] box,
     rec: _LRRecord[TSrc,TVal],
-    loc: ParseLoc[TSrc] box,
+    loc: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
-    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None)
+    : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None)
   =>
     rec.lr_detected = true
     for lr in cs.call_stack.values() do
@@ -164,20 +160,20 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun ref _parse_new_lr(
     rule: RuleNode[TSrc,TVal] box,
     exp: _Expansion[TSrc,TVal],
-    loc: ParseLoc[TSrc] box,
+    loc: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
-    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
+    : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) ?
   =>
     let rec = _LRRecord[TSrc,TVal](rule, loc)
     _memoize(rec.cur_expansion, loc, None)?
     _start_lr_record(rule, loc, cs, rec)
     cs.call_stack.unshift(rec)
 
-    var res: (ParseResult[TSrc,TVal] | ParseErrorMessage | None) = None
+    var res: (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) = None
     while true do
       res = rule.parse(this, loc, cs)?
       match res
-      | let r: ParseResult[TSrc,TVal]
+      | let r: ParseResult[TSrc,TVal] val
         if rec.lr_detected and (r.next > rec.cur_next_loc) =>
         rec.num_expansions = rec.num_expansions + 1
         rec.cur_expansion = _Expansion[TSrc,TVal](rule, rec.num_expansions)
@@ -206,9 +202,9 @@ class ParseState[TSrc: Any #read, TVal = None]
     res
 
   fun ref _record_error(
-    rule: RuleNode[TSrc,TVal] box,
-    msg: ParseErrorMessage,
-    loc: ParseLoc[TSrc] box)
+    rule: RuleNode[TSrc,TVal] tag,
+    msg: ParseErrorMessage val,
+    loc: ParseLoc[TSrc] val)
   =>
     match _last_error
     | let err: ParseError[TSrc,TVal] =>
@@ -219,9 +215,8 @@ class ParseState[TSrc: Any #read, TVal = None]
       err.messages.set(msg)
     else
       _last_error =
-        ParseError[TSrc,TVal](
-          loc,
-          SetIs[RuleNode[TSrc,TVal] box].>set(rule),
+        ParseError[TSrc,TVal](loc,
+          SetIs[RuleNode[TSrc,TVal] tag].>set(rule),
           Set[ParseErrorMessage].>set(msg))
     end
 
@@ -238,16 +233,15 @@ class ParseState[TSrc: Any #read, TVal = None]
       end
     else
       _farthest_error =
-        ParseError[TSrc,TVal](
-          loc,
-          SetIs[RuleNode[TSrc,TVal] box].>set(rule),
+        ParseError[TSrc,TVal](loc,
+          SetIs[RuleNode[TSrc,TVal] tag].>set(rule),
           Set[ParseErrorMessage].>set(msg))
     end
 
   fun _get_memoized_result(
     exp: _Expansion[TSrc,TVal] box,
-    loc: ParseLoc[TSrc] box)
-    : (this->ParseResult[TSrc,TVal] | ParseErrorMessage | None)
+    loc: ParseLoc[TSrc] val)
+    : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None)
   =>
     try
       let exp_memo = _memo_tables(exp.rule)?
@@ -259,8 +253,8 @@ class ParseState[TSrc: Any #read, TVal = None]
 
   fun ref _memoize(
     exp: _Expansion[TSrc,TVal],
-    loc: ParseLoc[TSrc] box,
-    res: (ParseResult[TSrc,TVal] | ParseErrorMessage | None)) ?
+    loc: ParseLoc[TSrc] val,
+    res: (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None)) ?
   =>
     let exp_memo = try
       _memo_tables(exp.rule)?
@@ -276,7 +270,7 @@ class ParseState[TSrc: Any #read, TVal = None]
 
     loc_memo.insert(loc, res)?
 
-  fun ref _forget(exp: _Expansion[TSrc,TVal], loc: ParseLoc[TSrc]) =>
+  fun ref _forget(exp: _Expansion[TSrc,TVal], loc: ParseLoc[TSrc] val) =>
     try
       let exp_memo = _memo_tables(exp.rule)?
       let loc_memo = exp_memo(exp.num)?
@@ -286,7 +280,7 @@ class ParseState[TSrc: Any #read, TVal = None]
   fun ref forget_segment(segment: ParseSegment[TSrc]) =>
     for (rule, exp_memo) in _memo_tables.pairs() do
       for (exp, loc_memo) in exp_memo.pairs() do
-        let to_delete = Array[ParseLoc[TSrc] box]
+        let to_delete = Array[ParseLoc[TSrc] val]
         for (loc, _) in loc_memo.pairs() do
           if loc.segment() is segment then
             to_delete.push(loc)
@@ -299,8 +293,8 @@ class ParseState[TSrc: Any #read, TVal = None]
     end
 
   fun ref _get_lr_record(
-    rule: RuleNode[TSrc,TVal] box,
-    loc: ParseLoc[TSrc] box,
+    rule: RuleNode[TSrc,TVal] tag,
+    loc: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
     : (_LRRecord[TSrc,TVal] | None)
   =>
@@ -312,8 +306,8 @@ class ParseState[TSrc: Any #read, TVal = None]
     end
 
   fun ref _start_lr_record(
-    rule: RuleNode[TSrc,TVal] box,
-    loc: ParseLoc[TSrc] box,
+    rule: RuleNode[TSrc,TVal] tag,
+    loc: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal],
     rec: _LRRecord[TSrc,TVal])
   =>
@@ -328,8 +322,8 @@ class ParseState[TSrc: Any #read, TVal = None]
     end
 
   fun ref _forget_lr_record(
-    rule: RuleNode[TSrc,TVal] box,
-    loc: ParseLoc[TSrc] box,
+    rule: RuleNode[TSrc,TVal] tag,
+    loc: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
   =>
     try
@@ -358,15 +352,20 @@ class ParseState[TSrc: Any #read, TVal = None]
     end
 
 
+class CallState[TSrc: Any #read, TVal = None]
+  let call_stack: List[_LRRecord[TSrc,TVal]] = call_stack.create()
+  let recursions: _RuleToLocLR[TSrc,TVal] = recursions.create()
+
+
 class ParseError[TSrc: Any #read, TVal = None]
-  var loc: ParseLoc[TSrc] box
-  let rules: SetIs[RuleNode[TSrc,TVal] box]
-  let messages: Set[ParseErrorMessage]
+  var loc: ParseLoc[TSrc] val
+  let rules: SetIs[RuleNode[TSrc,TVal] tag]
+  let messages: Set[ParseErrorMessage val]
 
   new create(
-    loc': ParseLoc[TSrc] box,
-    rules': SetIs[RuleNode[TSrc,TVal] box],
-    msg': Set[ParseErrorMessage])
+    loc': ParseLoc[TSrc] val,
+    rules': SetIs[RuleNode[TSrc,TVal] tag],
+    msg': Set[ParseErrorMessage val])
   =>
     loc = loc'
     rules = rules'
@@ -376,26 +375,27 @@ class ParseError[TSrc: Any #read, TVal = None]
 type ParseErrorMessage is String
 
 type _RuleToExpMemo[TSrc: Any #read, TVal] is
-  MapIs[RuleNode[TSrc,TVal] box, _ExpToLocMemo[TSrc,TVal]]
+  MapIs[RuleNode[TSrc,TVal] tag, _ExpToLocMemo[TSrc,TVal]]
 
 type _ExpToLocMemo[TSrc: Any #read, TVal] is
   Map[USize, _LocToResultMemo[TSrc,TVal]]
 
 type _LocToResultMemo[TSrc: Any #read, TVal] is
-  Map[ParseLoc[TSrc] box, (ParseResult[TSrc,TVal] | ParseErrorMessage | None)]
+  Map[ParseLoc[TSrc] val,
+    (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None)]
 
 type _RuleToLocLR[TSrc: Any #read, TVal] is
-  MapIs[RuleNode[TSrc,TVal] box, _LocToLR[TSrc,TVal]]
+  MapIs[RuleNode[TSrc,TVal] tag, _LocToLR[TSrc,TVal]]
 
 type _LocToLR[TSrc: Any #read, TVal] is
-  Map[ParseLoc[TSrc] box, _LRRecord[TSrc,TVal]]
+  Map[ParseLoc[TSrc] val, _LRRecord[TSrc,TVal]]
 
 
 class _Expansion[TSrc: Any #read, TVal]
-  let rule: RuleNode[TSrc,TVal] box
+  let rule: RuleNode[TSrc,TVal] tag
   let num: USize
 
-  new create(rule': RuleNode[TSrc,TVal] box, num': USize) =>
+  new create(rule': RuleNode[TSrc,TVal] tag, num': USize) =>
     rule = rule'
     num = num'
 
@@ -404,14 +404,14 @@ class _LRRecord[TSrc: Any #read, TVal]
   var lr_detected: Bool
   var num_expansions: USize
   var cur_expansion: _Expansion[TSrc,TVal]
-  var cur_next_loc: ParseLoc[TSrc] box
-  var cur_result: (ParseResult[TSrc,TVal] | None)
-  var involved_rules: SetIs[RuleNode[TSrc,TVal] box]
+  var cur_next_loc: ParseLoc[TSrc] val
+  var cur_result: (ParseResult[TSrc,TVal] val | None)
+  var involved_rules: SetIs[RuleNode[TSrc,TVal] tag]
 
-  new create(rule: RuleNode[TSrc,TVal] box, loc: ParseLoc[TSrc] box) =>
+  new create(rule: RuleNode[TSrc,TVal] tag, loc: ParseLoc[TSrc] val) =>
     lr_detected = false
     num_expansions = 1
     cur_expansion = _Expansion[TSrc,TVal](rule, num_expansions)
     cur_next_loc = loc
     cur_result = None
-    involved_rules = SetIs[RuleNode[TSrc,TVal] box]
+    involved_rules = SetIs[RuleNode[TSrc,TVal] tag]

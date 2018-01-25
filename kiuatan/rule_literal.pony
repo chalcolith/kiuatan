@@ -29,9 +29,9 @@ class RuleLiteral[
       s
     end
 
-  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box,
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
-    : (ParseResult[TSrc,TVal] | None) ?
+    : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) ?
   =>
     let cur = start.clone()
     for expected in _expected.values() do
@@ -40,5 +40,8 @@ class RuleLiteral[
       if expected != actual then return None end
     end
 
-    ParseResult[TSrc,TVal](start, cur, this, Array[ParseResult[TSrc,TVal]],
-      _action)
+    let cur': ParseLoc[TSrc] val = cur.clone()
+    recover
+      ParseResult[TSrc,TVal](start, cur', this,
+        recover Array[ParseResult[TSrc,TVal] val] end, _action)
+    end

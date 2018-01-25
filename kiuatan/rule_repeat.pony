@@ -36,16 +36,17 @@ class RuleRepeat[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
     end
     desc
 
-  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box,
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
-    : (ParseResult[TSrc,TVal] | None) ?
+    : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) ?
   =>
-    let results = Array[ParseResult[TSrc,TVal]]()
+    let results: Array[ParseResult[TSrc,TVal] val] trn =
+      recover Array[ParseResult[TSrc,TVal] val] end
     var count: USize = 0
     var cur = start
     while count < _max do
       match state.parse_with_memo(_child, cur, cs)?
-      | let r: ParseResult[TSrc,TVal] =>
+      | let r: ParseResult[TSrc,TVal] val =>
         results.push(r)
         cur = r.next
       else
@@ -54,7 +55,11 @@ class RuleRepeat[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
       count = count + 1
     end
     if (count >= _min) then
-      ParseResult[TSrc,TVal](start, cur, this, results, _action)
+      let cur': ParseLoc[TSrc] val = cur.clone()
+      let subs: Array[ParseResult[TSrc,TVal] val] val = consume results
+      recover
+        ParseResult[TSrc,TVal](start, cur', this, subs, _action)
+      end
     else
       None
     end

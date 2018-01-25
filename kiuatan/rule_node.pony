@@ -25,7 +25,7 @@ trait RuleNode[TSrc: Any #read, TVal = None]
     """
     Returns a string representation of the node, used for debugging.
     """
-    let stack' = 
+    let stack' =
       match stack
       | let cs: Seq[RuleNode[TSrc,TVal] tag] =>
         cs
@@ -46,9 +46,9 @@ trait RuleNode[TSrc: Any #read, TVal = None]
 
   fun _description(stack: Seq[RuleNode[TSrc,TVal] tag]): String
 
-  fun parse(state: ParseState[TSrc,TVal] ref, start: ParseLoc[TSrc] box,
-    cs: CallState[TSrc,TVal])
-    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
+  fun parse(state: ParseState[TSrc,TVal] ref, start: ParseLoc[TSrc] val,
+    cs: CallState[TSrc,TVal] ref)
+    : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) ?
     """
     Attempt to parse the input.
     """

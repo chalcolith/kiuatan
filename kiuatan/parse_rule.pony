@@ -22,7 +22,7 @@ class ParseRule[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
     _terminal = None
     _child = child
     _action = action
-  
+
   new terminal(n: String,
     child: (RuleNode[TSrc,TVal] box | None) = None,
     action: (ParseAction[TSrc,TVal] val | None) = None)
@@ -74,9 +74,9 @@ class ParseRule[TSrc: Any #read, TVal = None] is RuleNode[TSrc,TVal]
       "()"
     end
 
-  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] box, 
+  fun parse(state: ParseState[TSrc,TVal], start: ParseLoc[TSrc] val,
     cs: CallState[TSrc,TVal])
-    : (ParseResult[TSrc,TVal] | ParseErrorMessage | None) ?
+    : (ParseResult[TSrc,TVal] val | ParseErrorMessage val | None) ?
   =>
     match _child
     | let child: RuleNode[TSrc,TVal] box =>
