@@ -21,6 +21,10 @@ class ParseLoc[T] is (Comparable[ParseLoc[T]] & Hashable & Stringable)
     _segment = segment'
     _index = index'
 
+  new from_loc(loc: ParseLoc[T] box) =>
+    _segment = loc._segment
+    _index = loc._index
+
   fun segment(): ParseSegment[T] box =>
     """
     The segment (linked list node) to whose sequence this points to.

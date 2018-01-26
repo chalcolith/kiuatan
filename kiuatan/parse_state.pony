@@ -25,7 +25,7 @@ class ParseState[TSrc: Any #read, TVal = None]
     """
     Creates a new parse state from a single sequence of inputs.
     """
-    _source = List[ReadSeq[TSrc]].from([as ReadSeq[TSrc]: seq])
+    _source = List[ReadSeq[TSrc] box].from([as ReadSeq[TSrc] box: seq])
 
   fun source(): List[ReadSeq[TSrc] box] box =>
     """
