@@ -10,20 +10,20 @@ class ParseResult[TSrc: Any #read,TVal = None]
   let next: ParseLoc[TSrc] val
   let rule: RuleNode[TSrc,TVal] tag
   let sub_results: ReadSeq[ParseResult[TSrc,TVal] val] val
-  let _res: (TVal! | ParseAction[TSrc,TVal] val | None)
+  let _value: (TVal! | ParseAction[TSrc,TVal] val | None)
 
   new create(
     start': ParseLoc[TSrc] val,
     next': ParseLoc[TSrc] val,
     rule': RuleNode[TSrc,TVal] tag,
     sub_results': ReadSeq[ParseResult[TSrc,TVal] val] val,
-    res': (TVal | ParseAction[TSrc,TVal] val | None))
+    value': (TVal | ParseAction[TSrc,TVal] val | None))
   =>
     start = start'.clone()
     next = next'.clone()
     rule = rule'
     sub_results = sub_results'
-    _res = res'
+    _value = value'
 
   fun inputs(): Array[box->TSrc] iso^ =>
     """
@@ -42,11 +42,9 @@ class ParseResult[TSrc: Any #read,TVal = None]
     If a rule does not contain an action, its result's value is by default the
     last non-`None` value of its children.
     """
-    _get_value(None)
-
-    match _res
-    | let res: TVal! =>
-      res
+    match _value
+    | let v: TVal! =>
+      v
     else
       _get_value(None)
     end
@@ -59,17 +57,17 @@ class ParseResult[TSrc: Any #read,TVal = None]
       ctx.sub_values.push(child._get_value(ctx))
     end
 
-    match _res
-    | let res: TVal! =>
-      res
-    | let act: ParseAction[TSrc,TVal] val =>
-      act(ctx)
+    match _value
+    | let v: TVal! =>
+      v
+    | let a: ParseAction[TSrc,TVal] val =>
+      a(ctx)
     else
       var last: (TVal! | None) = None
-      for v in ctx.sub_values.values() do
-        match v
-        | let v': TVal! =>
-          last = v'
+      for subv in ctx.sub_values.values() do
+        match subv
+        | let v: TVal! =>
+          last = v
         end
       end
       last
