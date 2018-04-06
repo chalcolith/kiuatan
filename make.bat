@@ -20,6 +20,11 @@ if "%1"=="test" (
   set GOTOTEST=true
   shift
 )
+set GOTODOCS=false
+if "%1"=="docs" (
+  set GOTODOCS=true
+  shift
+)
 
 set CONFIG=release
 set DEBUG=
@@ -36,6 +41,7 @@ set BUILDDIR=build\%CONFIG%
 
 if "%GOTOCLEAN%"=="true" goto clean
 if "%GOTOTEST%"=="true" goto test
+if "%GOTODOCS%"=="true" goto docs
 if "%1"=="fetch" goto fetch
 
 :build
@@ -72,6 +78,11 @@ if not exist %BUILDDIR%\test.exe (
 if errorlevel 1 goto error
 echo %BUILDDIR%\test.exe --sequential
 %BUILDDIR%\test.exe --sequential
+if errorlevel 1 goto error
+goto done
+
+:docs
+stable env ponyc --pass=docs --docs-public -o %BUILDDIR% %TARGET%
 if errorlevel 1 goto error
 goto done
 
