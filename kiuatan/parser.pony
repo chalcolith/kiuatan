@@ -55,11 +55,15 @@ actor Parser[S, V = None]
     _updates = Lists[_UpdateSeg[S]].empty()
 
   be parse(rule: RuleNode[S, V], callback: ParseCallback[S, V],
-    start: (Loc[S] | None) = None)
+    start: (Loc[S] | None) = None, clear_memo: Bool = false)
   =>
     """
     Initiates a parse attempt with the given rule.
     """
+    if clear_memo then
+      _memo.clear()
+    end
+
     let stack = Lists[_LRRecord[S, V]].empty()
     let recur = _LRByRule[S, V]
 
