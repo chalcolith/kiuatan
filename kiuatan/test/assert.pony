@@ -8,7 +8,9 @@ use ".."
 type _Segment[T] is ReadSeq[T] val
 
 
-primitive Assert[S: Stringable #read, V: (Equatable[V] val & Stringable val) = None]
+primitive Assert[S: Stringable #read,
+  V: (Equatable[V] val & Stringable val) = None]
+
   fun test_promises(h: TestHelper, promises: ReadSeq[Promise[Bool]]) =>
     Promises[Bool].join(promises.values())
       .next[None]({(r) =>

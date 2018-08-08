@@ -262,3 +262,31 @@ class iso _TestRuleLRIndirect is UnitTest
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, true, [ "xyz" ], 0, 3)
       ])
+
+
+class iso _TestRuleVariableBind is UnitTest
+  fun name(): String => "Rule_Variable_Bind"
+
+  fun apply(h: TestHelper) =>
+    let x = Variable
+    let y = Variable
+    let rule =
+      recover val
+        Rule[U8, USize]("Rule", Conj[U8, USize](
+          [ Bind[U8, USize](x, Literal[U8, USize]("x", {(_,_,b) => (USize(1),b) }))
+            Bind[U8, USize](y, Literal[U8, USize]("y", {(_,_,b) => (USize(2),b) }))
+          ],
+          {(result, vals, bindings) =>
+            try
+              (let rx, let vx) = bindings(x)?
+              (let ry, let vy) = bindings(y)?
+              (vx + vy, bindings)
+            else
+              (None, bindings)
+            end
+          }))
+      end
+
+    Assert[U8, USize].test_promises(h,
+      [ Assert[U8, USize].test_matches(h, rule, true, [ "xy" ], 0, 2, 3)
+      ])

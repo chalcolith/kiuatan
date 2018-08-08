@@ -36,7 +36,7 @@ class val Loc[T] is (mut.Hashable & Equatable[Loc[T]] & Stringable)
     """
     _segment(0)?(_index)?
 
-  fun next(): val->Loc[T] =>
+  fun next(): Loc[T] =>
     """
     Returns the next location in the source.  May not be valid.
     """
@@ -50,17 +50,50 @@ class val Loc[T] is (mut.Hashable & Equatable[Loc[T]] & Stringable)
     end
     Loc[T](_segment, _index + 1)
 
-  fun val add(n: USize): val->Loc[T] =>
+  fun add(n: USize): Loc[T] =>
     """
     Returns a location `n` places further in the source.  May not be valid.
     """
-    var cur = this
+    var cur = Loc[T](_segment, _index)
     var i = n
     while i > 0 do
       cur = cur.next()
       i = i - 1
     end
     cur
+
+  fun values(nxt: (Loc[T] | None) = None): Iterator[val->T] =>
+    let self = this
+    match nxt
+    | let nxt': Loc[T] =>
+      object
+        var cur: Loc[T] box = self
+
+        fun ref has_next(): Bool =>
+          cur.has_value() and not (cur == nxt')
+
+        fun ref next(): val->T ? =>
+          if cur.has_value() then
+            (cur = cur.next())()?
+          else
+            error
+          end
+      end
+    else
+      object
+        var cur: Loc[T] box = self
+
+        fun ref has_next(): Bool =>
+          cur.has_value()
+
+        fun ref next(): val->T ? =>
+          if cur.has_value() then
+            (cur = cur.next())()?
+          else
+            error
+          end
+      end
+    end
 
   fun eq(that: Loc[T]): Bool =>
     """

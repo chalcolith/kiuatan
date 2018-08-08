@@ -3,7 +3,7 @@ use "debug"
 use mut="collections"
 use "collections/persistent"
 
-actor Parser[S, V = None]
+actor Parser[S, V: Any #share = None]
   """
   Stores a source of inputs to a parse, and a memo of parse results from prior parses.
   Also used to initiate a parse attempt.
@@ -345,7 +345,7 @@ actor Parser[S, V = None]
     end
 
 
-interface val ParseCallback[S, V]
+interface val ParseCallback[S, V: Any #share]
   """
   Used to report the results of a parse attempt.
   """
@@ -371,15 +371,15 @@ class val _RemoveSeg
     index = index'
 
 
-type _Memo[S, V] is
+type _Memo[S, V: Any #share] is
   mut.MapIs[Rule[S, V] tag, _MemoByLoc[S, V]]
-type _MemoByLoc[S, V] is
+type _MemoByLoc[S, V: Any #share] is
   mut.Map[Loc[S], _MemoByExpansion[S, V]]
-type _MemoByExpansion[S, V] is
+type _MemoByExpansion[S, V: Any #share] is
   Array[(Result[S, V] | None)]
 
 
-class val _LRRecord[S, V = None]
+class val _LRRecord[S, V: Any #share]
   let rule: Rule[S, V]
   let exp: USize
   let start: Loc[S]
@@ -406,13 +406,13 @@ class val _LRRecord[S, V = None]
     involved = involved'
 
 
-type _LRByRule[S, V = None] is
+type _LRByRule[S, V: Any #share] is
   MapIs[Rule[S, V] tag, _LRByLoc[S, V]]
-type _LRByLoc[S, V = None] is
+type _LRByLoc[S, V: Any #share] is
   Map[Loc[S], _LRRecord[S, V]]
 
 
-primitive _LRR[S, V]
+primitive _LRR[S, V: Any #share]
   fun _get_lr_record(recur: _LRByRule[S, V], rule: Rule[S, V], loc: Loc[S])
     : (_LRRecord[S, V] | None)
   =>
@@ -450,7 +450,7 @@ primitive _LRR[S, V]
     end
 
 
-primitive Dbg[S, V]
+primitive Dbg[S, V: Any #share]
   fun _dbg(stack: List[_LRRecord[S, V]], msg: String) =>
     Debug.out(_dbg_get_indent(stack) + msg)
 

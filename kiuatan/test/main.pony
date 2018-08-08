@@ -8,7 +8,9 @@ actor Main is TestList
     PonyTest(env, this)
 
   fun tag tests(test: PonyTest) =>
+    test(_TestExampleMain)
     test(_TestLocEquality)
+    test(_TestLocValues)
     test(_TestRuleAny)
     test(_TestRuleAnyClass)
     test(_TestRuleLiteralSingle)
@@ -25,4 +27,4 @@ actor Main is TestList
     test(_TestRuleForwardDeclare)
     test(_TestRuleLRImmediate)
     test(_TestRuleLRIndirect)
-    test(_TestExampleMain)
+    test(_TestRuleVariableBind)

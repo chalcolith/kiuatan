@@ -1,7 +1,7 @@
 
 use "collections/persistent"
 
-interface val RuleNode[S, V = None]
+interface val RuleNode[S, V: Any #share = None]
   fun val _is_terminal(stack: List[RuleNode[S, V] tag]): Bool
   fun val _parse(
     parser: Parser[S, V],
@@ -10,19 +10,19 @@ interface val RuleNode[S, V = None]
     stack: List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
-  fun val _get_action(): Action[S, V]
+  fun val _get_action(): (Action[S, V] | None)
 
 
-class val Rule[S, V = None] is RuleNode[S, V]
+class val Rule[S, V: Any #share = None] is RuleNode[S, V]
   """
   Represents a named grammar rule.  Memoization and left-recursion handling happens per named `Rule`.
   """
   let name: String
   var _body: (RuleNode[S, V] box | None)
-  let _action: Action[S, V]
+  let _action: (Action[S, V] | None)
 
   new create(name': String, body: (RuleNode[S, V] box | None),
-    action: Action[S, V] = Rules[S, V].defaultAction())
+    action: (Action[S, V] | None) = None)
   =>
     name = name'
     _body = body
@@ -30,6 +30,9 @@ class val Rule[S, V = None] is RuleNode[S, V]
 
   fun ref set_body(body: RuleNode[S, V] box) =>
     _body = body
+
+  fun eq(other: Rule[S, V]): Bool =>
+    this is other
 
   fun val _is_terminal(stack: List[RuleNode[S, V] tag] =
     Lists[RuleNode[S, V] tag].empty()): Bool
@@ -61,22 +64,22 @@ class val Rule[S, V = None] is RuleNode[S, V]
       cont(Failure[S, V](this, loc, "rule is empty"), stack, recur)
     end
 
-  fun _get_action(): Action[S, V] =>
+  fun _get_action(): (Action[S, V] | None) =>
     _action
 
 
-interface val _Cont[S, V]
+interface val _Cont[S, V: Any #share]
   fun apply(result: Result[S, V], stack: List[_LRRecord[S, V]],
     recur: _LRByRule[S, V])
 
 
-type Result[S, V = None] is ( Success[S, V] | Failure[S, V] )
+type Result[S, V: Any #share = None] is ( Success[S, V] | Failure[S, V] )
   """
   The result of a parse attempt, either successful or failed.
   """
 
 
-class val Success[S, V = None]
+class val Success[S, V: Any #share = None]
   """
   The result of a successful parse.
   """
@@ -100,19 +103,37 @@ class val Success[S, V = None]
     next = next'
     children = children'
 
-  fun val value(): (V^ | None) =>
+  fun val value(bindings: Bindings[S, V] = Bindings[S, V]): (V | None) =>
     """
     Call the matched rules' actions to assemble a custom result value.
     """
-    let cvs: Array[(V | None)] val =
-      recover
-        let cvs' = Array[(V | None)](children.size())
-        for child in children.values() do
-          cvs'.push(child.value())
-        end
-        cvs'
+    (let v, _) = _value(bindings)
+    v
+
+  fun val _value(bindings: Bindings[S, V]): ((V | None), Bindings[S, V]) =>
+    var bindings' = Bindings[S, V]
+    let subvalues = Array[(V | None)]
+    for child in children.values() do
+      (let subval, bindings') = child._value(bindings')
+      subvalues.push(subval)
+    end
+
+    (let value', bindings') =
+      match node._get_action()
+      | let action: Action[S, V] =>
+        action(this, subvalues, bindings')
+      else
+        (None, bindings')
       end
-    node._get_action()(ActionContext[S, V](this, cvs))
+
+    match node
+    | let bind: Bind[S, V] =>
+      match value'
+      | let value'': V =>
+        return (value'', bindings'.update(bind.variable, (this, value'')))
+      end
+    end
+    (value', bindings')
 
   fun string(): String iso^ =>
     recover
@@ -127,7 +148,7 @@ class val Success[S, V = None]
       s
     end
 
-class val Failure[S, V = None]
+class val Failure[S, V: Any #share = None]
   """
   The result of a failed match.
   """
@@ -175,19 +196,12 @@ class val Failure[S, V = None]
     end
 
 
-interface val Action[S, V]
+class tag Variable
+type Bindings[S, V: Any #share] is MapIs[Variable, (Success[S, V], V)]
+
+interface val Action[S, V: Any #share]
   """
   Used to assemble a custom result value.
   """
-  fun apply(ctx: ActionContext[S, V]): (V^ | None)
-
-
-class iso ActionContext[S, V]
-  let result: Success[S, V]
-  let child_values: Array[(V | None)] val
-
-  new iso create(result': Success[S, V],
-    child_values': Array[(V | None)] val)
-  =>
-    result = result'
-    child_values = child_values'
+  fun apply(result: Success[S, V], child_values: Array[(V | None)],
+    bindings: Bindings[S, V]): ((V | None), Bindings[S, V])

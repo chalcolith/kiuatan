@@ -1,7 +1,7 @@
 
 use "collections/persistent"
 
-class val Single[S: (Any #read & Equatable[S]), V = None]
+class val Single[S: (Any #read & Equatable[S]), V: Any #share = None]
   """
   Matches a single item.  If given a list of possibilities, will only succeed if it matches one of them.  Otherwise, it succeeds for any single item.
   """
@@ -42,16 +42,11 @@ class val Single[S: (Any #read & Equatable[S]), V = None]
     end
     cont(Failure[S, V](this, loc, "any failed"), stack, recur)
 
-  fun val _get_action(): Action[S, V] =>
-    match _action
-    | let action: Action[S, V] =>
-      action
-    else
-      Rules[S, V].emptyAction()
-    end
+  fun val _get_action(): (Action[S, V] | None) =>
+    _action
 
 
-class val Literal[S: (Any #read & Equatable[S]), V = None]
+class val Literal[S: (Any #read & Equatable[S]), V: Any #share = None]
   """
   Matches a string of items.
   """
@@ -87,16 +82,11 @@ class val Literal[S: (Any #read & Equatable[S]), V = None]
       cont(Failure[S, V](this, loc, "literal failed"), stack, recur)
     end
 
-  fun val _get_action(): Action[S, V] =>
-    match _action
-    | let action: Action[S, V] =>
-      action
-    else
-      Rules[S, V].emptyAction()
-    end
+  fun val _get_action(): (Action[S, V] | None) =>
+    _action
 
 
-class val Conj[S, V = None]
+class val Conj[S, V: Any #share = None]
   """
   Matches a sequence of child rules.
   """
@@ -174,16 +164,11 @@ class val Conj[S, V = None]
       end
     end
 
-  fun val _get_action(): Action[S, V] =>
-    match _action
-    | let action: Action[S, V] =>
-      action
-    else
-      Rules[S, V].defaultAction()
-    end
+  fun val _get_action(): (Action[S, V] | None) =>
+    _action
 
 
-class val Disj[S, V = None]
+class val Disj[S, V: Any #share = None]
   """
   Matches one out of a list of possible alternatives.  Tries each alternative in order.  If one alternative fails, but an outer rule later fails, will *not* backtrack to another alternative.
   """
@@ -258,16 +243,11 @@ class val Disj[S, V = None]
       end
     end
 
-  fun val _get_action(): Action[S, V] =>
-    match _action
-    | let action: Action[S, V] =>
-      action
-    else
-      Rules[S, V].defaultAction()
-    end
+  fun val _get_action(): (Action[S, V] | None) =>
+    _action
 
 
-class val Error[S, V = None]
+class val Error[S, V: Any #share = None]
   """
   Will result in an error with the given message.
   """
@@ -291,16 +271,11 @@ class val Error[S, V = None]
   =>
     cont(Failure[S, V](this, loc, _message), stack, recur)
 
-  fun val _get_action(): Action[S, V] =>
-    match _action
-    | let action: Action[S, V] =>
-      action
-    else
-      Rules[S, V].emptyAction()
-    end
+  fun val _get_action(): (Action[S, V] | None) =>
+    _action
 
 
-class val Look[S, V = None]
+class val Look[S, V: Any #share = None]
   """
   Positive lookahead: will succeed if its child rule matches, but will not advance the match position.
   """
@@ -344,16 +319,11 @@ class val Look[S, V = None]
       end
     parser._parse_with_memo(_body, src, loc, stack, recur, consume cont')
 
-  fun val _get_action(): Action[S, V] =>
-    match _action
-    | let action: Action[S, V] =>
-      action
-    else
-      Rules[S, V].emptyAction()
-    end
+  fun val _get_action(): (Action[S, V] | None) =>
+    _action
 
 
-class val Neg[S, V = None]
+class val Neg[S, V: Any #share = None]
   """
   Negative lookahead: will succeed if its child rule does not match, and will not advance the match position.
   """
@@ -396,16 +366,11 @@ class val Neg[S, V = None]
       end
     parser._parse_with_memo(_body, src, loc, stack, recur, consume cont')
 
-  fun val _get_action(): Action[S, V] =>
-    match _action
-    | let action: Action[S, V] =>
-      action
-    else
-      Rules[S, V].emptyAction()
-    end
+  fun val _get_action(): (Action[S, V] | None) =>
+    _action
 
 
-class val Star[S, V = None]
+class val Star[S, V: Any #share = None]
   """
   A generalization of Kleene star: will match from `min` to `max` repetitions of its child rule.
   """
@@ -477,30 +442,35 @@ class val Star[S, V = None]
       end
     parser._parse_with_memo(_body, src, loc, stack, recur, consume cont')
 
-  fun val _get_action(): Action[S, V] =>
-    match _action
-    | let action: Action[S, V] =>
-      action
+  fun val _get_action(): (Action[S, V] | None) =>
+    _action
+
+
+class val Bind[S, V: Any #share = None]
+  let variable: Variable
+  let _body: RuleNode[S, V] box
+
+  new create(variable': Variable, body: RuleNode[S, V] box) =>
+    variable = variable'
+    _body = body
+
+  fun val _is_terminal(stack: List[RuleNode[S, V] tag]): Bool =>
+    let rule = this
+    if stack.exists({(x) => x is rule}) then
+      false
     else
-      Rules[S, V].defaultAction()
+      _body._is_terminal(stack.prepend(rule))
     end
 
+  fun val _parse(
+    parser: Parser[S, V],
+    src: Source[S],
+    loc: Loc[S],
+    stack: List[_LRRecord[S, V]],
+    recur: _LRByRule[S, V],
+    cont: _Cont[S, V])
+  =>
+    _body._parse(parser, src, loc, stack, recur, cont)
 
-primitive Rules[S, V = None]
-  fun defaultAction(): Action[S, V] =>
-    {(ctx) =>
-      try
-        var i = ctx.child_values.size()
-        while i > 0 do
-          match ctx.child_values(i-1)?
-          | let v: V =>
-            return consume v
-          end
-          i = i - 1
-        end
-      end
-      None
-    }
-
-  fun emptyAction(): Action[S, V] =>
-    {(_) => None}
+  fun val _get_action(): (Action[S, V] | None) =>
+    None
