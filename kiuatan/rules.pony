@@ -121,8 +121,8 @@ class val Conj[S, V: Any #share = None]
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
-    _parse_one(0, loc, parser, src, loc, stack, recur, cont,
-      Lists[Success[S, V]].empty())
+    _parse_one(0, loc, parser, src, loc, stack, recur,
+      Lists[Success[S, V]].empty(), cont)
 
   fun val _parse_one(
     child_index: USize,
@@ -132,11 +132,11 @@ class val Conj[S, V: Any #share = None]
     loc: Loc[S],
     stack: List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
-    cont: _Cont[S, V],
-    results: List[Success[S, V]])
+    children: List[Success[S, V]],
+    cont: _Cont[S, V])
   =>
     if child_index == _children.size() then
-      cont(Success[S, V](this, start, loc, results.reverse()), stack, recur)
+      cont(Success[S, V](this, start, loc, children.reverse()), stack, recur)
     else
       try
         let rule = this
@@ -148,8 +148,7 @@ class val Conj[S, V: Any #share = None]
               match result
               | let success: Success[S, V] =>
                 rule._parse_one(child_index + 1, start, parser, src,
-                  success.next, stack', recur', cont,
-                  results.prepend(success))
+                  success.next, stack', recur', children.prepend(success), cont)
               | let failure: Failure[S, V] =>
                 cont(Failure[S, V](rule, start, "", failure), stack',
                   recur')
@@ -310,7 +309,7 @@ class val Look[S, V: Any #share = None]
         =>
           match result
           | let success: Success[S, V] =>
-            cont(Success[S, V](rule, loc, loc), stack', recur')
+            cont(Success[S, V](rule, loc, loc, [success]), stack', recur')
           | let failure: Failure[S, V] =>
             cont(Failure[S, V](rule, loc, "lookahead failed", failure),
               stack', recur')
@@ -403,7 +402,8 @@ class val Star[S, V: Any #share = None]
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
-    _parse_one(0, loc, parser, src, loc, stack, recur, cont)
+    _parse_one(0, loc, parser, src, loc, stack, recur,
+      Lists[Success[S, V]].empty(), cont)
 
   fun val _parse_one(
     index: USize,
@@ -413,6 +413,7 @@ class val Star[S, V: Any #share = None]
     loc: Loc[S],
     stack: List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
+    children: List[Success[S, V]],
     cont: _Cont[S, V])
   =>
     let rule = this
@@ -428,11 +429,12 @@ class val Star[S, V: Any #share = None]
                 stack', recur')
             else
               rule._parse_one(index + 1, start, parser, src,
-                success.next, stack', recur', cont)
+                success.next, stack', recur', children.prepend(success), cont)
             end
           | let failure: Failure[S, V] =>
             if index >= _min then
-              cont(Success[S, V](rule, start, loc), stack', recur')
+              cont(Success[S, V](rule, start, loc, children.reverse()), stack',
+                recur')
             else
               cont(Failure[S, V](rule, start,
                 "star did not match enough times"), stack', recur')
@@ -470,7 +472,23 @@ class val Bind[S, V: Any #share = None]
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
-    _body._parse(parser, src, loc, stack, recur, cont)
+    let rule = this
+    let cont' =
+      recover
+        {(result: Result[S, V], stack': List[_LRRecord[S, V]],
+          recur': _LRByRule[S, V])
+        =>
+          match result
+          | let success: Success[S, V] =>
+            cont(Success[S, V](rule, success.start, success.next, [success]),
+              stack', recur')
+          | let failure: Failure[S, V] =>
+            cont(Failure[S, V](rule, failure.start, failure.message, failure),
+              stack', recur')
+          end
+        }
+      end
+    _body._parse(parser, src, loc, stack, recur, consume cont')
 
   fun val _get_action(): (Action[S, V] | None) =>
     None

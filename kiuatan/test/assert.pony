@@ -52,6 +52,8 @@ primitive Assert[S: Stringable #read,
             match success.value()
             | let actual: V =>
               h.assert_eq[V](expected, actual)
+            else
+              h.fail("expected " + expected.string() + "; no value returned")
             end
           end
           promise(true)

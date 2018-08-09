@@ -57,9 +57,25 @@ class val Rule[S, V: Any #share = None] is RuleNode[S, V]
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
+    let rule = this
     match _body
-    | let body: val->RuleNode[S, V] =>
-      parser._parse_with_memo(body, src, loc, stack, recur, cont)
+    | let body: RuleNode[S, V] =>
+      let cont' =
+        recover
+          {(result: Result[S, V], stack': List[_LRRecord[S, V]],
+              recur': _LRByRule[S, V])
+          =>
+            match result
+            | let success: Success[S, V] =>
+              cont(Success[S, V](rule, success.start, success.next, [success]),
+                stack', recur')
+            | let failure: Failure[S, V] =>
+              cont(Failure[S, V](rule, failure.start, "expected " + rule.name,
+                failure), stack', recur')
+            end
+          }
+        end
+      parser._parse_with_memo(body, src, loc, stack, recur, consume cont')
     else
       cont(Failure[S, V](this, loc, "rule is empty"), stack, recur)
     end
@@ -123,7 +139,17 @@ class val Success[S, V: Any #share = None]
       | let action: Action[S, V] =>
         action(this, subvalues, bindings')
       else
-        (None, bindings')
+        var i: USize = subvalues.size()
+        var v: (V | None) = None
+        while i > 0 do
+          let v' = try subvalues(i-1)? end
+          if not (v' is None) then
+            v = v'
+            break
+          end
+          i = i - 1
+        end
+        (v, bindings')
       end
 
     match node
@@ -147,6 +173,7 @@ class val Success[S, V: Any #share = None]
       end
       s
     end
+
 
 class val Failure[S, V: Any #share = None]
   """
