@@ -123,12 +123,12 @@ class val Success[S, V: Any #share = None]
     """
     Call the matched rules' actions to assemble a custom result value.
     """
-    (let v, _) = _value(bindings)
-    v
+    _value(bindings)._1
 
   fun val _value(bindings: Bindings[S, V]): ((V | None), Bindings[S, V]) =>
-    var bindings' = Bindings[S, V]
+    var bindings' = bindings
     let subvalues = Array[(V | None)]
+
     for child in children.values() do
       (let subval, bindings') = child._value(bindings')
       subvalues.push(subval)

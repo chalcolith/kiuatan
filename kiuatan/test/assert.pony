@@ -37,47 +37,56 @@ primitive Assert[S: Stringable #read,
     let start_exp = first_loc + start_index
     let next_exp = start_exp + length
 
-    parser.parse(grammar, {(result) =>
-      h.log("test_matches " + start_index.string() + " " + length.string()
-        + " " + should_match.string())
-      match result
-      | let success: Success[S, V] =>
-        if should_match then
-          h.assert_eq[Loc[S]](start_exp, success.start)
-          h.assert_eq[Loc[S]](next_exp, success.next)
-          match expected_value
-          | None =>
-            None
-          | let expected: V =>
-            match success.value()
-            | let actual: V =>
-              h.assert_eq[V](expected, actual)
-            else
-              h.fail("expected " + expected.string() + "; no value returned")
-            end
-          end
-          promise(true)
-        else
-          h.fail("match succeeded; should have failed")
-          promise(false)
-        end
-      | let failure: Failure[S, V] =>
-        if should_match then
-          h.fail("match failed; should have succeeded")
-          promise(false)
-        else
-          match expected_msg
-          | let exp_msg: String =>
-            if exp_msg != "" then
-              let act_msg = failure.get_message()
-              h.log(exp_msg)
-              h.log(act_msg)
-              h.assert_true(act_msg.contains(exp_msg), "'" + act_msg +
-                "' does not contain '" + exp_msg + "'")
-            end
-          end
-          promise(true)
-        end
-      end
-    }, start_exp)
+    parser.parse(
+      grammar,
+      this~_handle_result(h, promise, should_match, start_index, length,
+        start_exp, next_exp, expected_value, expected_msg),
+      start_exp)
     promise
+
+  fun _handle_result(h: TestHelper, promise: Promise[Bool],
+    should_match: Bool, start_index: USize, length: USize,
+    start_exp: Loc[S], next_exp: Loc[S], expected_value: (V | None),
+    expected_msg: (String | None), result: Result[S, V])
+  =>
+    h.log("test_matches " + start_index.string() + " " + length.string()
+      + " " + should_match.string())
+    match result
+    | let success: Success[S, V] =>
+      if should_match then
+        h.assert_eq[Loc[S]](start_exp, success.start)
+        h.assert_eq[Loc[S]](next_exp, success.next)
+        match expected_value
+        | None =>
+          None
+        | let expected: V =>
+          match success.value()
+          | None =>
+            h.fail("expected " + expected.string() + "; no value returned")
+          | let actual: V =>
+            h.assert_eq[V](expected, actual)
+          end
+        end
+        promise(true)
+      else
+        h.fail("match succeeded; should have failed")
+        promise(false)
+      end
+    | let failure: Failure[S, V] =>
+      if should_match then
+        h.fail("match failed; should have succeeded")
+        promise(false)
+      else
+        match expected_msg
+        | let exp_msg: String =>
+          if exp_msg != "" then
+            let act_msg = failure.get_message()
+            h.log(exp_msg)
+            h.log(act_msg)
+            h.assert_true(act_msg.contains(exp_msg), "'" + act_msg +
+              "' does not contain '" + exp_msg + "'")
+          end
+        end
+        promise(true)
+      end
+    end

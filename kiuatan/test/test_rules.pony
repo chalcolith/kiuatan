@@ -273,8 +273,14 @@ class iso _TestRuleVariableBind is UnitTest
     let rule =
       recover val
         Rule[U8, USize]("Rule", Conj[U8, USize](
-          [ Bind[U8, USize](x, Literal[U8, USize]("x", {(_,_,b) => (USize(1),b) }))
-            Bind[U8, USize](y, Literal[U8, USize]("y", {(_,_,b) => (USize(2),b) }))
+          [ Bind[U8, USize](x, Literal[U8, USize]("x",
+              {(_,_,b) =>
+                (USize(1),b)
+              }))
+            Bind[U8, USize](y, Literal[U8, USize]("y",
+              {(_,_,b) =>
+                (USize(2),b)
+              }))
           ],
           {(result, vals, bindings) =>
             try
