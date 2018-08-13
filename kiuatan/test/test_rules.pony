@@ -286,7 +286,10 @@ class iso _TestRuleVariableBind is UnitTest
             try
               (let rx, let vx) = bindings(x)?
               (let ry, let vy) = bindings(y)?
-              (vx + vy, bindings)
+              // for some reason adding these in the tuple itself
+              // returns the result as an unboxed integer
+              let vv: (USize | None) = vx + vy
+              (vv, bindings)
             else
               (None, bindings)
             end

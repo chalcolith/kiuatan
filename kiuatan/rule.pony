@@ -130,11 +130,11 @@ class val Success[S, V: Any #share = None]
     let subvalues = Array[(V | None)]
 
     for child in children.values() do
-      (let subval, bindings') = child._value(bindings')
+      (let subval: (V | None), bindings') = child._value(bindings')
       subvalues.push(subval)
     end
 
-    (let value', bindings') =
+    (let value': (V | None), bindings') =
       match node._get_action()
       | let action: Action[S, V] =>
         action(this, subvalues, bindings')
