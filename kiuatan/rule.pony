@@ -157,6 +157,8 @@ class val Success[S, V: Any #share = None]
       match value'
       | let value'': V =>
         return (value'', bindings'.update(bind.variable, (this, value'')))
+      else
+        return (value', bindings'.update(bind.variable, None))
       end
     end
     (value', bindings')
@@ -224,7 +226,7 @@ class val Failure[S, V: Any #share = None]
 
 
 class tag Variable
-type Bindings[S, V: Any #share] is MapIs[Variable, (Success[S, V], V)]
+type Bindings[S, V: Any #share] is MapIs[Variable, ((Success[S, V], V) | None)]
 
 interface val Action[S, V: Any #share]
   """

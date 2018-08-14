@@ -283,16 +283,25 @@ class iso _TestRuleVariableBind is UnitTest
               }))
           ],
           {(result, vals, bindings) =>
-            try
-              (let rx, let vx) = bindings(x)?
-              (let ry, let vy) = bindings(y)?
-              // for some reason adding these in the tuple itself
-              // returns the result as an unboxed integer
-              let vv: (USize | None) = vx + vy
-              (vv, bindings)
+            var vx: USize = 0
+            var vy: USize = 0
+
+            match bindings.get_or_else(x, None)
+            | (_, let vx': USize) =>
+              vx = vx'
             else
-              (None, bindings)
+              return (None, bindings)
             end
+
+            match bindings.get_or_else(y, None)
+            | (_, let vy': USize) =>
+              vy = vy'
+            else
+              return (None, bindings)
+            end
+
+            let vv: (USize | None) = vx + vy
+            (vv, bindings)
           }))
       end
 

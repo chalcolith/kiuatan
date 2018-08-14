@@ -6,9 +6,12 @@ type Lit is k.Literal[U8, F64]
 type Sing is k.Single[U8, F64]
 type Conj is k.Conj[U8, F64]
 type Star is k.Star[U8, F64]
+type Neg is k.Neg[U8, F64]
 type Bind is k.Bind[U8, F64]
 
 primitive Grammar
+  //fun additive(): Rule =>
+
   fun float(): Rule =>
     let int = integer()
     let frac = fraction(int)
@@ -25,39 +28,35 @@ primitive Grammar
           Bind(e, exp)
         ],
         {(result, subvals, bindings) =>
-          try
-            var int_num: F64 = 0.0
-            var frac_num: F64 = 0.0
-            var exp_num: F64 = 1.0
+          var int_num: F64 = 0.0
+          var frac_num: F64 = 0.0
+          var exp_num: F64 = 1.0
 
-            match bindings(i)?
-            | (_, let n: F64) =>
-              int_num = n
-            end
+          match bindings.get_or_else(i, None)
+          | (_, let n: F64) =>
+            int_num = n
+          end
 
-            match bindings(f)?
-            | (_, let n: F64) =>
-              frac_num = n
-            end
+          match bindings.get_or_else(f, None)
+          | (_, let n: F64) =>
+            frac_num = n
+          end
 
-            match bindings(e)?
-            | (_, let n: F64) =>
-              exp_num = n
-            end
+          match bindings.get_or_else(e, None)
+          | (_, let n: F64) =>
+            exp_num = n
+          end
 
-            let n =
-              if int_num < 0.0 then
-                int_num - frac_num
-              else
-                int_num + frac_num
-              end
-            if exp_num != 1.0 then
-              (n * F64(10).pow(exp_num), bindings)
+          let n =
+            if int_num < 0.0 then
+              int_num - frac_num
             else
-              (n, bindings)
+              int_num + frac_num
             end
+          if exp_num != 1.0 then
+            (n * F64(10).pow(exp_num), bindings)
           else
-            (None, bindings)
+            (n, bindings)
           end
         }))
     end
@@ -85,6 +84,7 @@ primitive Grammar
             for ch in start.values(r.next) do
               n = (n * 10.0) + (ch - '0').f64()
             end
+            n = n * sign
           end
           (n, b)
         })
@@ -111,4 +111,14 @@ primitive Grammar
   fun exponent(int: Rule): Rule =>
     recover val
       Rule("Exp", Star(Conj( [ Sing("eE"); int ]), 0, None, 1))
+    end
+
+  fun space(): Rule =>
+    recover val
+      Rule("WS", Star(Sing(" \t")))
+    end
+
+  fun eof(): Rule =>
+    recover val
+      Rule("EOF", Neg(Sing()))
     end
