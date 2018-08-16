@@ -2,6 +2,9 @@
 use k = "kiuatan"
 
 type Rule is k.Rule[U8, F64]
+type Result is k.Result[U8, F64]
+type Success is k.Success[U8, F64]
+type Failure is k.Failure[U8, F64]
 type Lit is k.Literal[U8, F64]
 type Sing is k.Single[U8, F64]
 type Conj is k.Conj[U8, F64]
@@ -10,7 +13,58 @@ type Neg is k.Neg[U8, F64]
 type Bind is k.Bind[U8, F64]
 
 primitive Grammar
-  //fun additive(): Rule =>
+  fun additive(): Rule =>
+    let ws = space()
+    let f = float()
+
+    let a = k.Variable
+    let o = k.Variable
+    let b = k.Variable
+
+    recover val
+      let add = Rule("Additive", None,
+        {(result, values, bindings) =>
+          var first: F64 = 0.0
+          var op_is_add: Bool = true
+          var second: F64 = 0.0
+
+          match bindings.get_or_else(a, None)
+          | (_, let n: F64) =>
+            first = n
+          end
+
+          match bindings.get_or_else(o, None)
+          | (let s: Success, _) =>
+            try
+              if s.start()? == '-' then
+                op_is_add = false
+              end
+            end
+          end
+
+          match bindings.get_or_else(b, None)
+          | (_, let n: F64) =>
+            second = n
+          end
+
+          let sum: (F64 | None) =
+            if op_is_add then
+              first + second
+            else
+              first - second
+            end
+          (sum, bindings)
+        })
+
+      add.set_body(Conj(
+        [ Bind(a, add)
+          ws
+          Bind(o, Sing("+-"))
+          ws
+          Bind(b, f)
+        ]))
+      add
+    end
 
   fun float(): Rule =>
     let int = integer()

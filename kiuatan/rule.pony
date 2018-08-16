@@ -21,7 +21,7 @@ class val Rule[S, V: Any #share = None] is RuleNode[S, V]
   var _body: (RuleNode[S, V] box | None)
   let _action: (Action[S, V] | None)
 
-  new create(name': String, body: (RuleNode[S, V] box | None),
+  new create(name': String, body: (RuleNode[S, V] box | None) = None,
     action: (Action[S, V] | None) = None)
   =>
     name = name'

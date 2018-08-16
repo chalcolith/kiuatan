@@ -21,9 +21,10 @@ actor Main is TestList
     test(_TestGrammarFloatDecimalNeg)
     test(_TestGrammarFloatExponent)
     test(_TestGrammarFloatExponentNeg)
+    test(_TestGrammarAdditiveAdd)
 
 
-primitive _FloatTest
+primitive _Callbacks
   fun should_succeed(h: TestHelper, expected: F64, result: k.Result[U8, F64]) =>
     match result
     | let success: k.Success[U8, F64] =>
@@ -65,7 +66,7 @@ class iso _TestGrammarSpace is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.space()
     let parser = k.Parser[U8, F64]([" \t"])
-    parser.parse(rule, _FloatTest~should_span(h, 2))
+    parser.parse(rule, _Callbacks~should_span(h, 2))
     h.long_test(10_000_000_000)
 
 
@@ -75,7 +76,7 @@ class iso _TestGrammarSpaceFail is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.space()
     let parser = k.Parser[U8, F64](["abc"])
-    parser.parse(rule, _FloatTest~should_span(h, 0))
+    parser.parse(rule, _Callbacks~should_span(h, 0))
     h.long_test(10_000_000_000)
 
 
@@ -85,7 +86,7 @@ class iso _TestGrammarEOF is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.eof()
     let parser = k.Parser[U8, F64]([""])
-    parser.parse(rule, _FloatTest~should_span(h, 0))
+    parser.parse(rule, _Callbacks~should_span(h, 0))
     h.long_test(10_000_000_000)
 
 
@@ -95,7 +96,7 @@ class iso _TestGrammarEOFFail is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.eof()
     let parser = k.Parser[U8, F64](["abc"])
-    parser.parse(rule, _FloatTest~should_fail(h))
+    parser.parse(rule, _Callbacks~should_fail(h))
     h.long_test(10_000_000_000)
 
 
@@ -105,7 +106,7 @@ class iso _TestGrammarInt is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.integer()
     let parser = k.Parser[U8, F64](["123"])
-    parser.parse(rule, _FloatTest~should_succeed(h, 123.0))
+    parser.parse(rule, _Callbacks~should_succeed(h, 123.0))
     h.long_test(10_000_000_000)
 
 
@@ -115,7 +116,7 @@ class iso _TestGrammarIntNeg is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.integer()
     let parser = k.Parser[U8, F64](["-321"])
-    parser.parse(rule, _FloatTest~should_succeed(h, -321.0))
+    parser.parse(rule, _Callbacks~should_succeed(h, -321.0))
     h.long_test(10_000_000_000)
 
 
@@ -125,7 +126,7 @@ class iso _TestGrammarFloatBlank is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.float()
     let parser = k.Parser[U8, F64]([""])
-    parser.parse(rule, _FloatTest~should_fail(h))
+    parser.parse(rule, _Callbacks~should_fail(h))
 
 
 class iso _TestGrammarFloatSpace is UnitTest
@@ -134,7 +135,7 @@ class iso _TestGrammarFloatSpace is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.float()
     let parser = k.Parser[U8, F64]([" \t"])
-    parser.parse(rule, _FloatTest~should_fail(h))
+    parser.parse(rule, _Callbacks~should_fail(h))
 
 
 class iso _TestGrammarFloatIntPart is UnitTest
@@ -143,7 +144,7 @@ class iso _TestGrammarFloatIntPart is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.float()
     let parser = k.Parser[U8, F64](["123"])
-    parser.parse(rule, _FloatTest~should_succeed(h, 123.0))
+    parser.parse(rule, _Callbacks~should_succeed(h, 123.0))
     h.long_test(10_000_000_000)
 
 
@@ -153,7 +154,7 @@ class iso _TestGrammarFloatDecimal is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.float()
     let parser = k.Parser[U8, F64](["123.456"])
-    parser.parse(rule, _FloatTest~should_succeed(h, 123.456))
+    parser.parse(rule, _Callbacks~should_succeed(h, 123.456))
     h.long_test(10_000_000_000)
 
 
@@ -163,7 +164,7 @@ class iso _TestGrammarFloatDecimalNeg is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.float()
     let parser = k.Parser[U8, F64](["-324.111"])
-    parser.parse(rule, _FloatTest~should_succeed(h, -324.111))
+    parser.parse(rule, _Callbacks~should_succeed(h, -324.111))
     h.long_test(10_000_000_000)
 
 
@@ -173,7 +174,7 @@ class iso _TestGrammarFloatExponent is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.float()
     let parser = k.Parser[U8, F64](["-675.22e12"])
-    parser.parse(rule, _FloatTest~should_succeed(h, -675.22e12))
+    parser.parse(rule, _Callbacks~should_succeed(h, -675.22e12))
     h.long_test(10_000_000_000)
 
 
@@ -183,5 +184,15 @@ class iso _TestGrammarFloatExponentNeg is UnitTest
   fun apply(h: TestHelper) =>
     let rule = calc.Grammar.float()
     let parser = k.Parser[U8, F64](["8876e-33"])
-    parser.parse(rule, _FloatTest~should_succeed(h, 8876e-33))
+    parser.parse(rule, _Callbacks~should_succeed(h, 8876e-33))
+    h.long_test(10_000_000_000)
+
+
+class iso _TestGrammarAdditiveAdd is UnitTest
+  fun name(): String => "Grammar_Additive_Add"
+
+  fun apply(h: TestHelper) =>
+    let rule = calc.Grammar.additive()
+    let parser = k.Parser[U8, F64](["123.4 + 567.8"])
+    parser.parse(rule, _Callbacks~should_succeed(h, 691.2))
     h.long_test(10_000_000_000)
