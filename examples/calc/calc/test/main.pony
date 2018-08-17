@@ -25,6 +25,8 @@ actor Main is TestList
     test(_TestGrammarMultiplicativeDiv)
     test(_TestGrammarAdditiveAdd)
     test(_TestGrammarAdditiveSub)
+    test(_TestGrammarPrecedence)
+    test(_TestGrammarParens)
 
 
 type Loc is k.Loc[U8]
@@ -239,4 +241,24 @@ class iso _TestGrammarAdditiveSub is UnitTest
     let rule = recover val calc.Grammar.additive() end
     let parser = Parser(["123.4 - 567.8"])
     parser.parse(rule, _Test~should_succeed(h, -444.4))
+    h.long_test(10_000_000_000)
+
+
+class iso _TestGrammarPrecedence is UnitTest
+  fun name(): String => "Grammar_Precedence"
+
+  fun apply(h: TestHelper) =>
+    let rule = recover val calc.Grammar.expression() end
+    let parser = Parser(["12 + 34 * 56"])
+    parser.parse(rule, _Test~should_succeed(h, 1916.0))
+    h.long_test(10_000_000_000)
+
+
+class iso _TestGrammarParens is UnitTest
+  fun name(): String => "Grammar_Parens"
+
+  fun apply(h: TestHelper) =>
+    let rule = recover val calc.Grammar.expression() end
+    let parser = Parser(["(12 + 34) * 56"])
+    parser.parse(rule, _Test~should_succeed(h, 2576.0))
     h.long_test(10_000_000_000)
