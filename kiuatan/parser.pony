@@ -99,37 +99,37 @@ actor Parser[S, V: Any #share = None]
     end
 
   be _parse_with_memo(
-    rule: RuleNode[S, V],
+    node: RuleNode[S, V],
     src: Source[S],
     loc: Loc[S],
     stack: List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
-    match rule
-    | let rule': Rule[S, V] =>
+    match node
+    | let rule: Rule[S, V] =>
       ifdef debug then
-        Dbg[S, V]._dbg(stack, "_parse_with_memo: " + rule'.name + "@" +
+        Dbg[S, V]._dbg(stack, "_parse_with_memo: " + rule.name + "@" +
           loc.string() + ": " +
-          (if rule'._is_terminal() then "terminal" else "nonterminal" end))
+          (if rule._is_terminal() then "terminal" else "nonterminal" end))
       end
 
-      match _lookup(rule', loc, 0)
+      match _lookup(rule, loc, 0)
       | let result: Result[S, V] =>
         ifdef debug then
-          Dbg[S, V]._dbg(stack, "_parse_with_memo: " + rule'.name + "@" +
+          Dbg[S, V]._dbg(stack, "_parse_with_memo: " + rule.name + "@" +
             loc.string() + ": from memo: " + result.string())
         end
         cont(result, stack, recur)
       else
-        if rule'._is_terminal() then
-          _parse_non_lr(rule', src, loc, stack, recur, cont)
+        if rule._is_terminal() then
+          _parse_non_lr(rule, src, loc, stack, recur, cont)
         else
-          _parse_lr(rule', src, loc, stack, recur, cont)
+          _parse_lr(rule, src, loc, stack, recur, cont)
         end
       end
     else
-      rule._parse(this, src, loc, stack, recur, cont)
+      node._parse(this, src, loc, stack, recur, cont)
     end
 
   fun _parse_non_lr(
@@ -254,7 +254,7 @@ actor Parser[S, V: Any #share = None]
       let recur' = _LRR[S, V]._set_lr_record(recur, rule, rec')
 
       ifdef debug then
-        Dbg[S, V]._dbg(stack, "_parse_new_lr_aux_{} " + rule.name + ":" +
+        Dbg[S, V]._dbg(stack, "_parse_new_lr_aux2 " + rule.name + ":" +
           rec'.exp.string() + "@" + loc.string() + " #" + count.string() +
           " new expansion: " + success.string())
       end
@@ -281,7 +281,7 @@ actor Parser[S, V: Any #share = None]
         end
 
       ifdef debug then
-        Dbg[S, V]._dbg(stack, "_parse_new_lr_aux_{} " + rule.name + ":" +
+        Dbg[S, V]._dbg(stack, "_parse_new_lr_aux2 " + rule.name + ":" +
           rec.exp.string() + "@" + loc.string() + " #" + count.string() +
           " lr DONE: result " + res.string())
       end

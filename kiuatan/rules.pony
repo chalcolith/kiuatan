@@ -488,7 +488,7 @@ class val Bind[S, V: Any #share = None]
           end
         }
       end
-    _body._parse(parser, src, loc, stack, recur, consume cont')
+    parser._parse_with_memo(_body, src, loc, stack, recur, consume cont')
 
   fun val _get_action(): (Action[S, V] | None) =>
     None

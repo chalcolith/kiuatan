@@ -286,14 +286,14 @@ class iso _TestRuleVariableBind is UnitTest
             var vx: USize = 0
             var vy: USize = 0
 
-            match bindings.get_or_else(x, None)
+            match try bindings(x)? end
             | (_, let vx': USize) =>
               vx = vx'
             else
               return (None, bindings)
             end
 
-            match bindings.get_or_else(y, None)
+            match try bindings(y)? end
             | (_, let vy': USize) =>
               vy = vy'
             else
