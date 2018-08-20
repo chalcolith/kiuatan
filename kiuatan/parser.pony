@@ -108,10 +108,11 @@ actor Parser[S, V: Any #share = None]
   =>
     match node
     | let rule: Rule[S, V] =>
+      let is_terminal = rule._is_terminal()
       ifdef debug then
         Dbg[S, V]._dbg(stack, "_parse_with_memo: " + rule.name + "@" +
           loc.string() + ": " +
-          (if rule._is_terminal() then "terminal" else "nonterminal" end))
+          (if is_terminal then "terminal" else "nonterminal" end))
       end
 
       match _lookup(rule, loc, 0)
@@ -122,7 +123,7 @@ actor Parser[S, V: Any #share = None]
         end
         cont(result, stack, recur)
       else
-        if rule._is_terminal() then
+        if is_terminal then
           _parse_non_lr(rule, src, loc, stack, recur, cont)
         else
           _parse_lr(rule, src, loc, stack, recur, cont)
@@ -165,8 +166,17 @@ actor Parser[S, V: Any #share = None]
   =>
     match _LRR[S, V]._get_lr_record(recur, rule, loc)
     | let rec: _LRRecord[S, V] =>
+      ifdef debug then
+        Dbg[S, V]._dbg(stack, "_parse_lr: got record: " + rec.rule.name + ":"
+          + rec.exp.string() + "@" + rec.start.string()
+          + " calling _parse_existing_lr")
+      end
       _parse_existing_lr(rule, rec, stack, recur, cont)
     else
+      ifdef debug then
+        Dbg[S, V]._dbg(stack, "_parse_lr: no LR record for " + rule.name
+          + "@" + loc.string())
+      end
       _parse_new_lr(rule, src, loc, stack, recur, cont)
     end
 
