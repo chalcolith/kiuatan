@@ -1,3 +1,8 @@
 {
-  "deps": []
+  "deps": [
+    {
+      "type": "github",
+      "repo": "kulibali/pony-champ-map"
+    }
+  ]
 }

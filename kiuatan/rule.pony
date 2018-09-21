@@ -1,14 +1,15 @@
 
-use "collections/persistent"
+use cm  = "champ-map"
+use per = "collections/persistent"
 use "debug"
 
 interface val RuleNode[S, V: Any #share = None]
-  fun val _is_terminal(stack: List[RuleNode[S, V] tag]): Bool
+  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool
   fun val _parse(
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   fun val _get_action(): (Action[S, V] | None)
@@ -35,8 +36,8 @@ class val Rule[S, V: Any #share = None] is RuleNode[S, V]
   fun eq(other: Rule[S, V]): Bool =>
     this is other
 
-  fun val _is_terminal(stack: List[RuleNode[S, V] tag] =
-    Lists[RuleNode[S, V] tag].empty()): Bool
+  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag] =
+    per.Lists[RuleNode[S, V] tag].empty()): Bool
   =>
     match _body
     | let body: val->RuleNode[S, V] =>
@@ -54,7 +55,7 @@ class val Rule[S, V: Any #share = None] is RuleNode[S, V]
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
@@ -86,7 +87,7 @@ class val Rule[S, V: Any #share = None] is RuleNode[S, V]
 
 
 interface val _Cont[S, V: Any #share]
-  fun apply(result: Result[S, V], stack: List[_LRRecord[S, V]],
+  fun apply(result: Result[S, V], stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V])
 
 
@@ -257,7 +258,7 @@ class val Failure[S, V: Any #share = None]
 
 
 class tag Variable
-type Bindings[S, V: Any #share] is MapIs[Variable, (Success[S, V], (V | None))]
+type Bindings[S, V: Any #share] is cm.MapIs[Variable, (Success[S, V], (V | None))]
 
 interface val Action[S, V: Any #share]
   """

@@ -1,5 +1,6 @@
 
-use "collections/persistent"
+use cm  = "champ-map"
+use per = "collections/persistent"
 
 class val Single[S: (Any #read & Equatable[S]), V: Any #share = None]
   """
@@ -14,14 +15,14 @@ class val Single[S: (Any #read & Equatable[S]), V: Any #share = None]
     _expected = expected
     _action = action
 
-  fun val _is_terminal(stack: List[RuleNode[S, V] tag]): Bool =>
+  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool =>
     true
 
   fun val _parse(
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
@@ -57,14 +58,14 @@ class val Literal[S: (Any #read & Equatable[S]), V: Any #share = None]
     _expected = expected
     _action = action
 
-  fun val _is_terminal(stack: List[RuleNode[S, V] tag]): Bool =>
+  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool =>
     true
 
   fun val _parse(
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
@@ -99,7 +100,7 @@ class val Conj[S, V: Any #share = None]
     _children = children
     _action = action
 
-  fun val _is_terminal(stack: List[RuleNode[S, V] tag]): Bool =>
+  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool =>
     let rule = this
     if stack.exists({(x) => x is rule}) then
       false
@@ -117,12 +118,12 @@ class val Conj[S, V: Any #share = None]
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
     _parse_one(0, loc, parser, src, loc, stack, recur,
-      Lists[Success[S, V]].empty(), cont)
+      per.Lists[Success[S, V]].empty(), cont)
 
   fun val _parse_one(
     child_index: USize,
@@ -130,9 +131,9 @@ class val Conj[S, V: Any #share = None]
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
-    children: List[Success[S, V]],
+    children: per.List[Success[S, V]],
     cont: _Cont[S, V])
   =>
     if child_index == _children.size() then
@@ -142,7 +143,7 @@ class val Conj[S, V: Any #share = None]
         let rule = this
         let cont' =
           recover
-            {(result: Result[S, V], stack': List[_LRRecord[S, V]],
+            {(result: Result[S, V], stack': per.List[_LRRecord[S, V]],
               recur': _LRByRule[S, V])
             =>
               match result
@@ -169,7 +170,9 @@ class val Conj[S, V: Any #share = None]
 
 class val Disj[S, V: Any #share = None]
   """
-  Matches one out of a list of possible alternatives.  Tries each alternative in order.  If one alternative fails, but an outer rule later fails, will *not* backtrack to another alternative.
+  Matches one out of a list of possible alternatives.  Tries each alternative in
+  order.  If one alternative fails, but an outer rule later fails, will *not*
+  backtrack to another alternative.
   """
   let _children: ReadSeq[RuleNode[S, V] box]
   let _action: (Action[S, V] | None)
@@ -180,7 +183,7 @@ class val Disj[S, V: Any #share = None]
     _children = children
     _action = action
 
-  fun val _is_terminal(stack: List[RuleNode[S, V] tag]): Bool =>
+  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool =>
     let rule = this
     if stack.exists({(x) => x is rule}) then
       false
@@ -198,7 +201,7 @@ class val Disj[S, V: Any #share = None]
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
@@ -210,7 +213,7 @@ class val Disj[S, V: Any #share = None]
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
@@ -257,14 +260,14 @@ class val Error[S, V: Any #share = None]
     _message = message
     _action = action
 
-  fun val _is_terminal(stack: List[RuleNode[S, V] tag]): Bool =>
+  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool =>
     true
 
   fun val _parse(
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
@@ -285,7 +288,7 @@ class val Look[S, V: Any #share = None]
     _body = body
     _action = action
 
-  fun val _is_terminal(stack: List[RuleNode[S, V] tag]): Bool =>
+  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool =>
     let rule = this
     if stack.exists({(x) => x is rule}) then
       false
@@ -297,14 +300,14 @@ class val Look[S, V: Any #share = None]
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
     let rule = this
     let cont' =
       recover
-        {(result: Result[S, V], stack': List[_LRRecord[S, V]],
+        {(result: Result[S, V], stack': per.List[_LRRecord[S, V]],
           recur': _LRByRule[S, V])
         =>
           match result
@@ -333,7 +336,7 @@ class val Neg[S, V: Any #share = None]
     _body = body
     _action = action
 
-  fun val _is_terminal(stack: List[RuleNode[S, V] tag]): Bool =>
+  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool =>
     let rule = this
     if stack.exists({(x) => x is rule}) then
       false
@@ -345,7 +348,7 @@ class val Neg[S, V: Any #share = None]
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
@@ -386,7 +389,7 @@ class val Star[S, V: Any #share = None]
     _max = max
     _action = action
 
-  fun val _is_terminal(stack: List[RuleNode[S, V] tag]): Bool =>
+  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool =>
     let rule = this
     if stack.exists({(x) => x is rule}) then
       false
@@ -398,12 +401,12 @@ class val Star[S, V: Any #share = None]
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
     _parse_one(0, loc, parser, src, loc, stack, recur,
-      Lists[Success[S, V]].empty(), cont)
+      per.Lists[Success[S, V]].empty(), cont)
 
   fun val _parse_one(
     index: USize,
@@ -411,9 +414,9 @@ class val Star[S, V: Any #share = None]
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
-    children: List[Success[S, V]],
+    children: per.List[Success[S, V]],
     cont: _Cont[S, V])
   =>
     let rule = this
@@ -456,7 +459,7 @@ class val Bind[S, V: Any #share = None]
     variable = variable'
     _body = body
 
-  fun val _is_terminal(stack: List[RuleNode[S, V] tag]): Bool =>
+  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool =>
     let rule = this
     if stack.exists({(x) => x is rule}) then
       false
@@ -468,7 +471,7 @@ class val Bind[S, V: Any #share = None]
     parser: Parser[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>

@@ -1,11 +1,12 @@
 
-use mut = "collections"
-use "collections/persistent"
+use cm  = "champ-map"
+use col = "collections"
+use per = "collections/persistent"
 
 type Segment[T] is ReadSeq[T] val
-type Source[T] is List[Segment[T]]
+type Source[T] is per.List[Segment[T]]
 
-class val Loc[T] is (mut.Hashable & Equatable[Loc[T]] & Stringable)
+class val Loc[T] is (col.Hashable & Equatable[Loc[T]] & Stringable)
   """
   Represents a location in a [`Source`](/kiuatan-Source) at which to parse, or at which a parse has matched.
   """
@@ -13,7 +14,7 @@ class val Loc[T] is (mut.Hashable & Equatable[Loc[T]] & Stringable)
   let _segment: List[Segment[T]]
   let _index: USize
 
-  new val create(segment: List[Segment[T]], index: USize = 0) =>
+  new val create(segment: per.List[Segment[T]], index: USize = 0) =>
     """
     Create a new location in the given segment.
     """

@@ -1,7 +1,8 @@
 
+use cm  = "champ-map"
+use col = "collections"
+use per = "collections/persistent"
 use "debug"
-use mut="collections"
-use "collections/persistent"
 
 actor Parser[S, V: Any #share = None]
   """
@@ -9,13 +10,13 @@ actor Parser[S, V: Any #share = None]
   Also used to initiate a parse attempt.
   """
 
-  var _segments: List[Segment[S]]
-  var _updates: List[_UpdateSeg[S]] = Nil[_UpdateSeg[S]]
+  var _segments: per.List[Segment[S]]
+  var _updates: per.List[_UpdateSeg[S]] = per.Lists[_UpdateSeg[S]].empty()
 
   let _memo: _Memo[S, V] = _memo.create()
 
   new create(source: ReadSeq[Segment[S]] val) =>
-    _segments = Lists[Segment[S]].from(source.values())
+    _segments = per.Lists[Segment[S]].from(source.values())
 
   fun num_segments(): USize =>
     """
@@ -68,7 +69,7 @@ actor Parser[S, V: Any #share = None]
     let recur = _LRByRule[S, V]
 
     match _segments
-    | let source: Cons[Segment[S]] =>
+    | let source: per.Cons[Segment[S]] =>
       _update_segments()
       let start': Loc[S] =
         match start
@@ -80,7 +81,7 @@ actor Parser[S, V: Any #share = None]
 
       let cont =
         recover
-          {(result: Result[S, V], stack: List[_LRRecord[S, V]],
+          {(result: Result[S, V], stack: per.List[_LRRecord[S, V]],
             recur: _LRByRule[S, V])
           =>
             callback(result)
@@ -93,7 +94,7 @@ actor Parser[S, V: Any #share = None]
         | let loc: Loc[S] =>
           loc
         else
-          Loc[S](Cons[Segment[S]]([], Nil[Segment[S]]), 0)
+          Loc[S](per.Cons[Segment[S]]([], per.Nil[Segment[S]]), 0)
         end
       callback(Failure[S, V](rule, pos, "cannot parse empty source"))
     end
@@ -102,7 +103,7 @@ actor Parser[S, V: Any #share = None]
     node: RuleNode[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
@@ -126,6 +127,10 @@ actor Parser[S, V: Any #share = None]
         if is_terminal then
           _parse_non_lr(rule, src, loc, stack, recur, cont)
         else
+          ifdef debug then
+            Dbg[S, V]._dbg(stack, "_parse_with_memo: calling parse_lr: " + rule.name + "@" + loc.string())
+          end
+
           _parse_lr(rule, src, loc, stack, recur, cont)
         end
       end
@@ -137,7 +142,7 @@ actor Parser[S, V: Any #share = None]
     rule: Rule[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
@@ -160,7 +165,7 @@ actor Parser[S, V: Any #share = None]
     rule: Rule[S, V],
     src: Source[S],
     loc: Loc[S],
-    stack: List[_LRRecord[S, V]],
+    stack: per.List[_LRRecord[S, V]],
     recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
@@ -181,7 +186,7 @@ actor Parser[S, V: Any #share = None]
     end
 
   fun _parse_existing_lr(rule: Rule[S, V], rec: _LRRecord[S, V],
-    stack: List[_LRRecord[S, V]], recur: _LRByRule[S, V], cont: _Cont[S, V])
+    stack: per.List[_LRRecord[S, V]], recur: _LRByRule[S, V], cont: _Cont[S, V])
   =>
     var involved = rec.involved
     for lr in stack.reverse().values() do
@@ -217,7 +222,7 @@ actor Parser[S, V: Any #share = None]
     end
 
   fun _parse_new_lr(rule: Rule[S, V], src: Source[S], loc: Loc[S],
-    stack: List[_LRRecord[S, V]], recur: _LRByRule[S, V], cont: _Cont[S, V])
+    stack: per.List[_LRRecord[S, V]], recur: _LRByRule[S, V], cont: _Cont[S, V])
   =>
     let rec' = _LRRecord[S, V](rule, 1, loc, loc, false, None,
       SetIs[Rule[S, V]])
@@ -234,7 +239,7 @@ actor Parser[S, V: Any #share = None]
       self~_parse_new_lr_aux1(0, rule, src, loc, stack', recur', cont))
 
   be _parse_new_lr_aux1(count: USize, rule: Rule[S, V], src: Source[S],
-    loc: Loc[S], stack: List[_LRRecord[S, V]], recur: _LRByRule[S, V],
+    loc: Loc[S], stack: per.List[_LRRecord[S, V]], recur: _LRByRule[S, V],
     cont: _Cont[S, V])
   =>
     let self: Parser[S, V] tag = this
@@ -243,7 +248,7 @@ actor Parser[S, V: Any #share = None]
 
   be _parse_new_lr_aux2(count: USize, rule: Rule[S, V], src: Source[S],
     loc: Loc[S], cont: _Cont[S, V], result: Result[S, V],
-    stack: List[_LRRecord[S, V]], recur: _LRByRule[S, V])
+    stack: per.List[_LRRecord[S, V]], recur: _LRByRule[S, V])
   =>
     let rec =
       match _LRR[S, V]._get_lr_record(recur, rule, loc)
@@ -382,9 +387,9 @@ class val _RemoveSeg
 
 
 type _Memo[S, V: Any #share] is
-  mut.MapIs[Rule[S, V] tag, _MemoByLoc[S, V]]
+  col.MapIs[Rule[S, V] tag, _MemoByLoc[S, V]]
 type _MemoByLoc[S, V: Any #share] is
-  mut.Map[Loc[S], _MemoByExpansion[S, V]]
+  col.Map[Loc[S], _MemoByExpansion[S, V]]
 type _MemoByExpansion[S, V: Any #share] is
   Array[(Result[S, V] | None)]
 
@@ -417,9 +422,9 @@ class val _LRRecord[S, V: Any #share]
 
 
 type _LRByRule[S, V: Any #share] is
-  MapIs[Rule[S, V] tag, _LRByLoc[S, V]]
+  cm.MapIs[Rule[S, V] tag, _LRByLoc[S, V]]
 type _LRByLoc[S, V: Any #share] is
-  Map[Loc[S], _LRRecord[S, V]]
+  cm.Map[Loc[S], _LRRecord[S, V]]
 
 
 primitive _LRR[S, V: Any #share]
