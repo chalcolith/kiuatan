@@ -14,7 +14,7 @@ type Star is k.Star[U8, F64]
 type Neg is k.Neg[U8, F64]
 type Bind is k.Bind[U8, F64]
 
-class Grammar
+class GrammarBuilder
   var _expression: (Rule ref | None) = None
   var _additive: (Rule ref | None) = None
   var _multiplicative: (Rule ref | None) = None
@@ -23,6 +23,10 @@ class Grammar
   var _integer: (Rule | None) = None
   var _fraction: (Rule | None) = None
   var _exponent: (Rule | None) = None
+  var _lpar: (Rule | None) = None
+  var _rpar: (Rule | None) = None
+  var _add_op: (Rule | None) = None
+  var _mul_op: (Rule | None) = None
   var _space: (Rule | None) = None
   var _eof: (Rule | None) = None
 
@@ -53,7 +57,7 @@ class Grammar
       add.set_body(Disj(
         [ Conj(
             [ Bind(a, add)
-              Bind(o, Conj([ Sing("+-") ; space() ]))
+              Bind(o, add_op())
               Bind(b, multiplicative())
             ],
             {(result, values, bindings) =>
@@ -108,7 +112,7 @@ class Grammar
       mul.set_body(Disj(
         [ Conj(
             [ Bind(a, mul)
-              Bind(o, Conj([ Sing("*/"); space() ]))
+              Bind(o, mul_op())
               Bind(b, term())
             ],
             {(result, values, bindings) =>
@@ -161,13 +165,55 @@ class Grammar
       _term = term'
       term'.set_body(Disj(
         [ Conj(
-            [ Conj([ Lit("("); space() ])
-              expression()
-              Conj([ Lit(")"); space() ])
+            [ lpar()
+              additive()
+              rpar()
             ])
           float()
         ]))
       term'
+    end
+
+  fun ref lpar(): Rule =>
+    match _lpar
+    | let r: Rule =>
+      r
+    else
+      let lpar' = recover val Rule("LPAR", Conj([ Lit("("); space() ])) end
+      _lpar = lpar'
+      lpar'
+    end
+
+  fun ref rpar(): Rule =>
+    match _rpar
+    | let r: Rule =>
+      r
+    else
+      let rpar' = recover val Rule("RPAR", Conj([ Lit(")"); space() ])) end
+      _rpar = rpar'
+      rpar'
+    end
+
+  fun ref add_op(): Rule =>
+    match _add_op
+    | let r: Rule =>
+      r
+    else
+      let add_op' =
+        recover val Rule("ADDOP", Conj([ Sing("+-"); space() ])) end
+      _add_op = add_op'
+      add_op'
+    end
+
+  fun ref mul_op(): Rule =>
+    match _mul_op
+    | let r: Rule =>
+      r
+    else
+      let mul_op' =
+        recover val Rule("MULOP", Conj([ Sing("*/"); space() ])) end
+      _mul_op = mul_op'
+      mul_op'
     end
 
   fun ref float(): Rule =>

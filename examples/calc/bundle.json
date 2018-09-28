@@ -3,6 +3,10 @@
     {
       "type": "local",
       "local-path": "../.."
+    },
+    {
+      "type": "github",
+      "repo": "kulibali/pony-champ-map"
     }
   ]
 }
