@@ -6,12 +6,13 @@ use per = "collections/persistent"
 type Segment[T] is ReadSeq[T] val
 type Source[T] is per.List[Segment[T]]
 
-class val Loc[T] is (col.Hashable & Equatable[Loc[T]] & Stringable)
+class val Loc[T]
+  is (col.Hashable & Equatable[Loc[T]] & Comparable[Loc[T]] & Stringable)
   """
   Represents a location in a [`Source`](/kiuatan-Source) at which to parse, or at which a parse has matched.
   """
 
-  let _segment: List[Segment[T]]
+  let _segment: per.List[Segment[T]]
   let _index: USize
 
   new val create(segment: per.List[Segment[T]], index: USize = 0) =>
@@ -44,7 +45,7 @@ class val Loc[T] is (col.Hashable & Equatable[Loc[T]] & Stringable)
     try
       if (_index+1) >= _segment(0)?.size() then
         match _segment.tail()?
-        | let cons: Cons[Segment[T]] =>
+        | let cons: per.Cons[Segment[T]] =>
           return Loc[T](cons, 0)
         end
       end
@@ -96,7 +97,7 @@ class val Loc[T] is (col.Hashable & Equatable[Loc[T]] & Stringable)
       end
     end
 
-  fun eq(that: Loc[T]): Bool =>
+  fun eq(that: Loc[T] box): Bool =>
     """
     Returns `true` if the two locations point to the same spot in the same segment.
     """
@@ -106,7 +107,7 @@ class val Loc[T] is (col.Hashable & Equatable[Loc[T]] & Stringable)
       false
     end
 
-  fun ne(that: Loc[T]): Bool =>
+  fun ne(that: Loc[T] box): Bool =>
     """
     Returns `true` if the two locations do not point to the same spot in the same segment.
     """
@@ -116,18 +117,45 @@ class val Loc[T] is (col.Hashable & Equatable[Loc[T]] & Stringable)
       false
     end
 
-  fun gt(that: Loc[T]): Bool =>
+  fun gt(that: Loc[T] box): Bool =>
     """
-    Returns `true` if `that` is further along in the source than `this`.  Should be used sparingly, as it has to count up from `this`, possibly to the end of the source.
+    Returns `true` if `this` is further along in the source than `that`.  Should be used sparingly, as it has to count up from `this`, possibly to the end of the source.
     """
-    var cur = this.next()
-    while cur.has_value() do
-      if cur == that then
-        return true
+    if this._segment is that._segment then
+      this._index > that._index
+    else
+      var cur = that.next()
+      while cur.has_value() do
+        if cur == this then
+          return true
+        end
+        cur = cur.next()
       end
-      cur = cur.next()
+      false
     end
-    false
+
+  fun ge(that: Loc[T] box): Bool =>
+    (this == that) or (this > that)
+
+  fun lt(that: Loc[T] box): Bool =>
+    """
+    Returns `true` if `that` is further along in the source than `this`.  Should be used sparingly, as it has to count up from `that`, possibly to the end of the source.
+    """
+    if this._segment is that._segment then
+      this._index < that._index
+    else
+      var cur = this.next()
+      while cur.has_value() do
+        if cur == that then
+          return true
+        end
+        cur = cur.next()
+      end
+      false
+    end
+
+  fun le(that: Loc[T] box): Bool =>
+    (this == that) or (this < that)
 
   fun hash(): USize =>
     try

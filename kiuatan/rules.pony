@@ -224,7 +224,7 @@ class val Disj[S, V: Any #share = None]
         let rule = this
         let cont' =
           recover
-            {(result: Result[S, V], stack': List[_LRRecord[S, V]],
+            {(result: Result[S, V], stack': per.List[_LRRecord[S, V]],
               recur': _LRByRule[S, V])
             =>
               match result
@@ -355,7 +355,7 @@ class val Neg[S, V: Any #share = None]
     let rule = this
     let cont' =
       recover
-        {(result: Result[S, V], stack': List[_LRRecord[S, V]],
+        {(result: Result[S, V], stack': per.List[_LRRecord[S, V]],
           recur': _LRByRule[S, V])
         =>
           match result
@@ -422,7 +422,7 @@ class val Star[S, V: Any #share = None]
     let rule = this
     let cont' =
       recover
-        {(result: Result[S, V], stack': List[_LRRecord[S, V]],
+        {(result: Result[S, V], stack': per.List[_LRRecord[S, V]],
           recur': _LRByRule[S, V])
         =>
           match result
@@ -478,7 +478,7 @@ class val Bind[S, V: Any #share = None]
     let rule = this
     let cont' =
       recover
-        {(result: Result[S, V], stack': List[_LRRecord[S, V]],
+        {(result: Result[S, V], stack': per.List[_LRRecord[S, V]],
           recur': _LRByRule[S, V])
         =>
           match result

@@ -29,14 +29,14 @@ actor Parser[S, V: Any #share = None]
     Insert a source segment at the given index.  The insertion will happen upon the next call to `parse()`.
     """
     let insert = _InsertSeg[S](index, segment)
-    _updates = _updates.concat(Cons[_UpdateSeg[S]](insert, Nil[_UpdateSeg[S]]))
+    _updates = _updates.concat(per.Cons[_UpdateSeg[S]](insert, per.Nil[_UpdateSeg[S]]))
 
   be remove_segment(index: USize) =>
     """
     Removes the source segment at the given index.  The removal will happen upon the next call to `parse()`.
     """
     let remove = _RemoveSeg(index)
-    _updates = _updates.concat(Cons[_UpdateSeg[S]](remove, Nil[_UpdateSeg[S]]))
+    _updates = _updates.concat(per.Cons[_UpdateSeg[S]](remove, per.Nil[_UpdateSeg[S]]))
 
   fun ref _update_segments() =>
     for op in _updates.values() do
@@ -45,7 +45,7 @@ actor Parser[S, V: Any #share = None]
         let left = _segments.take(insert.index)
         let right = _segments.drop(insert.index)
         _segments = left
-          .concat(Cons[Segment[S]](insert.segment, Nil[Segment[S]]))
+          .concat(per.Cons[Segment[S]](insert.segment, per.Nil[Segment[S]]))
           .concat(right)
       | let remove: _RemoveSeg =>
         let left = _segments.take(remove.index)
@@ -53,7 +53,7 @@ actor Parser[S, V: Any #share = None]
         _segments = left.concat(right)
       end
     end
-    _updates = Lists[_UpdateSeg[S]].empty()
+    _updates = per.Lists[_UpdateSeg[S]].empty()
 
   be parse(rule: RuleNode[S, V], callback: ParseCallback[S, V],
     start: (Loc[S] | None) = None, clear_memo: Bool = false)
@@ -65,7 +65,7 @@ actor Parser[S, V: Any #share = None]
       _memo.clear()
     end
 
-    let stack = Lists[_LRRecord[S, V]].empty()
+    let stack = per.Lists[_LRRecord[S, V]].empty()
     let recur = _LRByRule[S, V]
 
     match _segments
@@ -149,7 +149,7 @@ actor Parser[S, V: Any #share = None]
     let stack' = stack.prepend(_LRRecord[S, V](rule, 0, loc, loc, false, None))
     let parser: Parser[S, V] = this
     rule._parse(this, src, loc, stack', recur,
-      {(result: Result[S, V], stack'': List[_LRRecord[S, V]],
+      {(result: Result[S, V], stack'': per.List[_LRRecord[S, V]],
         recur': _LRByRule[S, V])(cont)
       =>
         ifdef debug then
@@ -225,7 +225,7 @@ actor Parser[S, V: Any #share = None]
     stack: per.List[_LRRecord[S, V]], recur: _LRByRule[S, V], cont: _Cont[S, V])
   =>
     let rec' = _LRRecord[S, V](rule, 1, loc, loc, false, None,
-      SetIs[Rule[S, V]])
+      cm.SetIs[Rule[S, V]])
     let stack' = stack.prepend(rec')
     let recur' = _LRR[S, V]._set_lr_record(recur, rule, rec')
 
@@ -255,10 +255,25 @@ actor Parser[S, V: Any #share = None]
       | let rec': _LRRecord[S, V] =>
         rec'
       else
-        Dbg[S, V]._dbg(stack,
-          "_parse_new_lr_aux_{}: CAN'T HAPPEN: NO LR RECORD")
-        _LRRecord[S, V](rule, 0, loc, loc, true, None, SetIs[Rule[S, V]])
+        ifdef debug then
+          Dbg[S, V]._dbg(stack,
+            "_parse_new_lr_aux_{}: CAN'T HAPPEN: NO LR RECORD")
+        end
+        _LRRecord[S, V](rule, 0, loc, loc, true, None, cm.SetIs[Rule[S, V]])
       end
+
+    ifdef debug then
+      Dbg[S, V]._dbg(stack, "_parse_new_lr_aux2 " + rule.name + ":" +
+        rec.exp.string() + "@[" + loc.string() +"," + rec.next.string() +
+        ") #" + count.string() + " LR " + rec.lr.string())
+
+      match result
+      | let success: Success[S, V] =>
+        Dbg[S, V]._dbg(stack, "                   success@[" +
+          success.start.string() + "," + success.next.string() + ") " +
+          "success.next > rec.next " + (success.next > rec.next).string())
+      end
+    end
 
     match result
     | let success: Success[S, V] // do we need to go on trying to expand?
@@ -283,16 +298,11 @@ actor Parser[S, V: Any #share = None]
       let recur' = _LRR[S, V]._del_lr_record(recur, rule, loc)
 
       let res =
-        match result
-        | let success': Success[S, V] =>
-          success'
-        | let failure': Failure[S, V] =>
-          match rec.res
-          | let res': Result[S, V] =>
-            res'
-          else
-            result
-          end
+        match rec.res
+        | let res': Result[S, V] =>
+          res'
+        else
+          result
         end
 
       ifdef debug then
@@ -301,14 +311,7 @@ actor Parser[S, V: Any #share = None]
           " lr DONE: result " + res.string())
       end
 
-      //var foundlr = stack'.exists({(r) => r.involved.contains(rule) })
-      var foundlr = false
-      for r in stack'.values() do
-        if r.involved.contains(rule) then
-          foundlr = true
-          break
-        end
-      end
+      var foundlr = stack'.exists({(r) => r.involved.contains(rule) })
       if not foundlr then
         _memoize(rec.rule, rec.start, rec.exp, res, {() =>
           cont(res, stack', recur')
@@ -401,7 +404,7 @@ class val _LRRecord[S, V: Any #share]
   let next: Loc[S]
   let lr: Bool
   let res: (Result[S, V] | None)
-  let involved: SetIs[Rule[S, V]]
+  let involved: cm.SetIs[Rule[S, V]]
 
   new val create(
     rule': Rule[S, V],
@@ -410,7 +413,7 @@ class val _LRRecord[S, V: Any #share]
     next': Loc[S],
     lr': Bool,
     res': (Result[S, V] | None),
-    involved': SetIs[Rule[S, V]] = SetIs[Rule[S, V]])
+    involved': cm.SetIs[Rule[S, V]] = cm.SetIs[Rule[S, V]])
   =>
     rule = rule'
     exp = exp'
@@ -447,7 +450,11 @@ primitive _LRR[S, V: Any #share]
       else
         _LRByLoc[S, V]
       end
-    recur.update(rule, loc_lr.update(lr.start, lr))
+    try
+      recur.update(rule, loc_lr.update(lr.start, lr)?)?
+    else
+      recur
+    end
 
   fun _del_lr_record(recur: _LRByRule[S, V], rule: Rule[S, V], loc: Loc[S])
     : _LRByRule[S, V]
@@ -459,14 +466,14 @@ primitive _LRR[S, V: Any #share]
         _LRByLoc[S, V]
       end
     try
-      recur.update(rule, loc_lr.remove(loc)?)
+      recur.update(rule, loc_lr.remove(loc)?)?
     else
       recur
     end
 
 
 primitive Dbg[S, V: Any #share]
-  fun _dbg(stack: List[_LRRecord[S, V]], msg: String) =>
+  fun _dbg(stack: per.List[_LRRecord[S, V]], msg: String) =>
     Debug.out(_dbg_get_indent(stack) + msg)
 
   fun _dbg_res(result: Result[S, V]): String =>
@@ -477,7 +484,7 @@ primitive Dbg[S, V: Any #share]
       "  => !" + failure.start.string() + ": '" + failure.message + "'"
     end
 
-  fun _dbg_get_indent(stack: List[_LRRecord[S, V]]): String =>
+  fun _dbg_get_indent(stack: per.List[_LRRecord[S, V]]): String =>
     recover
       var len = stack.size() * 2
       let s = String(len)

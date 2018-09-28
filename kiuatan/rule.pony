@@ -64,7 +64,7 @@ class val Rule[S, V: Any #share = None] is RuleNode[S, V]
     | let body: RuleNode[S, V] =>
       let cont' =
         recover
-          {(result: Result[S, V], stack': List[_LRRecord[S, V]],
+          {(result: Result[S, V], stack': per.List[_LRRecord[S, V]],
               recur': _LRByRule[S, V])
           =>
             match result
@@ -174,13 +174,15 @@ class val Success[S, V: Any #share = None]
         (v, bindings')
       end
 
-    match node
-    | let bind: Bind[S, V] =>
-      match value'
-      | let value'': V =>
-        return (value'', bindings'.update(bind.variable, (this, value'')))
-      else
-        return (value', bindings'.update(bind.variable, (this, None)))
+    try
+      match node
+      | let bind: Bind[S, V] =>
+        match value'
+        | let value'': V =>
+          return (value'', bindings'.update(bind.variable, (this, value''))?)
+        else
+          return (value', bindings'.update(bind.variable, (this, None))?)
+        end
       end
     end
     (value', bindings')

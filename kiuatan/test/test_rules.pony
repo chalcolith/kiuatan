@@ -242,69 +242,90 @@ class iso _TestRuleErr is UnitTest
         ])
 
 
-class iso _TestRuleLRIndirect is UnitTest
-  fun name(): String => "Rule_LR_Indirect"
+  class iso _TestRuleLRLeftAssoc is UnitTest
+    fun name(): String => "Rule_LR_LeftAssoc"
 
-  fun apply(h: TestHelper) =>
-    // A <- B 'z' | 'x'
-    // B <- A 'y'
-    let rule: Rule[U8] val =
-      recover
-        let a = Rule[U8]("A", None)
-        let b = Rule[U8]("B", Conj[U8]([ a; Literal[U8]("y") ]))
-        a.set_body(Disj[U8](
-          [ Conj[U8]([ b; Literal[U8]("z") ])
-            Literal[U8]("x")
-          ]))
-        a
-      end
+    fun apply(h: TestHelper) =>
+      // Add <- Add Op Num | Num
+      // Op <- [+-]
+      // Num <- [0-9]+
+      let rule: Rule[U8] val =
+        recover
+          let add = Rule[U8](name(), None)
+          let num = Rule[U8]("Num", Star[U8](Single[U8]("0123456789"), 1))
+          let op = Rule[U8]("Op", Single[U8]("+-"))
+          let body = Disj[U8]([Conj[U8]([add; op; num]); num])
+          add.set_body(body)
+          add
+        end
 
-    Assert[U8].test_promises(h,
-      [ Assert[U8].test_matches(h, rule, true, [ "xyz" ], 0, 3)
-      ])
+      Assert[U8].test_promises(h,
+        [ Assert[U8].test_matches(h, rule, true, [ "1+2+3" ], 0, 5) ])
 
 
-class iso _TestRuleVariableBind is UnitTest
-  fun name(): String => "Rule_Variable_Bind"
+  class iso _TestRuleLRIndirect is UnitTest
+    fun name(): String => "Rule_LR_Indirect"
 
-  fun apply(h: TestHelper) =>
-    let x = Variable
-    let y = Variable
-    let rule =
-      recover val
-        Rule[U8, USize]("Rule", Conj[U8, USize](
-          [ Bind[U8, USize](x, Literal[U8, USize]("x",
-              {(_,_,b) =>
-                (USize(1),b)
-              }))
-            Bind[U8, USize](y, Literal[U8, USize]("y",
-              {(_,_,b) =>
-                (USize(2),b)
-              }))
-          ],
-          {(result, vals, bindings) =>
-            var vx: USize = 0
-            var vy: USize = 0
+    fun apply(h: TestHelper) =>
+      // A <- B 'z' | 'x'
+      // B <- A 'y'
+      let rule: Rule[U8] val =
+        recover
+          let a = Rule[U8]("A", None)
+          let b = Rule[U8]("B", Conj[U8]([ a; Literal[U8]("y") ]))
+          a.set_body(Disj[U8](
+            [ Conj[U8]([ b; Literal[U8]("z") ])
+              Literal[U8]("x")
+            ]))
+          a
+        end
 
-            match try bindings(x)? end
-            | (_, let vx': USize) =>
-              vx = vx'
-            else
-              return (None, bindings)
-            end
+      Assert[U8].test_promises(h,
+        [ Assert[U8].test_matches(h, rule, true, [ "xyz" ], 0, 3)
+        ])
 
-            match try bindings(y)? end
-            | (_, let vy': USize) =>
-              vy = vy'
-            else
-              return (None, bindings)
-            end
 
-            let vv: (USize | None) = vx + vy
-            (vv, bindings)
-          }))
-      end
+  class iso _TestRuleVariableBind is UnitTest
+    fun name(): String => "Rule_Variable_Bind"
 
-    Assert[U8, USize].test_promises(h,
-      [ Assert[U8, USize].test_matches(h, rule, true, [ "xy" ], 0, 2, 3)
-      ])
+    fun apply(h: TestHelper) =>
+      let x = Variable
+      let y = Variable
+      let rule =
+        recover val
+          Rule[U8, USize]("Rule", Conj[U8, USize](
+            [ Bind[U8, USize](x, Literal[U8, USize]("x",
+                {(_,_,b) =>
+                  (USize(1),b)
+                }))
+              Bind[U8, USize](y, Literal[U8, USize]("y",
+                {(_,_,b) =>
+                  (USize(2),b)
+                }))
+            ],
+            {(result, vals, bindings) =>
+              var vx: USize = 0
+              var vy: USize = 0
+
+              match try bindings(x)? end
+              | (_, let vx': USize) =>
+                vx = vx'
+              else
+                return (None, bindings)
+              end
+
+              match try bindings(y)? end
+              | (_, let vy': USize) =>
+                vy = vy'
+              else
+                return (None, bindings)
+              end
+
+              let vv: (USize | None) = vx + vy
+              (vv, bindings)
+            }))
+        end
+
+      Assert[U8, USize].test_promises(h,
+        [ Assert[U8, USize].test_matches(h, rule, true, [ "xy" ], 0, 2, 3)
+        ])
