@@ -3,4 +3,5 @@
 *.pdb
 build/
 .vscode/
+.deps/
 version.pony

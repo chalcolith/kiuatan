@@ -1,48 +1,49 @@
 
+use k = "kiuatan"
+use "promises"
+use "term"
+
 actor Main
   new create(env: Env) =>
-    env.out.print("Please enter an expression (blank to quit):")
-    env.out.write("> ")
-    env.input(Notify(env))
+    env.out.print("Please enter an expression (\"quit\" to quit):")
 
-class iso Notify
-  let env: Env
-  let buffer: Array[U8]
+    let prompt = "> "
+    let handler = recover iso Handler(env, prompt) end
+    let term = ANSITerm(Readline(consume handler, env.out), env.input)
+    term.prompt(prompt)
 
-  new iso create(env': Env) =>
-    env = env'
-    buffer = Array[U8]
+    let input_notify = object iso
+      fun ref apply(data: Array[U8] iso) =>
+        term(consume data)
 
-  fun ref apply(data: Array[U8] iso) =>
-    try
-      var i: USize = 0
-      while i < data.size() do
-        let ch = data(i)?
-        if (ch == '\n') or (ch == '\r') then
-          env.out.print("")
-          if buffer.size() > 0 then
-            let str = String
-            for ch' in buffer.values() do
-              str.push(ch')
-            end
-            env.out.print("'" + str + "'")
-            buffer.clear()
-            env.out.write("> ")
-          else
-            env.out.print("Done.")
-            env.input.dispose()
-            return
-          end
-        else
-          env.out.write([ch])
-          buffer.push(ch)
-        end
-        i = i + 1
-      end
-    else
-      env.out.print("Error")
-      env.input.dispose()
+      fun ref dispose() =>
+        term.dispose()
     end
+    env.input(consume input_notify)
 
-  fun ref dispose() =>
-    None
+
+class Handler is ReadlineNotify
+  let _env: Env
+  let _prompt: String
+  let _grammar: k.Rule[U8, F64]
+
+  new create(env: Env, prompt: String) =>
+    _env = env
+    _prompt = prompt
+    _grammar = recover GrammarBuilder.expression() end
+
+  fun ref apply(line: String, prompt: Promise[String]) =>
+    if (line == "quit") or (line.size() == 0) then
+      prompt.reject()
+    else
+      let parser = k.Parser[U8, F64]([line])
+      parser.parse(_grammar, {(result) =>
+        match result
+        | let success: k.Success[U8, F64] =>
+          _env.out.print(" => " + success.value().string())
+        | let failure: k.Failure[U8, F64] =>
+          _env.out.print("Unable to parse expression!")
+        end
+        prompt(_prompt)
+      })
+    end
