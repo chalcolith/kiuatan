@@ -15,6 +15,29 @@ type Neg is k.Neg[U8, F64]
 type Bind is k.Bind[U8, F64]
 
 class GrammarBuilder
+  """
+  Builds a Kiuatan PEG grammar for simple arithmetic expressions, including
+  semantic actions that construct the resulting values.
+
+  Note that the grammar is left-recursive, which Kiuatan handles just fine.
+
+  ```
+  Expression <- Additive EOF
+  Additive <- Additive ADD_OP Multiplicative / Multiplicative
+  Multiplicative <- Multiplicative MUL_OP Term / Term
+  Term <- LPAR Additive RPAR / Float
+  Float <- Integer Fraction? Exponent? Space
+  Integer <- [-+]? [0-9]+
+  Fraction <- '.' Integer?
+  Exponent <- [eE] Integer
+  LPAR <- '(' Space
+  RPAR <- ')' Space
+  ADD_OP <- [-+] Space
+  MUL_OP <- [*/] Space
+  Space <- [ \t]*
+  EOF <- ~.
+  ```
+  """
   var _expression: (Rule ref | None) = None
   var _additive: (Rule ref | None) = None
   var _multiplicative: (Rule ref | None) = None

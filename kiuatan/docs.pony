@@ -78,6 +78,7 @@ You can build the body of a rule from the following classes:
   - [Look](/kiuatan-Look): will attempt to match its child rule, but will *not* advance the match position.
   - [Neg](/kiuatan-Neg): will succeed if its child rule does *not* match, and will not advance the match position.
   - [Star](/kiuatan-Star): will match a number of repetitions of its child rule.  You can specify a minimum or maximum number of times to match.
+  - [Bind](/kiuatan-Bind): will bind the result of its child rule to an existing variable.  See the [calc example](https://github.com/kulibali/kiuatan/blob/master/examples/calc/calc) for an example of how to use `Bind`.
 
 #### Recursion
 
