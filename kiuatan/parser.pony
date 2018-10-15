@@ -1,5 +1,4 @@
 
-use cm  = "champ-map"
 use col = "collections"
 use per = "collections/persistent"
 use "debug"
@@ -225,7 +224,7 @@ actor Parser[S, V: Any #share = None]
     stack: per.List[_LRRecord[S, V]], recur: _LRByRule[S, V], cont: _Cont[S, V])
   =>
     let rec' = _LRRecord[S, V](rule, 1, loc, loc, false, None,
-      cm.SetIs[Rule[S, V]])
+      per.SetIs[Rule[S, V]])
     let stack' = stack.prepend(rec')
     let recur' = _LRR[S, V]._set_lr_record(recur, rule, rec')
 
@@ -259,7 +258,7 @@ actor Parser[S, V: Any #share = None]
           Dbg[S, V]._dbg(stack,
             "_parse_new_lr_aux_{}: CAN'T HAPPEN: NO LR RECORD")
         end
-        _LRRecord[S, V](rule, 0, loc, loc, true, None, cm.SetIs[Rule[S, V]])
+        _LRRecord[S, V](rule, 0, loc, loc, true, None, per.SetIs[Rule[S, V]])
       end
 
     ifdef debug then
@@ -404,7 +403,7 @@ class val _LRRecord[S, V: Any #share]
   let next: Loc[S]
   let lr: Bool
   let res: (Result[S, V] | None)
-  let involved: cm.SetIs[Rule[S, V]]
+  let involved: per.SetIs[Rule[S, V]]
 
   new val create(
     rule': Rule[S, V],
@@ -413,7 +412,7 @@ class val _LRRecord[S, V: Any #share]
     next': Loc[S],
     lr': Bool,
     res': (Result[S, V] | None),
-    involved': cm.SetIs[Rule[S, V]] = cm.SetIs[Rule[S, V]])
+    involved': per.SetIs[Rule[S, V]] = per.SetIs[Rule[S, V]])
   =>
     rule = rule'
     exp = exp'
@@ -425,9 +424,9 @@ class val _LRRecord[S, V: Any #share]
 
 
 type _LRByRule[S, V: Any #share] is
-  cm.MapIs[Rule[S, V] tag, _LRByLoc[S, V]]
+  per.MapIs[Rule[S, V] tag, _LRByLoc[S, V]]
 type _LRByLoc[S, V: Any #share] is
-  cm.Map[Loc[S], _LRRecord[S, V]]
+  per.Map[Loc[S], _LRRecord[S, V]]
 
 
 primitive _LRR[S, V: Any #share]
@@ -450,11 +449,7 @@ primitive _LRR[S, V: Any #share]
       else
         _LRByLoc[S, V]
       end
-    try
-      recur.update(rule, loc_lr.update(lr.start, lr)?)?
-    else
-      recur
-    end
+    recur.update(rule, loc_lr.update(lr.start, lr))
 
   fun _del_lr_record(recur: _LRByRule[S, V], rule: Rule[S, V], loc: Loc[S])
     : _LRByRule[S, V]
@@ -466,7 +461,7 @@ primitive _LRR[S, V: Any #share]
         _LRByLoc[S, V]
       end
     try
-      recur.update(rule, loc_lr.remove(loc)?)?
+      recur.update(rule, loc_lr.remove(loc)?)
     else
       recur
     end

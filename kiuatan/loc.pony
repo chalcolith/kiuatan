@@ -1,5 +1,4 @@
 
-use cm  = "champ-map"
 use col = "collections"
 use per = "collections/persistent"
 

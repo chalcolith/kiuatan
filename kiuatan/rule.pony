@@ -1,5 +1,4 @@
 
-use cm  = "champ-map"
 use per = "collections/persistent"
 use "debug"
 
@@ -133,28 +132,10 @@ class val Success[S, V: Any #share = None]
     var bindings' = bindings
     let subvalues = Array[(V | None)]
 
-    // ifdef debug then
-    //   match node
-    //   | let rule: Rule[S, V] =>
-    //     Debug.out(_indent(indent) + "> " + rule.name)
-    //   else
-    //     Debug.out(_indent(indent) + "> ")
-    //   end
-    // end
-
     for child in children.values() do
       (let subval: (V | None), bindings') = child._value(indent + 1, bindings')
       subvalues.push(subval)
     end
-
-    // ifdef debug then
-    //   match node
-    //   | let rule: Rule[S, V] =>
-    //     Debug.out(_indent(indent) + "< " + rule.name)
-    //   else
-    //     Debug.out(_indent(indent) + "<")
-    //   end
-    // end
 
     (let value': (V | None), bindings') =
       match node._get_action()
@@ -174,15 +155,13 @@ class val Success[S, V: Any #share = None]
         (v, bindings')
       end
 
-    try
-      match node
-      | let bind: Bind[S, V] =>
-        match value'
-        | let value'': V =>
-          return (value'', bindings'.update(bind.variable, (this, value''))?)
-        else
-          return (value', bindings'.update(bind.variable, (this, None))?)
-        end
+    match node
+    | let bind: Bind[S, V] =>
+      match value'
+      | let value'': V =>
+        return (value'', bindings'.update(bind.variable, (this, value'')))
+      else
+        return (value', bindings'.update(bind.variable, (this, None)))
       end
     end
     (value', bindings')
@@ -260,7 +239,7 @@ class val Failure[S, V: Any #share = None]
 
 
 class tag Variable
-type Bindings[S, V: Any #share] is cm.MapIs[Variable, (Success[S, V], (V | None))]
+type Bindings[S, V: Any #share] is per.MapIs[Variable, (Success[S, V], (V | None))]
 
 interface val Action[S, V: Any #share]
   """

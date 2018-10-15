@@ -1,5 +1,4 @@
 
-use cm  = "champ-map"
 use per = "collections/persistent"
 
 class val Single[S: (Any #read & Equatable[S]), V: Any #share = None]
