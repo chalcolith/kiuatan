@@ -329,3 +329,21 @@ class iso _TestRuleErr is UnitTest
       Assert[U8, USize].test_promises(h,
         [ Assert[U8, USize].test_matches(h, rule, true, [ "xy" ], 0, 2, 3)
         ])
+
+
+class iso _TestRuleCondition is UnitTest
+  fun name(): String => "Rule_Condition"
+
+  fun apply(h: TestHelper) =>
+    let rule =
+      recover val
+        Rule[U8]("Condition", Cond[U8](
+          Disj[U8]([ Literal[U8]("x"); Literal[U8]("y") ]),
+          {(success) =>
+          }
+        ))
+
+    Assert[U8].test_promises(h,
+      [ Assert[U8].test_matches(h, rule, true, [ "y" ], 0, 1)
+        Assert[U8].test_matches(h, rule, false, [ "x" ], 0, 1)
+      ])
