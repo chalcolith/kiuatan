@@ -498,10 +498,10 @@ class val Bind[S, V: Any #share = None]
 
 class val Cond[S, V: Any #share = None]
   let _body: RuleNode[S, V] box
-  let _cond: {(Success[S, V]): (Bool, (String | None)} val
+  let _cond: {(Success[S, V]): (Bool, (String | None))} val
 
   new create(body: RuleNode[S, V] box,
-    cond: {(Success[S, V]): (Bool, (String | None)} val)
+    cond: {(Success[S, V]): (Bool, (String | None))} val)
   =>
     _body = body
     _cond = cond
@@ -550,3 +550,6 @@ class val Cond[S, V: Any #share = None]
         }
       end
     parser._parse_with_memo(_body, src, loc, stack, recur, consume cont')
+
+  fun val _get_action(): (Action[S, V] | None) =>
+    None

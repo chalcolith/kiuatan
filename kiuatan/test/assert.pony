@@ -8,7 +8,7 @@ use ".."
 type _Segment[T] is ReadSeq[T] val
 
 
-primitive Assert[S: Stringable #read,
+primitive Assert[S: (Stringable #read & Equatable[S] #read),
   V: (Equatable[V] val & Stringable val) = None]
 
   fun test_promises(h: TestHelper, promises: ReadSeq[Promise[Bool]]) =>
@@ -90,3 +90,20 @@ primitive Assert[S: Stringable #read,
         promise(true)
       end
     end
+
+  fun iter_eq(a: Iterator[S], b: Iterator[S]): Bool =>
+    var a_has_next = a.has_next()
+    var b_has_next = b.has_next()
+
+    while a_has_next and b_has_next do
+      try
+        if a.next()? != b.next()? then
+          return false
+        end
+      else
+        return false
+      end
+      a_has_next = a.has_next()
+      b_has_next = b.has_next()
+    end
+    (not a_has_next) and (not b_has_next)

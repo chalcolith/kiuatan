@@ -340,8 +340,16 @@ class iso _TestRuleCondition is UnitTest
         Rule[U8]("Condition", Cond[U8](
           Disj[U8]([ Literal[U8]("x"); Literal[U8]("y") ]),
           {(success) =>
+            if Assert[U8].iter_eq("y".values(),
+              success.start.values(success.next))
+            then
+              (true, None)
+            else
+              (false, "condition failed")
+            end
           }
         ))
+      end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, true, [ "y" ], 0, 1)
