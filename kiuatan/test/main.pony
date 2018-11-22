@@ -29,3 +29,4 @@ actor Main is TestList
     test(_TestRuleLRLeftAssoc)
     test(_TestRuleLRIndirect)
     test(_TestRuleVariableBind)
+    test(_TestRuleCondition)
