@@ -35,13 +35,13 @@ all: test
 .PHONY: all docs test clean
 
 $(binary): $(GEN_FILES) $(SOURCE_FILES) | $(BUILD_DIR)
-	stable env ${PONYC} $(SRC_DIR)/test -o $(BUILD_DIR)
+	${PONYC} $(SRC_DIR)/test -o $(BUILD_DIR)
 
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
 docs: $(SOURCE_FILES) $(BUILD_DIR)
-	stable env $(PONYC) --pass=docs --docs-public $(target) -o $(BUILD_DIR)
+	$(PONYC) --pass=docs --docs-public $(target) -o $(BUILD_DIR)
 
 test: $(binary)
 	$(binary)
