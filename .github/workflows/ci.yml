@@ -1,4 +1,4 @@
-name: Master
+name: CI
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   ci-pr-ubuntu:
-    name: "CI Ubuntu: verify PR builds with the most recent ponyc release"
+    name: "Ubuntu: verify master branch builds with the most recent ponyc release"
     runs-on: ubuntu-latest
     container:
       image: ponylang/shared-docker-ci-x86-64-unknown-linux-builder:release
@@ -17,7 +17,7 @@ jobs:
         run: make test
 
   ci-pr-windows:
-    name: "CI Windows: verify PR builds with the most recent ponyc release"
+    name: "Windows: verify master branch builds with the most recent ponyc release"
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v2
