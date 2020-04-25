@@ -45,7 +45,7 @@ else
 
 if ($Version -eq "")
 {
-  $Version = (Get-Content "$rootDir\VERSION") + "-" + (& git 'rev-parse' '--short' '--verify' 'HEAD^')
+  $Version = (Get-Content "$rootDir\VERSION") + "-" + (& git rev-parse --short --verify HEAD)
 }
 
 Write-Output "Configuration:    $Config"
