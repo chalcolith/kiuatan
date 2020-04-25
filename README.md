@@ -1,6 +1,6 @@
 # Kiuatan
 
-![Build](https://github.com/kulibali/kiuatan/workflows/Master/badge.svg)
+![CI](https://github.com/kulibali/kiuatan/workflows/CI/badge.svg)
 
 Kiuatan ("horse" or "pony" in [Chinook Jargon](https://en.wikipedia.org/wiki/Chinook_Jargon#Chinook_Jargon_words_used_by_English-language_speakers)) is a library for building and running parsers in the [Pony](https://www.ponylang.org) programming language.
 
