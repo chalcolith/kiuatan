@@ -16,16 +16,17 @@ Kiuatan ("horse" or "pony" in [Chinook Jargon](https://en.wikipedia.org/wiki/Chi
 
 ### Pony-Stable
 
-The easiest way to incorporate Kiuatan into your Pony project is to use [Pony-Stable](https://github.com/ponylang/pony-stable).  Once you have it installed, `cd` to your project's directory and type:
+The easiest way to incorporate Kiuatan into your Pony project is to use Pony [Corral](https://github.com/ponylang/corral).  Once you have it installed, `cd` to your project's directory and type:
 
 ```bash
-stable add github kulibali/kiuatan --tag=0.2.0
+corral add github kulibali/kiuatan
 ```
 
-This will clone the `kiuatan` repository and add it under the `.deps` directory in your project.  To build your project, Pony-Stable will take care of setting the correct `PONYPATH` environment variable for you, e.g.:
+This will add the library to your project.  You can then build your project with something like:
 
 ```bash
-stable env ponyc .
+corral fetch
+corral run -- ponyc .
 ```
 
 ### Git

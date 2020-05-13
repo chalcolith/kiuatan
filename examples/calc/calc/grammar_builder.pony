@@ -1,5 +1,5 @@
 
-use k = "kiuatan"
+use k = "../../../kiuatan"
 
 type Var is k.Variable
 type Rule is k.Rule[U8, F64]
