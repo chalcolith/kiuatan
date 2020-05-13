@@ -3,6 +3,4 @@
 *.pdb
 build/
 .vscode/
-.deps/
-examples/calc/.deps/
 version.pony
