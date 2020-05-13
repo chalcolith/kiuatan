@@ -13,7 +13,7 @@ jobs:
       - name: Test with most recent ponyc release on Ubuntu
         run: |
           make test
-          cd .\examples\calc
+          cd ./examples/calc
           make test
 
   ci-pr-windows:
