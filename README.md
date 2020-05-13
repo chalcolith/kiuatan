@@ -14,7 +14,7 @@ Kiuatan ("horse" or "pony" in [Chinook Jargon](https://en.wikipedia.org/wiki/Chi
 
 ## Obtaining Kiuatan
 
-### Pony-Stable
+### Corral
 
 The easiest way to incorporate Kiuatan into your Pony project is to use Pony [Corral](https://github.com/ponylang/corral).  Once you have it installed, `cd` to your project's directory and type:
 

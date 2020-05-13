@@ -1,6 +1,15 @@
 *.exe
 *.ilk
 *.pdb
-build/
-.vscode/
+build/*
+examples/calc/build/*
+_corral/*
+examples/calc/_corral/*
+_repo/*
+examples/calc/_repo/*
+TAGS
+examples/calc/TAGS
+tags
+examples/calc/tags
+.vscode/*
 version.pony
