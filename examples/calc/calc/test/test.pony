@@ -1,5 +1,5 @@
 
-use k = "kiuatan"
+use k = "../../../../kiuatan"
 use "ponytest"
 use calc = ".."
 

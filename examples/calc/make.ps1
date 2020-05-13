@@ -22,9 +22,9 @@ Param(
 
 $ErrorActionPreference = "Stop"
 
-$target = "kiuatan" # The name of the source package, and the base name of the .exe file that is built if this is a program, not a library.
+$target = "calc" # The name of the source package, and the base name of the .exe file that is built if this is a program, not a library.
 $testPath = "test" # The path of the tests package relative to the $target directory.
-$isLibrary = $true
+$isLibrary = $false
 
 $rootDir = Split-Path $script:MyInvocation.MyCommand.Path
 $srcDir = Join-Path -Path $rootDir -ChildPath $target
