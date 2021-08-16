@@ -3,10 +3,10 @@ use "collections/persistent"
 use "itertools"
 use "ponytest"
 use "promises"
+
 use ".."
 
 type _Segment[T] is ReadSeq[T] val
-
 
 primitive Assert[S: (Stringable #read & Equatable[S] #read),
   V: (Equatable[V] val & Stringable val) = None]
