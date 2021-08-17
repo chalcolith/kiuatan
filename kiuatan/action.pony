@@ -1,6 +1,6 @@
-interface val Action[S, V: Any #share]
+interface val Action[S, D: Any #share, V: Any #share]
   """
   Used to assemble a custom result value.
   """
-  fun apply(result: Success[S, V], child_values: Array[(V | None)],
-    bindings: Bindings[S, V]): ((V | None), Bindings[S, V])
+  fun apply(result: Success[S, D, V], child_values: Array[(V | None)], data: D,
+    bindings: Bindings[S, D, V]): ((V | None), Bindings[S, D, V])

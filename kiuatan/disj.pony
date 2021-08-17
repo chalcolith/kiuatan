@@ -1,21 +1,23 @@
 use per = "collections/persistent"
 
-class val Disj[S, V: Any #share = None]
+class val Disj[S, D: Any #share = None, V: Any #share = None]
+  is RuleNode[S, D, V]
   """
   Matches one out of a list of possible alternatives.  Tries each alternative in
   order.  If one alternative fails, but an outer rule later fails, will *not*
   backtrack to another alternative.
   """
-  let _children: ReadSeq[RuleNode[S, V] box]
-  let _action: (Action[S, V] | None)
 
-  new create(children: ReadSeq[RuleNode[S, V] box],
-    action: (Action[S, V] | None) = None)
+  let _children: ReadSeq[RuleNode[S, D, V] box]
+  let _action: (Action[S, D, V] | None)
+
+  new create(children: ReadSeq[RuleNode[S, D, V] box],
+    action: (Action[S, D, V] | None) = None)
   =>
     _children = children
     _action = action
 
-  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool =>
+  fun val _is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
     let rule = this
     if stack.exists({(x) => x is rule}) then
       false
@@ -30,52 +32,54 @@ class val Disj[S, V: Any #share = None]
     end
 
   fun val _parse(
-    parser: Parser[S, V],
+    parser: Parser[S, D, V],
     src: Source[S],
     loc: Loc[S],
-    stack: per.List[_LRRecord[S, V]],
-    recur: _LRByRule[S, V],
-    cont: _Continuation[S, V])
+    data: D,
+    stack: _LRStack[S, D, V],
+    recur: _LRByRule[S, D, V],
+    cont: _Continuation[S, D, V])
   =>
-    _parse_one(0, loc, parser, src, loc, stack, recur, cont)
+    _parse_one(0, loc, parser, src, loc, data, stack, recur, cont)
 
   fun val _parse_one(
     child_index: USize,
     start: Loc[S],
-    parser: Parser[S, V],
+    parser: Parser[S, D, V],
     src: Source[S],
     loc: Loc[S],
-    stack: per.List[_LRRecord[S, V]],
-    recur: _LRByRule[S, V],
-    cont: _Continuation[S, V])
+    data: D,
+    stack: _LRStack[S, D, V],
+    recur: _LRByRule[S, D, V],
+    cont: _Continuation[S, D, V])
   =>
     if child_index == _children.size() then
-      cont(Failure[S, V](this, start), stack, recur)
+      cont(Failure[S, D, V](this, start, data), stack, recur)
     else
       try
         let rule = this
         let cont' =
           recover
-            {(result: Result[S, V], stack': per.List[_LRRecord[S, V]],
-              recur': _LRByRule[S, V])
+            {(result: Result[S, D, V], stack': _LRStack[S, D, V],
+              recur': _LRByRule[S, D, V])
             =>
               match result
-              | let success: Success[S, V] =>
-                cont(Success[S, V](rule, start, success.next, [success]),
-                  stack', recur')
-              | let failure: Failure[S, V] =>
+              | let success: Success[S, D, V] =>
+                cont(Success[S, D, V](rule, start, success.next, data,
+                  [success]), stack', recur')
+              | let failure: Failure[S, D, V] =>
                 rule._parse_one(child_index + 1, start, parser, src,
-                  start, stack', recur', cont)
+                  start, data, stack', recur', cont)
               end
             }
           end
 
-        parser._parse_with_memo(_children(child_index)?, src, start, stack,
-          recur, consume cont')
+        parser._parse_with_memo(_children(child_index)?, src, start, data,
+          stack, recur, consume cont')
       else
-        cont(Failure[S, V](this, start, "disj failed"), stack, recur)
+        cont(Failure[S, D, V](this, start, data, "disj failed"), stack, recur)
       end
     end
 
-  fun val _get_action(): (Action[S, V] | None) =>
+  fun val _get_action(): (Action[S, D, V] | None) =>
     _action

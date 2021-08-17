@@ -9,7 +9,7 @@ use ".."
 type _Segment[T] is ReadSeq[T] val
 
 primitive Assert[S: (Stringable #read & Equatable[S] #read),
-  V: (Equatable[V] val & Stringable val) = None]
+  D: Any #share = None, V: (Equatable[V] val & Stringable val) = None]
 
   fun test_promises(h: TestHelper, promises: ReadSeq[Promise[Bool]]) =>
     Promises[Bool].join(promises.values())
@@ -21,38 +21,42 @@ primitive Assert[S: (Stringable #read & Equatable[S] #read),
 
   fun test_matches(
     h: TestHelper,
-    grammar: Rule[S, V],
+    grammar: NamedRule[S, D, V],
     should_match: Bool,
     source: ReadSeq[Segment[S]] val,
     start_index: USize,
     length: USize,
+    data: (D | None) = None,
     expected_value: (V | None) = None,
     expected_msg: (String | None) = None) : Promise[Bool]
   =>
     let promise = Promise[Bool]
-    let parser = Parser[S, V](source)
+    let parser = Parser[S, D, V](source)
 
     let src_list = Lists[Segment[S]].from(source.values())
     let first_loc = Loc[S](src_list)
     let start_exp = first_loc + start_index
     let next_exp = start_exp + length
 
-    parser.parse(
-      grammar,
-      this~_handle_result(h, promise, should_match, start_index, length,
-        start_exp, next_exp, expected_value, expected_msg),
-      start_exp)
-    promise
+    try
+      parser.parse(grammar, data as D,
+        this~_handle_result(h, promise, should_match, start_index, length,
+          start_exp, next_exp, expected_value, expected_msg),
+        start_exp)
+      promise
+    else
+      promise.>apply(false)
+    end
 
   fun _handle_result(h: TestHelper, promise: Promise[Bool],
     should_match: Bool, start_index: USize, length: USize,
     start_exp: Loc[S], next_exp: Loc[S], expected_value: (V | None),
-    expected_msg: (String | None), result: Result[S, V])
+    expected_msg: (String | None), result: Result[S, D, V])
   =>
     h.log("test_matches " + start_index.string() + " " + length.string()
       + " " + should_match.string())
     match result
-    | let success: Success[S, V] =>
+    | let success: Success[S, D, V] =>
       if should_match then
         h.assert_eq[Loc[S]](start_exp, success.start)
         h.assert_eq[Loc[S]](next_exp, success.next)
@@ -72,7 +76,7 @@ primitive Assert[S: (Stringable #read & Equatable[S] #read),
         h.fail("match succeeded; should have failed")
         promise(false)
       end
-    | let failure: Failure[S, V] =>
+    | let failure: Failure[S, D, V] =>
       if should_match then
         h.fail("match failed; should have succeeded")
         promise(false)

@@ -1,28 +1,31 @@
 use per = "collections/persistent"
 
-class val Error[S, V: Any #share = None]
+class val Error[S, D: Any #share = None, V: Any #share = None]
+  is RuleNode[S, D, V]
   """
   Will result in an error with the given message.
   """
-  let _message: String
-  let _action: (Action[S, V] | None)
 
-  new create(message: String, action: (Action[S, V] | None) = None) =>
+  let _message: String
+  let _action: (Action[S, D, V] | None)
+
+  new create(message: String, action: (Action[S, D, V] | None) = None) =>
     _message = message
     _action = action
 
-  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool =>
+  fun val _is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
     true
 
   fun val _parse(
-    parser: Parser[S, V],
+    parser: Parser[S, D, V],
     src: Source[S],
     loc: Loc[S],
-    stack: per.List[_LRRecord[S, V]],
-    recur: _LRByRule[S, V],
-    cont: _Continuation[S, V])
+    data: D,
+    stack: _LRStack[S, D, V],
+    recur: _LRByRule[S, D, V],
+    cont: _Continuation[S, D, V])
   =>
-    cont(Failure[S, V](this, loc, _message), stack, recur)
+    cont(Failure[S, D, V](this, loc, data, _message), stack, recur)
 
-  fun val _get_action(): (Action[S, V] | None) =>
+  fun val _get_action(): (Action[S, D, V] | None) =>
     _action

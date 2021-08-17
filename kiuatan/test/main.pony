@@ -30,3 +30,4 @@ actor Main is TestList
     test(_TestRuleLRIndirect)
     test(_TestRuleVariableBind)
     test(_TestRuleCondition)
+    test(_TestRuleData)

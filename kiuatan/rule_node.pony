@@ -1,12 +1,16 @@
 use per = "collections/persistent"
 
-interface val RuleNode[S, V: Any #share = None]
-  fun val _is_terminal(stack: per.List[RuleNode[S, V] tag]): Bool
+interface val RuleNode[S, D: Any #share, V: Any #share]
+  fun val _is_terminal(stack: _RuleNodeStack[S, D, V]): Bool
   fun val _parse(
-    parser: Parser[S, V],
+    parser: Parser[S, D, V],
     src: Source[S],
     loc: Loc[S],
-    stack: per.List[_LRRecord[S, V]],
-    recur: _LRByRule[S, V],
-    cont: _Continuation[S, V])
-  fun val _get_action(): (Action[S, V] | None)
+    data: D,
+    stack: _LRStack[S, D, V],
+    recur: _LRByRule[S, D, V],
+    cont: _Continuation[S, D, V])
+  fun val _get_action(): (Action[S, D, V] | None)
+
+type _RuleNodeStack[S, D: Any #share, V: Any #share]
+  is per.List[RuleNode[S, D, V] tag]
