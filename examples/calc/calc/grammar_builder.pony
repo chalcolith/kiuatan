@@ -2,17 +2,17 @@
 use k = "../../../kiuatan"
 
 type Var is k.Variable
-type Rule is k.Rule[U8, F64]
-type Result is k.Result[U8, F64]
-type Success is k.Success[U8, F64]
-type Failure is k.Failure[U8, F64]
-type Lit is k.Literal[U8, F64]
-type Sing is k.Single[U8, F64]
-type Conj is k.Conj[U8, F64]
-type Disj is k.Disj[U8, F64]
-type Star is k.Star[U8, F64]
-type Neg is k.Neg[U8, F64]
-type Bind is k.Bind[U8, F64]
+type NamedRule is k.NamedRule[U8, None, F64]
+type Result is k.Result[U8, None, F64]
+type Success is k.Success[U8, None, F64]
+type Failure is k.Failure[U8, None, F64]
+type Lit is k.Literal[U8, None, F64]
+type Sing is k.Single[U8, None, F64]
+type Conj is k.Conj[U8, None, F64]
+type Disj is k.Disj[U8, None, F64]
+type Star is k.Star[U8, None, F64]
+type Neg is k.Neg[U8, None, F64]
+type Bind is k.Bind[U8, None, F64]
 
 class GrammarBuilder
   """
@@ -38,43 +38,43 @@ class GrammarBuilder
   EOF <- ~.
   ```
   """
-  var _expression: (Rule ref | None) = None
-  var _additive: (Rule ref | None) = None
-  var _multiplicative: (Rule ref | None) = None
-  var _term: (Rule ref | None) = None
-  var _float: (Rule | None) = None
-  var _integer: (Rule | None) = None
-  var _fraction: (Rule | None) = None
-  var _exponent: (Rule | None) = None
-  var _lpar: (Rule | None) = None
-  var _rpar: (Rule | None) = None
-  var _add_op: (Rule | None) = None
-  var _mul_op: (Rule | None) = None
-  var _space: (Rule | None) = None
-  var _eof: (Rule | None) = None
+  var _expression: (NamedRule ref | None) = None
+  var _additive: (NamedRule ref | None) = None
+  var _multiplicative: (NamedRule ref | None) = None
+  var _term: (NamedRule ref | None) = None
+  var _float: (NamedRule | None) = None
+  var _integer: (NamedRule | None) = None
+  var _fraction: (NamedRule | None) = None
+  var _exponent: (NamedRule | None) = None
+  var _lpar: (NamedRule | None) = None
+  var _rpar: (NamedRule | None) = None
+  var _add_op: (NamedRule | None) = None
+  var _mul_op: (NamedRule | None) = None
+  var _space: (NamedRule | None) = None
+  var _eof: (NamedRule | None) = None
 
-  fun ref expression(): Rule ref =>
+  fun ref expression(): NamedRule ref =>
     match _expression
-    | let r: Rule ref =>
+    | let r: NamedRule ref =>
       r
     else
-      let exp = Rule("Expression")
+      let exp = NamedRule("Expression")
       _expression = exp
 
       exp.set_body(Conj([additive(); eof()]))
       exp
     end
 
-  fun ref additive(): Rule ref =>
+  fun ref additive(): NamedRule ref =>
     match _additive
-    | let r: Rule ref =>
+    | let r: NamedRule ref =>
       r
     else
       let a = Var
       let o = Var
       let b = Var
 
-      let add = Rule("Additive")
+      let add = NamedRule("Additive")
       _additive = add
 
       add.set_body(Disj(
@@ -120,16 +120,16 @@ class GrammarBuilder
       add
     end
 
-  fun ref multiplicative(): Rule ref =>
+  fun ref multiplicative(): NamedRule ref =>
     match _multiplicative
-    | let r: Rule ref =>
+    | let r: NamedRule ref =>
       r
     else
       let a = Var
       let o = Var
       let b = Var
 
-      let mul = Rule("Multiplicative")
+      let mul = NamedRule("Multiplicative")
       _multiplicative = mul
 
       mul.set_body(Disj(
@@ -179,12 +179,12 @@ class GrammarBuilder
       mul
     end
 
-  fun ref term(): Rule ref =>
+  fun ref term(): NamedRule ref =>
     match _term
-    | let r: Rule ref =>
+    | let r: NamedRule ref =>
       r
     else
-      let term' = Rule("Term")
+      let term' = NamedRule("Term")
       _term = term'
       term'.set_body(Disj(
         [ Conj(
@@ -197,51 +197,51 @@ class GrammarBuilder
       term'
     end
 
-  fun ref lpar(): Rule =>
+  fun ref lpar(): NamedRule =>
     match _lpar
-    | let r: Rule =>
+    | let r: NamedRule =>
       r
     else
-      let lpar' = recover val Rule("LPAR", Conj([ Lit("("); space() ])) end
+      let lpar' = recover val NamedRule("LPAR", Conj([ Lit("("); space() ])) end
       _lpar = lpar'
       lpar'
     end
 
-  fun ref rpar(): Rule =>
+  fun ref rpar(): NamedRule =>
     match _rpar
-    | let r: Rule =>
+    | let r: NamedRule =>
       r
     else
-      let rpar' = recover val Rule("RPAR", Conj([ Lit(")"); space() ])) end
+      let rpar' = recover val NamedRule("RPAR", Conj([ Lit(")"); space() ])) end
       _rpar = rpar'
       rpar'
     end
 
-  fun ref add_op(): Rule =>
+  fun ref add_op(): NamedRule =>
     match _add_op
-    | let r: Rule =>
+    | let r: NamedRule =>
       r
     else
       let add_op' =
-        recover val Rule("ADDOP", Conj([ Sing("+-"); space() ])) end
+        recover val NamedRule("ADDOP", Conj([ Sing("+-"); space() ])) end
       _add_op = add_op'
       add_op'
     end
 
-  fun ref mul_op(): Rule =>
+  fun ref mul_op(): NamedRule =>
     match _mul_op
-    | let r: Rule =>
+    | let r: NamedRule =>
       r
     else
       let mul_op' =
-        recover val Rule("MULOP", Conj([ Sing("*/"); space() ])) end
+        recover val NamedRule("MULOP", Conj([ Sing("*/"); space() ])) end
       _mul_op = mul_op'
       mul_op'
     end
 
-  fun ref float(): Rule =>
+  fun ref float(): NamedRule =>
     match _float
-    | let r: Rule =>
+    | let r: NamedRule =>
       r
     else
       let i = Var
@@ -250,7 +250,7 @@ class GrammarBuilder
 
       let float' =
         recover val
-          Rule("Float", Conj(
+          NamedRule("Float", Conj(
             [ Bind(i, integer())
               Bind(f, Star(fraction(), 0, None, 1))
               Bind(e, Star(exponent(), 0, None, 1))
@@ -294,14 +294,14 @@ class GrammarBuilder
       float'
     end
 
-  fun ref integer(): Rule =>
+  fun ref integer(): NamedRule =>
     match _integer
-    | let r: Rule =>
+    | let r: NamedRule =>
       r
     else
       let integer' =
         recover val
-          Rule("Int", Conj(
+          NamedRule("Int", Conj(
             [ Star(Sing("-+"), 0, None, 1)
               Star(Sing("0123456789"), 1)
             ]),
@@ -332,16 +332,16 @@ class GrammarBuilder
     end
 
 
-  fun ref fraction(): Rule =>
+  fun ref fraction(): NamedRule =>
     match _fraction
-    | let r: Rule =>
+    | let r: NamedRule =>
       r
     else
       let fraction' =
         recover val
           let i = Var
 
-          Rule("Frac",
+          NamedRule("Frac",
             Conj(
               [ Lit(".")
                 Star(Bind(i, integer()), 0,
@@ -362,32 +362,32 @@ class GrammarBuilder
       fraction'
     end
 
-  fun ref exponent(): Rule =>
+  fun ref exponent(): NamedRule =>
     match _exponent
-    | let r: Rule =>
+    | let r: NamedRule =>
       r
     else
-      let exponent' = recover val Rule("Exp", Conj([ Sing("eE"); integer() ])) end
+      let exponent' = recover val NamedRule("Exp", Conj([ Sing("eE"); integer() ])) end
       _exponent = exponent'
       exponent'
     end
 
-  fun ref space(): Rule =>
+  fun ref space(): NamedRule =>
     match _space
-    | let r: Rule =>
+    | let r: NamedRule =>
       r
     else
-      let space' = recover val Rule("WS", Star(Sing(" \t"))) end
+      let space' = recover val NamedRule("WS", Star(Sing(" \t"))) end
       _space = space'
       space'
     end
 
-  fun ref eof(): Rule =>
+  fun ref eof(): NamedRule =>
     match _eof
-    | let r: Rule =>
+    | let r: NamedRule =>
       r
     else
-      let eof' = recover val Rule("EOF", Neg(Sing())) end
+      let eof' = recover val NamedRule("EOF", Neg(Sing())) end
       _eof = eof'
       eof'
     end

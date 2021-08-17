@@ -84,7 +84,12 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
           {(result: Result[S, D, V], stack: _LRStack[S, D, V],
             recur: _LRByRule[S, D, V])
           =>
-            callback(result)
+            match result
+            | let success: Success[S, D, V] =>
+              callback(result, success._value())
+            else
+              callback(result, None)
+            end
           }
         end
       _parse_with_memo(rule, source, start', data, stack, recur, consume cont)
@@ -96,7 +101,8 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         else
           Loc[S](per.Cons[Segment[S]]([], per.Nil[Segment[S]]), 0)
         end
-      callback(Failure[S, D, V](rule, pos, data, ErrorMsg.empty_source()))
+      callback(Failure[S, D, V](rule, pos, data, ErrorMsg.empty_source()),
+        None)
     end
 
   be _parse_with_memo(
@@ -373,4 +379,4 @@ interface val ParseCallback[S, D: Any #share, V: Any #share]
   """
   Used to report the results of a parse attempt.
   """
-  fun apply(result: Result[S, D, V])
+  fun apply(result: Result[S, D, V], value: (V | None))

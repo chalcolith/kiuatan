@@ -34,27 +34,27 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
     data = data'
     children = children'
 
-  fun val value(bindings: Bindings[S, D, V] = Bindings[S, D, V]): (V | None) =>
+  fun val _value(bindings: Bindings[S, D, V] = Bindings[S, D, V]): (V | None) =>
     """
     Call the matched rules' actions to assemble a custom result value.
     """
-    _value(0, bindings)._1
+    _value_aux(0, bindings)._1
 
-  fun val _value(indent: USize, bindings: Bindings[S, D, V])
+  fun val _value_aux(indent: USize, bindings: Bindings[S, D, V])
     : ((V | None), Bindings[S, D, V])
   =>
     var bindings' = bindings
     let subvalues = Array[(V | None)]
 
     for child in children.values() do
-      (let subval: (V | None), bindings') = child._value(indent + 1, bindings')
+      (let subval: (V | None), bindings') = child._value_aux(indent + 1, bindings')
       subvalues.push(subval)
     end
 
-    (let value': (V | None), bindings') =
+    (let value: (V | None), bindings') =
       match node._get_action()
       | let action: Action[S, D, V] =>
-        action(this, subvalues, data, bindings')
+        action(this, subvalues, bindings')
       else
         var i: USize = subvalues.size()
         var v: (V | None) = None
@@ -71,14 +71,14 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
 
     match node
     | let bind: Bind[S, D, V] =>
-      match value'
-      | let value'': V =>
-        return (value'', bindings'.update(bind.variable, (this, value'')))
+      match value
+      | let value': V =>
+        return (value', bindings'.update(bind.variable, (this, value')))
       else
-        return (value', bindings'.update(bind.variable, (this, None)))
+        return (value, bindings'.update(bind.variable, (this, None)))
       end
     end
-    (value', bindings')
+    (value, bindings')
 
   fun _indent(n: USize): String =>
     recover

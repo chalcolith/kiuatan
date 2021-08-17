@@ -51,7 +51,8 @@ primitive Assert[S: (Stringable #read & Equatable[S] #read),
   fun _handle_result(h: TestHelper, promise: Promise[Bool],
     should_match: Bool, start_index: USize, length: USize,
     start_exp: Loc[S], next_exp: Loc[S], expected_value: (V | None),
-    expected_msg: (String | None), result: Result[S, D, V])
+    expected_msg: (String | None), result: Result[S, D, V],
+    result_value: (V | None))
   =>
     h.log("test_matches " + start_index.string() + " " + length.string()
       + " " + should_match.string())
@@ -64,7 +65,7 @@ primitive Assert[S: (Stringable #read & Equatable[S] #read),
         | None =>
           None
         | let expected: V =>
-          match success.value()
+          match result_value
           | None =>
             h.fail("expected " + expected.string() + "; no value returned")
           | let actual: V =>

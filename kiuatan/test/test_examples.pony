@@ -22,7 +22,7 @@ class iso _TestExampleMain is UnitTest
 
     let segment = "one two three"
     let parser = Parser[U8]([segment])
-    parser.parse(rule, None, {(result: Result[U8]) =>
+    parser.parse(rule, None, {(result: Result[U8], value: None) =>
       match result
       | let success: Success[U8] =>
         Debug.out("succeeded!")

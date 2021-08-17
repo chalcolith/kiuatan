@@ -291,15 +291,15 @@ class iso _TestRuleErr is UnitTest
         recover val
           NamedRule[U8, None, USize]("Rule", Conj[U8, None, USize](
             [ Bind[U8, None, USize](x, Literal[U8, None, USize]("x",
-                {(_,_,_,b) =>
+                {(_,_,b) =>
                   (USize(1),b)
                 }))
               Bind[U8, None, USize](y, Literal[U8, None, USize]("y",
-                {(_,_,_,b) =>
+                {(_,_,b) =>
                   (USize(2),b)
                 }))
             ],
-            {(result, vals, data, bindings) =>
+            {(result, vals, bindings) =>
               var vx: USize = 0
               var vy: USize = 0
 
@@ -361,14 +361,14 @@ class iso _TestRuleData is UnitTest
       recover val
         NamedRule[U8, String, String]("WithData",
           Literal[U8, String, String]("x",
-            {(s, _, data, b) =>
+            {(s, _, b) =>
               let str =
                 recover
                   let str': String ref = String
                   for ch in s.start.values(s.next) do
                     str'.push(ch)
                   end
-                  str'.>append(data)
+                  str'.>append(s.data)
                 end
               (str, b)
             }))

@@ -25,7 +25,7 @@ actor Main
 class Handler is ReadlineNotify
   let _env: Env
   let _prompt: String
-  let _grammar: k.Rule[U8, F64]
+  let _grammar: k.NamedRule[U8, None, F64]
 
   new create(env: Env, prompt: String) =>
     _env = env
@@ -36,13 +36,18 @@ class Handler is ReadlineNotify
     if (line == "quit") or (line.size() == 0) then
       prompt.reject()
     else
-      let parser = k.Parser[U8, F64]([line])
-      parser.parse(_grammar, {(result) =>
+      let parser = k.Parser[U8, None, F64]([line])
+      parser.parse(_grammar, None, {(result, value) =>
         match result
-        | let success: k.Success[U8, F64] =>
-          _env.out.print(" => " + success.value().string())
-        | let failure: k.Failure[U8, F64] =>
-          _env.out.print("Unable to parse expression!")
+        | let success: k.Success[U8, None, F64] =>
+          match value
+          | let n: F64 =>
+            _env.out.print(" => " + n.string())
+          else
+            _env.out.print("? internal error ?")
+          end
+        | let failure: k.Failure[U8, None, F64] =>
+          _env.out.print("Unable to parse expression: " + failure.get_message())
         end
         prompt(_prompt)
       })

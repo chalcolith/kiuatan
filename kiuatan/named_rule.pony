@@ -18,9 +18,6 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None] is RuleNode[S
   fun ref set_body(body: RuleNode[S, D, V] box) =>
     _body = body
 
-  // fun eq(other: RuleNode[S, D, V]): Bool =>
-  //   this is other
-
   fun val _is_terminal(stack: _RuleNodeStack[S, D, V] =
     per.Lists[RuleNode[S, D, V] tag].empty()): Bool
   =>
