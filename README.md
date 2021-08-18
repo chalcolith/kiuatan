@@ -36,7 +36,7 @@ You can clone and build Kiuatan directly from GitHub:
 ```bash
 git clone https://github.com/kulibali/kiuatan.git
 cd kiuatan
-make && make test
+make test
 ```
 
 To use Kiuatan in a project you will need to add `kiuatan/kiuatan` to your `PONYPATH` environment variable.
