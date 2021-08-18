@@ -47,4 +47,4 @@ To use Kiuatan in a project you will need to add `kiuatan/kiuatan` to your `PONY
 
 ## Example
 
-See the [calc example](https://github.com/kulibali/kiuatan/blob/master/examples/calc/calc) for a sample of how to define and use a grammar for Kiuatan.
+See the [calc example](https://github.com/kulibali/kiuatan/blob/main/examples/calc/calc) for a sample of how to define and use a grammar for Kiuatan.

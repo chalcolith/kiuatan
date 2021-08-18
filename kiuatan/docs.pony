@@ -50,15 +50,15 @@ S: (Any #read & Equatable[S])
 
 The most common source type will be [`U8`](https://stdlib.ponylang.org/builtin-U8/) for parsing UTF-8 text (note that you will need to handle converting UTF-8 into normalized Unicode yourself if necessary).
 
-### Rule
+### Named Rules
 
-A [`Rule`](/kiuatan-Rule) encapsulates and names a grammatical rule that encodes a PEG rule.  To create a rule, you provide a name, a body, and an optional [action](#action).  For example, the following rule will match either `one two three` or `one deux three`.
+A [`NamedRule`](/kiuatan-NamedRule) encapsulates and names a grammatical rule that encodes a PEG rule.  To create a rule, you provide a name, a body, and an optional [action](#action).  For example, the following rule will match either `one two three` or `one deux three`.
 
 ```pony
 let rule =
   recover val
-    let ws = Rule[U8]("WhiteSpace", Star[U8](Single[U8](" \t"), 1))
-    Rule[U8]("OneTwoThree",
+    let ws = NamedRule[U8]("WhiteSpace", Star[U8](Single[U8](" \t"), 1))
+    NamedRule[U8]("OneTwoThree",
       Conj[U8](
         [ Literal[U8]("one")
           ws
@@ -79,7 +79,8 @@ You can build the body of a rule from the following classes:
   - [Look](/kiuatan-Look): will attempt to match its child rule, but will *not* advance the match position.
   - [Neg](/kiuatan-Neg): will succeed if its child rule does *not* match, and will not advance the match position.
   - [Star](/kiuatan-Star): will match a number of repetitions of its child rule.  You can specify a minimum or maximum number of times to match.
-  - [Bind](/kiuatan-Bind): will bind the result of its child rule to an existing variable.  See the [calc example](https://github.com/kulibali/kiuatan/blob/master/examples/calc/calc) for an example of how to use `Bind`.
+  - [Bind](/kiuatan-Bind): will bind the result of its child rule to an existing variable.  See the [calc example](https://github.com/kulibali/kiuatan/blob/main/examples/calc/calc) for an example of how to use `Bind`.
+  - [Condition](/kiuatan-Bind): will succeed only if its child matches and the given condition returns `true`.
 
 #### Recursion
 
@@ -89,11 +90,11 @@ In order to allow recursive rules, you can create a rule with no body and set it
 // Add <- Add Op Num | Num
 // Op <- [+-]
 // Num <- [0-9]+
-let rule: Rule[U8] val =
+let rule: NamedRule[U8] val =
   recover val
-    let add = Rule[U8]("Add", None)
-    let num = Rule[U8]("Num", Star[U8](Single[U8]("0123456789"), 1))
-    let op = Rule[U8]("Op", Single[U8]("+-"))
+    let add = NamedRule[U8]("Add", None)
+    let num = NamedRule[U8]("Num", Star[U8](Single[U8]("0123456789"), 1))
+    let op = NamedRule[U8]("Op", Single[U8]("+-"))
     let body = Disj[U8]([Conj[U8]([add; op; num]); num])
     add.set_body(body)
     add
@@ -133,8 +134,31 @@ You can update a parser's source by calling its [`remove_segment`](/kiuatan-Pars
 
 If a parse succeeds, the result will be of type [`Success`](/kiuatan-Success), which represents the concrete parse tree.  You can get details about the location of the match and results from child rules.
 
-### Value
+### Values
 
 If you wish, you can build a more abstract parse tree using semantic [`Action`](/kiuatan-Action)s that you pass to rules.  These actions should return a "value" of your desired type.
+
+### Data
+
+If you wish, you can pass a data object of a specified type to the parser. This will be available to semantic actions.
+
+```pony
+let rule =
+  recover val
+    NamedRule[U8, String, String]("WithData",
+      Literal[U8, String, String]("x",
+        {(s, _, b) =>
+          let str =
+            recover
+              let str': String ref = String
+              for ch in s.start.values(s.next) do
+                str'.push(ch)
+              end
+              str'.>append(s.data)
+            end
+          (str, b)
+        }))
+  end
+```
 
 """
