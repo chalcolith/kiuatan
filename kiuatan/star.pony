@@ -47,35 +47,43 @@ class val Star[S, D: Any #share = None, V: Any #share = None]
     stack: _LRStack[S, D, V],
     recur: _LRByRule[S, D, V],
     children: per.List[Success[S, D, V]],
-    cont: _Continuation[S, D, V])
+    continue_next: _Continuation[S, D, V])
   =>
-    let rule = this
-    let cont' =
-      recover
-        {(result: Result[S, D, V], stack': _LRStack[S, D, V],
-          recur': _LRByRule[S, D, V])
-        =>
-          match result
-          | let success: Success[S, D, V] =>
-            if index == _max then
-              cont(Failure[S, D, V](rule, start, data,
-                "star succeeded too often"), stack', recur')
-            else
-              rule._parse_one(index + 1, start, parser, src, success.next, data,
-                stack', recur', children.prepend(success), cont)
-            end
-          | let failure: Failure[S, D, V] =>
-            if index >= _min then
-              cont(Success[S, D, V](rule, start, loc, data, children.reverse()),
-                stack', recur')
-            else
-              cont(Failure[S, D, V](rule, start, data,
-                "star did not match enough times"), stack', recur')
-            end
-          end
-        }
+    parser._parse_with_memo(_body, src, loc, data, stack, recur,
+      this~_continue_first(index, start, parser, src, loc, data, children,
+        continue_next))
+
+  fun val _continue_first(
+    index: USize,
+    start: Loc[S],
+    parser: Parser[S, D, V],
+    src: Source[S],
+    loc: Loc[S],
+    data: D,
+    children: per.List[Success[S, D, V]],
+    continue_next: _Continuation[S, D, V],
+    result: Result[S, D, V],
+    stack: _LRStack[S, D, V],
+    recur: _LRByRule[S, D, V])
+  =>
+    match result
+    | let success: Success[S, D, V] =>
+      if index == _max then
+        continue_next(Failure[S, D, V](this, start, data,
+          ErrorMsg.star_too_long()), stack, recur)
+      else
+        this._parse_one(index + 1, start, parser, src, success.next, data,
+          stack, recur, children.prepend(success), continue_next)
       end
-    parser._parse_with_memo(_body, src, loc, data, stack, recur, consume cont')
+    | let failure: Failure[S, D, V] =>
+      if index < _min then
+        continue_next(Failure[S, D, V](this, start, data,
+          ErrorMsg.star_too_short()), stack, recur)
+      else
+        continue_next(Success[S, D, V](this, start, loc, data,
+          children.reverse()), stack, recur)
+      end
+    end
 
   fun val _get_action(): (Action[S, D, V] | None) =>
     _action

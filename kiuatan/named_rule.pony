@@ -1,6 +1,7 @@
 use per = "collections/persistent"
 
-class val NamedRule[S, D: Any #share = None, V: Any #share = None] is RuleNode[S, D, V]
+class val NamedRule[S, D: Any #share = None, V: Any #share = None]
+  is RuleNode[S, D, V]
   """
   Represents a named grammar rule.  Memoization and left-recursion handling happens per named `Rule`.
   """
@@ -40,29 +41,31 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None] is RuleNode[S
     data: D,
     stack: _LRStack[S, D, V],
     recur: _LRByRule[S, D, V],
-    cont: _Continuation[S, D, V])
+    continue_next: _Continuation[S, D, V])
   =>
-    let rule = this
     match _body
     | let body: RuleNode[S, D, V] =>
-      let cont' =
-        recover
-          {(result: Result[S, D, V], stack': _LRStack[S, D, V],
-              recur': _LRByRule[S, D, V])
-          =>
-            match result
-            | let success: Success[S, D, V] =>
-              cont(Success[S, D, V](rule, success.start, success.next, data,
-                [success]), stack', recur')
-            | let failure: Failure[S, D, V] =>
-              cont(Failure[S, D, V](rule, failure.start, data,
-                "expected " + rule.name, failure), stack', recur')
-            end
-          }
-        end
-      parser._parse_with_memo(body, src, loc, data, stack, recur, consume cont')
+      parser._parse_with_memo(body, src, loc, data, stack, recur,
+        this~_continue_first(data, continue_next))
     else
-      cont(Failure[S, D, V](this, loc, data, "rule is empty"), stack, recur)
+      continue_next(Failure[S, D, V](this, loc, data, ErrorMsg.rule_empty()),
+        stack, recur)
+    end
+
+  fun val _continue_first(
+    data: D,
+    continue_next: _Continuation[S, D, V],
+    result: Result[S, D, V],
+    stack: _LRStack[S, D, V],
+    recur: _LRByRule[S, D, V])
+  =>
+    match result
+    | let success: Success[S, D, V] =>
+      continue_next(Success[S, D, V](this, success.start, success.next, data,
+        [success]), stack, recur)
+    | let failure: Failure[S, D, V] =>
+      continue_next(Failure[S, D, V](this, failure.start, data,
+        ErrorMsg.rule_expected(name), failure), stack, recur)
     end
 
   fun _get_action(): (Action[S, D, V] | None) =>

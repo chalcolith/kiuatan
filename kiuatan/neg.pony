@@ -30,24 +30,25 @@ class val Neg[S, D: Any #share = None, V: Any #share = None]
     data: D,
     stack: _LRStack[S, D, V],
     recur: _LRByRule[S, D, V],
-    cont: _Continuation[S, D, V])
+    continue_next: _Continuation[S, D, V])
   =>
-    let rule = this
-    let cont' =
-      recover
-        {(result: Result[S, D, V], stack': _LRStack[S, D, V],
-          recur': _LRByRule[S, D, V])
-        =>
-          match result
-          | let success: Success[S, D, V] =>
-            cont(Failure[S, D, V](rule, loc, data, "neg failed"), stack',
-              recur')
-          | let failure: Failure[S, D, V] =>
-            cont(Success[S, D, V](rule, loc, loc, data), stack', recur')
-          end
-        }
-      end
-    parser._parse_with_memo(_body, src, loc, data, stack, recur, consume cont')
+    parser._parse_with_memo(_body, src, loc, data, stack, recur,
+      this~_continue_first(loc, data, continue_next))
+
+  fun val _continue_first(
+    loc: Loc[S],
+    data: D,
+    continue_next: _Continuation[S, D, V],
+    result: Result[S, D, V],
+    stack: _LRStack[S, D, V],
+    recur: _LRByRule[S, D, V])
+  =>
+    match result
+    | let success: Success[S, D, V] =>
+      continue_next(Failure[S, D, V](this, loc, data), stack, recur)
+    | let failure: Failure[S, D, V] =>
+      continue_next(Success[S, D, V](this, loc, loc, data), stack, recur)
+    end
 
   fun val _get_action(): (Action[S, D, V] | None) =>
     _action

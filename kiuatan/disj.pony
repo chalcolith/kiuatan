@@ -51,34 +51,40 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
     data: D,
     stack: _LRStack[S, D, V],
     recur: _LRByRule[S, D, V],
-    cont: _Continuation[S, D, V])
+    continue_next: _Continuation[S, D, V])
   =>
     if child_index == _children.size() then
-      cont(Failure[S, D, V](this, start, data), stack, recur)
+      continue_next(Failure[S, D, V](this, start, data), stack, recur)
     else
       try
-        let rule = this
-        let cont' =
-          recover
-            {(result: Result[S, D, V], stack': _LRStack[S, D, V],
-              recur': _LRByRule[S, D, V])
-            =>
-              match result
-              | let success: Success[S, D, V] =>
-                cont(Success[S, D, V](rule, start, success.next, data,
-                  [success]), stack', recur')
-              | let failure: Failure[S, D, V] =>
-                rule._parse_one(child_index + 1, start, parser, src,
-                  start, data, stack', recur', cont)
-              end
-            }
-          end
-
         parser._parse_with_memo(_children(child_index)?, src, start, data,
-          stack, recur, consume cont')
+          stack, recur, this~_continue_first(child_index, start, parser, src,
+            loc, data, continue_next))
       else
-        cont(Failure[S, D, V](this, start, data, "disj failed"), stack, recur)
+        continue_next(Failure[S, D, V](this, start, data,
+          ErrorMsg.disjunction_failed()), stack, recur)
       end
+    end
+
+  fun val _continue_first(
+    child_index: USize,
+    start: Loc[S],
+    parser: Parser[S, D, V],
+    src: Source[S],
+    loc: Loc[S],
+    data: D,
+    continue_next: _Continuation[S, D, V],
+    result: Result[S, D, V],
+    stack: _LRStack[S, D, V],
+    recur: _LRByRule[S, D, V])
+  =>
+    match result
+    | let success: Success[S, D, V] =>
+      continue_next(Success[S, D, V](this, start, success.next, data,
+        [success]), stack, recur)
+    | let failure: Failure[S, D, V] =>
+      this._parse_one(child_index + 1, start, parser, src,
+        start, data, stack, recur, continue_next)
     end
 
   fun val _get_action(): (Action[S, D, V] | None) =>

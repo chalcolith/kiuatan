@@ -10,7 +10,7 @@ primitive _Dbg[S, D: Any #share, V: Any #share]
     | let success: Success[S, D, V] =>
       "  => [" + success.start.string() + "," + success.next.string() + ")"
     | let failure: Failure[S, D, V] =>
-      "  => !" + failure.start.string() + ": '" + failure.message + "'"
+      "  => !" + failure.start.string() + ": '" + failure.get_message() + "'"
     end
 
   fun _dbg_get_indent(stack: _LRStack[S, D, V]): String =>

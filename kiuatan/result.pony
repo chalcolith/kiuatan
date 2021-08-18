@@ -110,12 +110,12 @@ class val Failure[S, D: Any #share = None, V: Any #share = None]
   """
   let node: RuleNode[S, D, V]
   let start: Loc[S]
-  let message: String
+  let message: (String | None)
   let inner: (Failure[S, D, V] | None)
   let data: D
 
   new val create(node': RuleNode[S, D, V], start': Loc[S], data': D,
-    message': String = "", inner': (Failure[S, D, V] | None) = None)
+    message': (String | None) = None, inner': (Failure[S, D, V] | None) = None)
   =>
     node = node'
     start = start'
@@ -126,18 +126,21 @@ class val Failure[S, D: Any #share = None, V: Any #share = None]
   fun get_message(): String =>
     recover
       let s = String
-      s.append("[")
-      if message.size() > 0 then
-        s.append(message)
+      let message' = try message as String else "" end
+      if message'.size() > 0 then
+        s.append("[")
+        s.append(message')
       end
       match inner
       | let inner': Failure[S, D, V] =>
-        if message.size() > 0 then
+        if message'.size() > 0 then
           s.append(": ")
         end
         s.append(inner'.get_message())
       end
-      s.append("]")
+      if (message'.size() > 0) then
+        s.append("]")
+      end
       s
     end
 

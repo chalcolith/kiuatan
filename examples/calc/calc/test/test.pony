@@ -52,7 +52,7 @@ primitive _Test
       end
       h.complete(true)
     | let failure: Failure =>
-      h.fail(failure.message)
+      h.fail(failure.get_message())
       h.complete(false)
     end
 

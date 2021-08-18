@@ -23,9 +23,9 @@ class val Error[S, D: Any #share = None, V: Any #share = None]
     data: D,
     stack: _LRStack[S, D, V],
     recur: _LRByRule[S, D, V],
-    cont: _Continuation[S, D, V])
+    continue_next: _Continuation[S, D, V])
   =>
-    cont(Failure[S, D, V](this, loc, data, _message), stack, recur)
+    continue_next(Failure[S, D, V](this, loc, data, _message), stack, recur)
 
   fun val _get_action(): (Action[S, D, V] | None) =>
     _action

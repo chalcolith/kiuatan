@@ -27,37 +27,30 @@ class val Cond[S, D: Any #share = None, V: Any #share = None]
     data: D,
     stack: _LRStack[S, D, V],
     recur: _LRByRule[S, D, V],
-    cont: _Continuation[S, D, V])
+    continue_next: _Continuation[S, D, V])
   =>
-    let rule = this
-    let cont' =
-      recover
-        {(result: Result[S, D, V], stack': _LRStack[S, D, V],
-          recur': _LRByRule[S, D, V])
-        =>
-          match result
-          | let success: Success[S, D, V] =>
-            (let succeeded: Bool, let msg: (String | None)) = _cond(success)
-            if succeeded then
-              cont(Success[S, D, V](rule, success.start, success.next, data,
-                [success]), stack', recur')
-            else
-              let failure =
-                match msg
-                | let msg': String =>
-                  Failure[S, D, V](rule, success.start, data, msg')
-                else
-                  Failure[S, D, V](rule, success.start, data,
-                    "condition failed")
-                end
-              cont(failure, stack', recur')
-            end
-          | let failure: Failure[S, D, V] =>
-            cont(failure, stack', recur')
-          end
-        }
+    parser._parse_with_memo(_body, src, loc, data, stack, recur,
+      this~_continue_first(data, continue_next))
+
+  fun val _continue_first(data: D, continue_next: _Continuation[S, D, V],
+    result: Result[S, D, V], stack: _LRStack[S, D, V],
+    recur: _LRByRule[S, D, V])
+  =>
+    match result
+    | let success: Success[S, D, V] =>
+      (let succeeded: Bool, let msg: (String | None)) = _cond(success)
+      if succeeded then
+        continue_next(Success[S, D, V](this, success.start, success.next, data,
+          [success]), stack, recur)
+      else
+        let message = try msg as String else ErrorMsg.condition_failed() end
+        continue_next(Failure[S, D, V](this, success.start, data, message),
+          stack, recur)
       end
-    parser._parse_with_memo(_body, src, loc, data, stack, recur, consume cont')
+    | let failure: Failure[S, D, V] =>
+      continue_next(Failure[S, D, V](this, failure.start, data, None, failure),
+        stack, recur)
+    end
 
   fun val _get_action(): (Action[S, D, V] | None) =>
     None

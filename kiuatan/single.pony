@@ -25,24 +25,29 @@ class val Single[S: (Any #read & Equatable[S]), D: Any #share = None,
     data: D,
     stack: _LRStack[S, D, V],
     recur: _LRByRule[S, D, V],
-    cont: _Continuation[S, D, V])
+    continue_next: _Continuation[S, D, V])
   =>
     try
       if loc.has_value() then
         if _expected.size() > 0 then
           for exp in _expected.values() do
             if exp == loc()? then
-              cont(Success[S, D, V](this, loc, loc.next(), data), stack, recur)
+              continue_next(Success[S, D, V](this, loc, loc.next(), data),
+                stack, recur)
               return
             end
           end
         else
-          cont(Success[S, D, V](this, loc, loc.next(), data), stack, recur)
+          continue_next(Success[S, D, V](this, loc, loc.next(), data), stack,
+            recur)
           return
         end
       end
+    else
+      continue_next(Failure[S, D, V](this, loc, data, ErrorMsg.single_failed()),
+        stack, recur)
     end
-    cont(Failure[S, D, V](this, loc, data, "any failed"), stack, recur)
+    continue_next(Failure[S, D, V](this, loc, data, None), stack, recur)
 
   fun val _get_action(): (Action[S, D, V] | None) =>
     _action

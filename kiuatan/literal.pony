@@ -24,21 +24,21 @@ class val Literal[S: (Any #read & Equatable[S]), D: Any #share = None,
     data: D,
     stack: _LRStack[S, D, V],
     recur: _LRByRule[S, D, V],
-    cont: _Continuation[S, D, V])
+    continue_next: _Continuation[S, D, V])
   =>
     try
       var act = loc
       for exp in _expected.values() do
         if (not act.has_value()) or (exp != act()?) then
-          cont(Failure[S, D, V](this, loc, data), stack, recur)
+          continue_next(Failure[S, D, V](this, loc, data), stack, recur)
           return
         end
         act = act.next()
       end
-      cont(Success[S, D, V](this, loc, act, data), stack, recur)
+      continue_next(Success[S, D, V](this, loc, act, data), stack, recur)
     else
-      cont(Failure[S, D, V](this, loc, data, ErrorMsg.literal_failed()), stack,
-        recur)
+      continue_next(Failure[S, D, V](this, loc, data,
+        ErrorMsg.literal_failed()), stack, recur)
     end
 
   fun val _get_action(): (Action[S, D, V] | None) =>
