@@ -124,17 +124,18 @@ class val Failure[S, D: Any #share = None, V: Any #share = None]
   fun get_message(): String =>
     recover
       let s = String
-      let message' = try message as String else "" end
+      let message' = match message | let m: String => m else "" end
       if message'.size() > 0 then
         s.append("[")
         s.append(message')
       end
       match inner
       | let inner': Failure[S, D, V] =>
-        if message'.size() > 0 then
+        let inner_msg = inner'.get_message()
+        if inner_msg.size() > 0 then
           s.append(": ")
+          s.append(inner_msg)
         end
-        s.append(inner'.get_message())
       end
       if (message'.size() > 0) then
         s.append("]")
