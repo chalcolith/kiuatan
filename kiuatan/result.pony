@@ -44,28 +44,26 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
     : ((V | None), Bindings[S, D, V])
   =>
     var bindings' = bindings
-    let subvalues = Array[(V | None)]
-
-    for child in children.values() do
-      (let subval: (V | None), bindings') = child._value_aux(indent + 1, bindings')
-      subvalues.push(subval)
-    end
+    let subvalues' =
+      recover val
+        let subvalues = Array[V]
+        for child in children.values() do
+          (let subval: (V | None), bindings') =
+            child._value_aux(indent + 1, bindings')
+          match subval
+          | let v: V =>
+            subvalues.push(v)
+          end
+        end
+        subvalues
+      end
 
     (let value: (V | None), bindings') =
       match node._get_action()
       | let action: Action[S, D, V] =>
-        action(this, subvalues, bindings')
+        action(this, subvalues', bindings')
       else
-        var i: USize = subvalues.size()
-        var v: (V | None) = None
-        while i > 0 do
-          let v' = try subvalues(i-1)? end
-          if not (v' is None) then
-            v = v'
-            break
-          end
-          i = i - 1
-        end
+        var v = try subvalues'(subvalues'.size() - 1)? end
         (v, bindings')
       end
 
