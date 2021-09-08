@@ -40,7 +40,7 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
     recur: _LRByRule[S, D, V],
     cont: _Continuation[S, D, V])
   =>
-    _parse_one(0, loc, parser, src, loc, data, stack, recur, cont)
+    _parse_one(0, loc, parser, src, loc, data, stack, recur, None, cont)
 
   fun val _parse_one(
     child_index: USize,
@@ -51,18 +51,20 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
     data: D,
     stack: _LRStack[S, D, V],
     recur: _LRByRule[S, D, V],
+    last_failure: (Failure[S, D, V] | None),
     continue_next: _Continuation[S, D, V])
   =>
     if child_index == _children.size() then
-      continue_next(Failure[S, D, V](this, start, data), stack, recur)
+      continue_next(Failure[S, D, V](this, start, data, None, last_failure),
+        stack, recur)
     else
       try
         parser._parse_with_memo(_children(child_index)?, src, start, data,
           stack, recur, this~_continue_first(child_index, start, parser, src,
             loc, data, continue_next))
       else
-        continue_next(Failure[S, D, V](this, start, data,
-          ErrorMsg.disjunction_failed()), stack, recur)
+        continue_next(Failure[S, D, V](this, start, data, None, last_failure),
+          stack, recur)
       end
     end
 
@@ -84,7 +86,7 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
         [success]), stack, recur)
     | let failure: Failure[S, D, V] =>
       this._parse_one(child_index + 1, start, parser, src,
-        start, data, stack, recur, continue_next)
+        start, data, stack, recur, failure, continue_next)
     end
 
   fun val _get_action(): (Action[S, D, V] | None) =>

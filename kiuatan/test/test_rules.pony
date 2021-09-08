@@ -107,7 +107,17 @@ class iso _TestRuleErr is UnitTest
     let msg = "parse failed"
     let ab = recover val NamedRule[U8]("AB", Literal[U8]("ab")) end
     let er = recover val NamedRule[U8]("ER", Error[U8](msg)) end
-    let rule = recover val NamedRule[U8](name(), Conj[U8]([ab; er])) end
+
+    let rule =
+      recover val NamedRule[U8](name(),
+        Conj[U8]([
+          ab
+          Disj[U8]([
+            Literal[U8]("mn")
+            er
+          ])
+        ]))
+      end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, false, [['a';'b';'c']], 0, 3, None, None, msg)
