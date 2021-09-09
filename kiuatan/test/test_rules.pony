@@ -202,6 +202,23 @@ class iso _TestRuleErr is UnitTest
         ])
 
 
+  class iso _TestRuleStarChildren is UnitTest
+    fun name(): String => "Rule_Star_Children"
+
+    fun apply(h: TestHelper) =>
+      let rule =
+        recover val
+          NamedRule[U8, None, USize]("Dots",
+            Star[U8, None, USize](
+              Single[U8, None, USize](".", {(r, _, b) => (USize(1), b)}), 1),
+            {(r, c, b) => (c.size(), b)})
+        end
+
+      Assert[U8, None, USize].test_promises(h, [
+        Assert[U8, None, USize].test_matches(h, rule, true, [[ '.'; '.' ]], 0,
+          2, None, 2)
+      ])
+
   class iso _TestRuleForwardDeclare is UnitTest
     fun name(): String => "Rule_ForwardDeclare"
 

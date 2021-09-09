@@ -24,6 +24,7 @@ actor Main is TestList
     test(_TestRuleStarZero)
     test(_TestRuleStarMin)
     test(_TestRuleStarMax)
+    test(_TestRuleStarChildren)
     test(_TestRuleForwardDeclare)
     test(_TestRuleLRImmediate)
     test(_TestRuleLRLeftAssoc)

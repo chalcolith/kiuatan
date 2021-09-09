@@ -38,45 +38,49 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
     """
     Call the matched rules' actions to assemble a custom result value.
     """
-    _value_aux(0, bindings)._1
+    (let subvalues: Array[V] val, _) = _value_aux(0, bindings)
+    try subvalues(subvalues.size() - 1)? end
 
   fun val _value_aux(indent: USize, bindings: Bindings[S, D, V])
-    : ((V | None), Bindings[S, D, V])
+    : (Array[V] val, Bindings[S, D, V])
   =>
+    // collect values from child results
     var bindings' = bindings
-    let subvalues' =
+    var subvalues': Array[V] val =
       recover val
         let subvalues = Array[V]
         for child in children.values() do
-          (let subval: (V | None), bindings') =
+          (let child_subvalues: Array[V] val, bindings') =
             child._value_aux(indent + 1, bindings')
-          match subval
-          | let v: V =>
-            subvalues.push(v)
-          end
+          subvalues.append(child_subvalues)
         end
         subvalues
       end
 
-    (let value: (V | None), bindings') =
-      match node._get_action()
-      | let action: Action[S, D, V] =>
-        action(this, subvalues', bindings')
-      else
-        var v = try subvalues'(subvalues'.size() - 1)? end
-        (v, bindings')
-      end
-
-    match node
-    | let bind: Bind[S, D, V] =>
+    // now run node's action, if any
+    match node._get_action()
+    | let action: Action[S, D, V] =>
+      (let value, bindings') = action(this, subvalues', bindings')
       match value
       | let value': V =>
-        return (value', bindings'.update(bind.variable, (this, value')))
+        subvalues' = recover val [ value' ] end
       else
-        return (value, bindings'.update(bind.variable, (this, None)))
+        subvalues' = recover val Array[V] end
       end
     end
-    (value, bindings')
+
+    // now bind variables (to the last child value)
+    match node
+    | let bind: Bind[S, D, V] =>
+      match try subvalues'(subvalues'.size() - 1)? end
+      | let value': V =>
+        subvalues' = recover val [ value' ] end
+        bindings' = bindings'.update(bind.variable, (this, value'))
+      else
+        bindings' = bindings'.update(bind.variable, (this, None))
+      end
+    end
+    (subvalues', bindings')
 
   fun _indent(n: USize): String =>
     recover
