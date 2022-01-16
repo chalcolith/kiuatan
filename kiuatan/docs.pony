@@ -40,6 +40,10 @@ make && make test
 
 To use Kiuatan in a project without [Corral](https://github.com/ponylang/corral) you will need to add `kiuatan/kiuatan` to your `PONYPATH` environment variable.
 
+## Examples
+
+The Kiuatan repo contains a canonical calulator example of how to use Kiuatan: [calc](https://github.com/kulibali/kiuatan/blob/main/examples/calc/calc).
+
 ## Concepts
 
 Kiuatan grammars can match over source sequences of any type that is
@@ -69,7 +73,7 @@ let rule =
   end
 ```
 
-You can build the body of a rule from the following classes:
+You can build the body of a rule from the following combinator classes:
 
   - [Single](/kiuatan-Single): matches a single source item.  The constructor takes a set of possibilities to match.  If you provide an empty list, this rule will match any single item.
   - [Literal](kiuatan-Literal): matches a string of items.
@@ -126,39 +130,26 @@ In order to attempt to parse a particular sequence (or sequence of segments) of 
   })
 ```
 
+The generic parameters for the [`Parser`](/kiuatan-Parser) actor type (and other types in Kiuatan) are as follows:
+
+  - `S`: this is the "source type"; i.e. your [`Source`](/kiuatan-Source)s will be sequences of values of this type.
+  - `D`: this is a "data" type. You can pass a value of this type to the [`Parser.parse()`](http://kulibali.github.io/kiuatan/kiuatan-Parser/#parse) behaviour, and this value will be passed to your semantic [`Action`](/kiuatan-Action)s.
+  - `V`: this is the "result value" type. For each successful parse result, zero or more result values (from child results) will be passed to your semantic [`Action`](/kiuatan-Action), if present.  If a rule has no action, child result values will be combined and passed to the next highest action.
+
 #### Updating Source
 
 You can update a parser's source by calling its [`remove_segment`](/kiuatan-Parser/index.html#remove_segment) and [`insert_segment`](/kiuatan-Parser/index.html#insert_segment) behaviours.  The next time you initiate a parse, the parser's source will have been updated.
 
-### Result
+### Results
 
 If a parse succeeds, the result will be of type [`Success`](/kiuatan-Success), which represents the concrete parse tree.  You can get details about the location of the match and results from child rules.
 
-### Values
+If a parse fails, the result will be of type [`Failure`](/kiuatan-Failure), which contains some information about the location in the source where the failure occurred, and possibly an error message.
 
-If you wish, you can build a more abstract parse tree using semantic [`Action`](/kiuatan-Action)s that you pass to rules.  These actions should return a "value" of your desired type.
+### Actions and Result Values
 
-### Data
+If you wish, you can build a more abstract parse tree using semantic [`Action`](/kiuatan-Action)s that you pass to rules.  These actions should return a "result value" of your desired type.  The result values from child rule successes are passed to the action.
 
-If you wish, you can pass a data object of a specified type to the parser. This will be available to semantic actions.
-
-```pony
-let rule =
-  recover val
-    NamedRule[U8, String, String]("WithData",
-      Literal[U8, String, String]("x",
-        {(s, _, b) =>
-          let str =
-            recover
-              let str': String ref = String
-              for ch in s.start.values(s.next) do
-                str'.push(ch)
-              end
-              str'.>append(s.data)
-            end
-          (str, b)
-        }))
-  end
-```
+Actions also receive a [`Bindings`](/kiuatan-Bindings) map; you can access bound result values from child parses using this; you must return the map with the result of the action.
 
 """
