@@ -83,7 +83,7 @@ You can build the body of a rule from the following combinator classes:
   - [Look](/kiuatan-Look): will attempt to match its child rule, but will *not* advance the match position.
   - [Neg](/kiuatan-Neg): will succeed if its child rule does *not* match, and will not advance the match position.
   - [Star](/kiuatan-Star): will match a number of repetitions of its child rule.  You can specify a minimum or maximum number of times to match.
-  - [Bind](/kiuatan-Bind): will bind the result of its child rule to an existing variable.  See the [calc example](https://github.com/kulibali/kiuatan/blob/main/examples/calc/calc) for an example of how to use `Bind`.
+  - [Bind](/kiuatan-Bind): will bind the result of its child rule to an existing variable.  See the [calc example](https://github.com/kulibali/kiuatan/blob/main/examples/calc/calc/grammar_builder.pony) for an example of how to use `Bind`.
   - [Condition](/kiuatan-Bind): will succeed only if its child matches and the given condition returns `true`.
 
 #### Recursion

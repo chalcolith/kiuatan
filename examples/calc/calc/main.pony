@@ -37,12 +37,11 @@ class Handler is ReadlineNotify
       prompt.reject()
     else
       let parser = k.Parser[U8, None, F64]([line])
-      parser.parse(_grammar, None, {(result, value) =>
+      parser.parse(_grammar, None, {(result, values) =>
         match result
         | let success: k.Success[U8, None, F64] =>
-          match value
-          | let n: F64 =>
-            _env.out.print(" => " + n.string())
+          try
+            _env.out.print(" => " + values(values.size() - 1)?.string())
           else
             _env.out.print("? internal error ?")
           end

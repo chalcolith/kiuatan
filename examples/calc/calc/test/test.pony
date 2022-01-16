@@ -40,13 +40,12 @@ type Failure is k.Failure[U8, None, F64]
 
 primitive _Test
   fun should_succeed(h: TestHelper, expected: F64, result: Result,
-    value: (F64 | None))
+    values: ReadSeq[F64] val)
   =>
     match result
     | let success: Success =>
-      match value
-      | let actual: F64 =>
-        assert_feq(h, expected, actual)
+      try
+        assert_feq(h, expected, values(0)?)
       else
         h.fail("did not return a value")
       end
@@ -57,7 +56,7 @@ primitive _Test
     end
 
   fun should_span(h: TestHelper, len: USize, result: Result,
-    value: (F64 | None))
+    values: ReadSeq[F64] val)
   =>
     match result
     | let success: Success =>
@@ -68,7 +67,7 @@ primitive _Test
       h.fail("should have succeeded")
     end
 
-  fun should_fail(h: TestHelper, result: Result, value: (F64 | None)) =>
+  fun should_fail(h: TestHelper, result: Result, values: ReadSeq[F64] val) =>
     match result
     | let success: Success =>
       h.fail("expected failure; returned a value")

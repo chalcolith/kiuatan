@@ -88,23 +88,18 @@ class GrammarBuilder
               var op_is_add: Bool = true
               var second: F64 = 0.0
 
-              match try bindings(a)? end
-              | (_, let n: F64) =>
-                first = n
+              try
+                first = bindings(a)?._2(0)?
               end
 
-              match try bindings(o)? end
-              | (let s: Success, _) =>
-                try
-                  if s.start()? == '-' then
-                    op_is_add = false
-                  end
+              try
+                if bindings(o)?._1.start()? == '-' then
+                  op_is_add = false
                 end
               end
 
-              match try bindings(b)? end
-              | (_, let n: F64) =>
-                second = n
+              try
+                second = bindings(b)?._2(0)?
               end
 
               let sum: (F64 | None) =
@@ -143,23 +138,18 @@ class GrammarBuilder
               var op_is_mul: Bool = true
               var second: F64 = 1.0
 
-              match try bindings(a)? end
-              | (_, let n: F64) =>
-                first = n
+              try
+                first = bindings(a)?._2(0)?
               end
 
-              match try bindings(o)? end
-              | (let s: Success, _) =>
-                try
-                  if s.start()? == '/' then
-                    op_is_mul = false
-                  end
+              try
+                if bindings(o)?._1.start()? == '/' then
+                  op_is_mul = false
                 end
               end
 
-              match try bindings(b)? end
-              | (_, let n: F64) =>
-                second = n
+              try
+                second = bindings(b)?._2(0)?
               end
 
               let prod: (F64 | None) =
@@ -261,19 +251,16 @@ class GrammarBuilder
               var frac_num: F64 = 0.0
               var exp_num: F64 = 1.0
 
-              match try bindings(i)? end
-              | (_, let n: F64) =>
-                int_num = n
+              try
+                int_num = bindings(i)?._2(0)?
               end
 
-              match try bindings(f)? end
-              | (_, let n: F64) =>
-                frac_num = n
+              try
+                frac_num = bindings(f)?._2(0)?
               end
 
-              match try bindings(e)? end
-              | (_, let n: F64) =>
-                exp_num = n
+              try
+                exp_num = bindings(e)?._2(0)?
               end
 
               let n =
@@ -347,13 +334,17 @@ class GrammarBuilder
                 Star(Bind(i, integer()), 0,
                   {(r,_,b) =>
                     var f: F64 = 0.0
-                    match try b(i)? end
-                    | (let s: Success, let n: F64) =>
-                      f = n
-                      for _ in s.start.values(s.next) do
-                        f = f / 10.0
+
+                    try
+                      match b(i)?
+                      | (let s: Success, let ns: ReadSeq[F64] val) =>
+                        f = ns(0)?
+                        for _ in s.start.values(s.next) do
+                          f = f / 10.0
+                        end
                       end
                     end
+
                     (f, b)
                   }, 1)
               ]))
