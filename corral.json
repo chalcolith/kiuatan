@@ -4,7 +4,8 @@
         "description": "Kiuatan (\"horse\" or \"pony\" in Chinook Jargon) is a library for building and running parsers in the Pony programming language.",
         "homepage": "https://github.com/kulibali/kiuatan",
         "documentation_url": "https://kulibali.github.io/kiuatan/kiuatan--index/",
-        "license": "MIT"
+        "license": "MIT",
+        "version": "1.1.0"
     },
     "deps": []
 }

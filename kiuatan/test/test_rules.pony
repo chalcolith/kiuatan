@@ -330,16 +330,14 @@ class iso _TestRuleErr is UnitTest
               var vx: USize = 0
               var vy: USize = 0
 
-              match try bindings(x)? end
-              | (_, let vx': USize) =>
-                vx = vx'
+              try
+                vx = bindings(x)?._2(0)?
               else
                 return (None, bindings)
               end
 
-              match try bindings(y)? end
-              | (_, let vy': USize) =>
-                vy = vy'
+              try
+                vy = bindings(y)?._2(0)?
               else
                 return (None, bindings)
               end

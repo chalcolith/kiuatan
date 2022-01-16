@@ -32,3 +32,4 @@ actor Main is TestList
     test(_TestRuleVariableBind)
     test(_TestRuleCondition)
     test(_TestRuleData)
+    test(_TestFlatten)

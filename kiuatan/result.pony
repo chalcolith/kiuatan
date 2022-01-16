@@ -34,53 +34,49 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
     data = data'
     children = children'
 
-  fun val _value(bindings: Bindings[S, D, V] = Bindings[S, D, V]): (V | None) =>
+  fun val _values(bindings: Bindings[S, D, V] = Bindings[S, D, V])
+    : ReadSeq[V] val
+  =>
     """
     Call the matched rules' actions to assemble a custom result value.
     """
-    (let subvalues: Array[V] val, _) = _value_aux(0, bindings)
-    try subvalues(subvalues.size() - 1)? end
+    (let result_values: ReadSeq[V] val, _) = _values_aux(0, bindings)
+    result_values
 
-  fun val _value_aux(indent: USize, bindings: Bindings[S, D, V])
-    : (Array[V] val, Bindings[S, D, V])
+  fun val _values_aux(indent: USize, bindings: Bindings[S, D, V])
+    : (ReadSeq[V] val, Bindings[S, D, V])
   =>
     // collect values from child results
     var bindings' = bindings
-    var subvalues': Array[V] val =
+    var result_values: Array[V] val =
       recover val
-        let subvalues = Array[V]
+        let result_values' = Array[V]
         for child in children.values() do
-          (let child_subvalues: Array[V] val, bindings') =
-            child._value_aux(indent + 1, bindings')
-          subvalues.append(child_subvalues)
+          (let child_result_values: ReadSeq[V] val, bindings') =
+            child._values_aux(indent + 1, bindings')
+          result_values'.append(child_result_values)
         end
-        subvalues
+        result_values'
       end
 
     // now run node's action, if any
     match node._get_action()
     | let action: Action[S, D, V] =>
-      (let value, bindings') = action(this, subvalues', bindings')
+      (let value, bindings') = action(this, result_values, bindings')
       match value
       | let value': V =>
-        subvalues' = recover val [ value' ] end
+        result_values = recover val [ value' ] end
       else
-        subvalues' = recover val Array[V] end
+        result_values = recover val Array[V] end
       end
     end
 
     // now bind variables (to the last child value)
     match node
     | let bind: Bind[S, D, V] =>
-      match try subvalues'(subvalues'.size() - 1)? end
-      | let value': V =>
-        subvalues' = recover val [ value' ] end
-        bindings' = bindings'.update(bind.variable, (this, value'))
-      else
-        bindings' = bindings'.update(bind.variable, (this, None))
-      end
+      bindings' = bindings'.update(bind.variable, (this, result_values))
     end
-    (subvalues', bindings')
+    (result_values, bindings')
 
   fun _indent(n: USize): String =>
     recover

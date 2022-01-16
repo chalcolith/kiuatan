@@ -52,7 +52,7 @@ primitive Assert[S: (Stringable #read & Equatable[S] #read),
     should_match: Bool, start_index: USize, length: USize,
     start_exp: Loc[S], next_exp: Loc[S], expected_value: (V | None),
     expected_msg: (String | None), result: Result[S, D, V],
-    result_value: (V | None))
+    result_values: ReadSeq[V] val)
   =>
     h.log("test_matches " + start_index.string() + " " + length.string()
       + " " + should_match.string())
@@ -65,11 +65,10 @@ primitive Assert[S: (Stringable #read & Equatable[S] #read),
         | None =>
           None
         | let expected: V =>
-          match result_value
-          | None =>
+          try
+            h.assert_eq[V](expected, result_values(0)?)
+          else
             h.fail("expected " + expected.string() + "; no value returned")
-          | let actual: V =>
-            h.assert_eq[V](expected, actual)
           end
         end
         promise(true)
