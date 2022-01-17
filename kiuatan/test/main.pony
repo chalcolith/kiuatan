@@ -33,3 +33,4 @@ actor Main is TestList
     test(_TestRuleCondition)
     test(_TestRuleData)
     test(_TestFlatten)
+    test(_TestRuleBindStar)

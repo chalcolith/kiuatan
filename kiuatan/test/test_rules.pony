@@ -1,4 +1,3 @@
-
 use "collections/persistent"
 use "itertools"
 use "ponytest"
@@ -403,3 +402,32 @@ class iso _TestRuleData is UnitTest
       [ Assert[U8, String, String].test_matches(h, rule, true, [ "x" ], 0, 1, "y", "xy")
         Assert[U8, String, String].test_matches(h, rule, false, [ "y" ], 0, 1, "y")
       ])
+
+
+class iso _TestRuleBindStar is UnitTest
+  fun name(): String => "Rule_Bind_Star"
+
+  fun apply(h: TestHelper) =>
+    let rule =
+      recover val
+        let v = Variable
+        NamedRule[U8,None,USize]("BindStar",
+          Bind[U8,None,USize](v,
+            Star[U8,None,USize](
+              Single[U8,None,USize]("a",
+                {(r,_,b) => (USize(123), b) }))),
+          {(r,_,b) =>
+            let n: USize =
+              try
+                let values = b(v)?._2
+                values.size()
+              else
+                0
+              end
+            (n, b)
+          })
+      end
+
+    Assert[U8, None, USize].test_promises(h, [
+      Assert[U8, None, USize].test_matches(h, rule, true, [ "aaa" ], 0, 3, None, 3)
+    ])

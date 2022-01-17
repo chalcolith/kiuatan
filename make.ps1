@@ -89,7 +89,7 @@ function BuildTarget
     if ($binaryTimestamp -lt $file.LastWriteTimeUtc)
     {
       Write-Host "corral.exe fetch"
-      & corral.exe fetch
+      $output = (corral.exe fetch)
       $output | ForEach-Object { Write-Host $_ }
       if ($LastExitCode -ne 0) { throw "Error" }
 
@@ -121,12 +121,14 @@ function BuildTest
     if ($testTimestamp -lt $file.LastWriteTimeUtc)
     {
       Write-Host "corral.exe fetch"
-      & corral.exe fetch
+      $output = (corral.exe fetch)
+      $output | ForEach-Object { Write-Host $_ }
       if ($LastExitCode -ne 0) { throw "Error" }
 
       $testDir = Join-Path -Path $srcDir -ChildPath $testPath
       Write-Host "corral.exe run -- ponyc.exe $configFlag --cpu `"$Arch`" --output `"$buildDir`" `"$testDir`""
-      & corral.exe run -- ponyc.exe $configFlag --cpu "$Arch" --output "$buildDir" "$testDir"
+      $output = (corral.exe run -- ponyc.exe $configFlag $ponyArgs --cpu "$Arch" --output "$buildDir" "$testDir")
+      $output | ForEach-Object { Write-Host $_ }
       if ($LastExitCode -ne 0) { throw "Error" }
       break testFiles
     }
