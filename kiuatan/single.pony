@@ -15,10 +15,10 @@ class val Single[S: (Any #read & Equatable[S]), D: Any #share = None,
     _expected = expected
     _action = action
 
-  fun val _is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
+  fun val is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
     true
 
-  fun val _parse(
+  fun val parse(
     parser: Parser[S, D, V],
     src: Source[S],
     loc: Loc[S],
@@ -49,5 +49,5 @@ class val Single[S: (Any #read & Equatable[S]), D: Any #share = None,
     end
     continue_next(Failure[S, D, V](this, loc, data, None), stack, recur)
 
-  fun val _get_action(): (Action[S, D, V] | None) =>
+  fun val get_action(): (Action[S, D, V] | None) =>
     _action

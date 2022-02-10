@@ -19,7 +19,7 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
   fun ref set_body(body: RuleNode[S, D, V] box) =>
     _body = body
 
-  fun val _is_terminal(stack: _RuleNodeStack[S, D, V] =
+  fun val is_terminal(stack: _RuleNodeStack[S, D, V] =
     per.Lists[RuleNode[S, D, V] tag].empty()): Bool
   =>
     match _body
@@ -28,13 +28,13 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
       if stack.exists({(x) => x is rule}) then
         false
       else
-        body._is_terminal(stack.prepend(rule))
+        body.is_terminal(stack.prepend(rule))
       end
     else
       true
     end
 
-  fun val _parse(
+  fun val parse(
     parser: Parser[S, D, V],
     src: Source[S],
     loc: Loc[S],
@@ -68,5 +68,5 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
         ErrorMsg.rule_expected(name), failure), stack, recur)
     end
 
-  fun _get_action(): (Action[S, D, V] | None) =>
+  fun get_action(): (Action[S, D, V] | None) =>
     _action

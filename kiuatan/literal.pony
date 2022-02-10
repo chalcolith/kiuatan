@@ -14,10 +14,10 @@ class val Literal[S: (Any #read & Equatable[S]), D: Any #share = None,
     _expected = expected
     _action = action
 
-  fun val _is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
+  fun val is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
     true
 
-  fun val _parse(
+  fun val parse(
     parser: Parser[S, D, V],
     src: Source[S],
     loc: Loc[S],
@@ -41,5 +41,5 @@ class val Literal[S: (Any #read & Equatable[S]), D: Any #share = None,
         ErrorMsg.literal_failed()), stack, recur)
     end
 
-  fun val _get_action(): (Action[S, D, V] | None) =>
+  fun val get_action(): (Action[S, D, V] | None) =>
     _action

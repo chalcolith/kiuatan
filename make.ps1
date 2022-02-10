@@ -88,13 +88,8 @@ function BuildTarget
   {
     if ($binaryTimestamp -lt $file.LastWriteTimeUtc)
     {
-      Write-Host "corral.exe fetch"
-      $output = (corral.exe fetch)
-      $output | ForEach-Object { Write-Host $_ }
-      if ($LastExitCode -ne 0) { throw "Error" }
-
-      Write-Host "corral.exe run -- ponyc.exe $configFlag --cpu `"$Arch`" --output `"$buildDir`" `"$srcDir`""
-      & corral.exe run -- ponyc.exe $configFlag --cpu "$Arch" --output "$buildDir" "$srcDir"
+      Write-Host "corral run -- ponyc $configFlag --cpu `"$Arch`" --output `"$buildDir`" `"$srcDir`""
+      & corral run -- ponyc $configFlag --cpu "$Arch" --output "$buildDir" "$srcDir"
       if ($LastExitCode -ne 0) { throw "Error" }
       break buildFiles
     }
@@ -120,14 +115,9 @@ function BuildTest
   {
     if ($testTimestamp -lt $file.LastWriteTimeUtc)
     {
-      Write-Host "corral.exe fetch"
-      $output = (corral.exe fetch)
-      $output | ForEach-Object { Write-Host $_ }
-      if ($LastExitCode -ne 0) { throw "Error" }
-
       $testDir = Join-Path -Path $srcDir -ChildPath $testPath
-      Write-Host "corral.exe run -- ponyc.exe $configFlag --cpu `"$Arch`" --output `"$buildDir`" `"$testDir`""
-      $output = (corral.exe run -- ponyc.exe $configFlag $ponyArgs --cpu "$Arch" --output "$buildDir" "$testDir")
+      Write-Host "corral run -- ponyc $configFlag --cpu `"$Arch`" --output `"$buildDir`" `"$testDir`""
+      $output = (corral run -- ponyc $configFlag $ponyArgs --cpu "$Arch" --output "$buildDir" "$testDir")
       $output | ForEach-Object { Write-Host $_ }
       if ($LastExitCode -ne 0) { throw "Error" }
       break testFiles
@@ -145,6 +135,7 @@ switch ($Command.ToLower())
     if (-not $isLibrary)
     {
       BuildTarget
+      BuildTest
     }
     else
     {

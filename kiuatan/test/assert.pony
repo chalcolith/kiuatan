@@ -8,7 +8,7 @@ use ".."
 
 type _Segment[T] is ReadSeq[T] val
 
-primitive Assert[S: (Stringable #read & Equatable[S] #read),
+primitive \nodoc\ Assert[S: (Stringable #read & Equatable[S] #read),
   D: Any #share = None, V: (Equatable[V] val & Stringable val) = None]
 
   fun test_promises(h: TestHelper, promises: ReadSeq[Promise[Bool]]) =>

@@ -116,7 +116,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   =>
     match node
     | let rule: NamedRule[S, D, V] =>
-      let is_terminal = rule._is_terminal()
+      let is_terminal = rule.is_terminal()
       ifdef debug then
         _Dbg[S, D, V]._dbg(stack, "_parse_with_memo: " + rule.name + "@" +
           loc.string() + ": " +
@@ -142,7 +142,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         end
       end
     else
-      node._parse(this, src, loc, data, stack, recur, cont)
+      node.parse(this, src, loc, data, stack, recur, cont)
     end
 
   fun _parse_non_lr(
@@ -156,7 +156,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   =>
     let stack' = stack.prepend(_LRRecord[S, D, V](rule, 0, loc, loc, false, None))
     let parser: Parser[S, D, V] = this
-    rule._parse(this, src, loc, data, stack', recur,
+    rule.parse(this, src, loc, data, stack', recur,
       {(result: Result[S, D, V], stack'': _LRStack[S, D, V],
         recur': _LRByRule[S, D, V])(cont)
       =>
@@ -256,7 +256,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     recur: _LRByRule[S, D, V], cont: _Continuation[S, D, V])
   =>
     let self: Parser[S, D, V] = this
-    rule._parse(this, src, loc, data, stack, recur,
+    rule.parse(this, src, loc, data, stack, recur,
       self~_parse_new_lr_aux2(count, rule, src, loc, data, cont))
 
   be _parse_new_lr_aux2(count: USize, rule: NamedRule[S, D, V], src: Source[S],

@@ -60,7 +60,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
       end
 
     // now run node's action, if any
-    match node._get_action()
+    match node.get_action()
     | let action: Action[S, D, V] =>
       (let value, bindings') = action(this, result_values, bindings')
       match value

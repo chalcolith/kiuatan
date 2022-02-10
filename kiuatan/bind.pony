@@ -10,15 +10,15 @@ class val Bind[S, D: Any #share = None, V: Any #share = None]
     variable = variable'
     _body = body
 
-  fun val _is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
+  fun val is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
     let rule = this
     if stack.exists({(x) => x is rule}) then
       false
     else
-      _body._is_terminal(stack.prepend(rule))
+      _body.is_terminal(stack.prepend(rule))
     end
 
-  fun val _parse(
+  fun val parse(
     parser: Parser[S, D, V],
     src: Source[S],
     loc: Loc[S],
@@ -43,5 +43,5 @@ class val Bind[S, D: Any #share = None, V: Any #share = None]
         stack, recur)
     end
 
-  fun val _get_action(): (Action[S, D, V] | None) =>
+  fun val get_action(): (Action[S, D, V] | None) =>
     None

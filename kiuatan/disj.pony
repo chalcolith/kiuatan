@@ -17,21 +17,21 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
     _children = children
     _action = action
 
-  fun val _is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
+  fun val is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
     let rule = this
     if stack.exists({(x) => x is rule}) then
       false
     else
       let stack' = stack.prepend(rule)
       for child in _children.values() do
-        if not child._is_terminal(stack') then
+        if not child.is_terminal(stack') then
           return false
         end
       end
       true
     end
 
-  fun val _parse(
+  fun val parse(
     parser: Parser[S, D, V],
     src: Source[S],
     loc: Loc[S],
@@ -89,5 +89,5 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
         start, data, stack, recur, failure, continue_next)
     end
 
-  fun val _get_action(): (Action[S, D, V] | None) =>
+  fun val get_action(): (Action[S, D, V] | None) =>
     _action
