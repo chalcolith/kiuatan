@@ -12,6 +12,8 @@ Kiuatan ("horse" or "pony" in [Chinook Jargon](https://en.wikipedia.org/wiki/Chi
 - Kiuatan parsers are "packrat" parsers; they memoize intermediate results, resulting in linear-time parsing.
 - Parsers use Mederios et al's [algorithm](https://arxiv.org/abs/1207.0443) to handle unlimited left-recursion.
 
+Further [documentation is here](https://kulibali.github.io/kiuatan/kiuatan--index/).
+
 ## Obtaining Kiuatan
 
 ### Corral
