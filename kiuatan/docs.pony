@@ -56,7 +56,7 @@ The most common source type will be [`U8`](https://stdlib.ponylang.org/builtin-U
 
 ### Named Rules
 
-A [`NamedRule`](/kiuatan-NamedRule) encapsulates and names a grammatical rule that encodes a PEG rule.  To create a rule, you provide a name, a body, and an optional [action](#action).  For example, the following rule will match either `one two three` or `one deux three`.
+A [`NamedRule`](../kiuatan-NamedRule) encapsulates and names a grammatical rule that encodes a PEG rule.  To create a rule, you provide a name, a body, and an optional [action](#action).  For example, the following rule will match either `one two three` or `one deux three`.
 
 ```pony
 let rule =
@@ -75,20 +75,20 @@ let rule =
 
 You can build the body of a rule from the following combinator classes:
 
-  - [Single](/kiuatan-Single): matches a single source item.  The constructor takes a set of possibilities to match.  If you provide an empty list, this rule will match any single item.
-  - [Literal](kiuatan-Literal): matches a string of items.
-  - [Conj](/kiuatan-Conj): matches a sequence of child rules.
-  - [Disj](/kiuatan-Disj): matches one of a number of alternative child rules, in order.  If one of the alternatives matches, but an outer rule fails later, the parser will *not* backtrack to another alternative.
-  - [Error](/kiuatan-Error): will trigger an error with the given message.
-  - [Look](/kiuatan-Look): will attempt to match its child rule, but will *not* advance the match position.
-  - [Neg](/kiuatan-Neg): will succeed if its child rule does *not* match, and will not advance the match position.
-  - [Star](/kiuatan-Star): will match a number of repetitions of its child rule.  You can specify a minimum or maximum number of times to match.
-  - [Bind](/kiuatan-Bind): will bind the result of its child rule to an existing variable.  See the [calc example](https://github.com/kulibali/kiuatan/blob/main/examples/calc/calc/grammar_builder.pony) for an example of how to use `Bind`.
-  - [Condition](/kiuatan-Bind): will succeed only if its child matches and the given condition returns `true`.
+  - [`Single`](../kiuatan-Single): matches a single source item.  The constructor takes a set of possibilities to match.  If you provide an empty list, this rule will match any single item.
+  - [`Literal`](kiuatan/kiuatan-Literal): matches a string of items.
+  - [`Conj`](../kiuatan-Conj): matches a sequence of child rules.
+  - [`Disj`](../kiuatan-Disj): matches one of a number of alternative child rules, in order.  If one of the alternatives matches, but an outer rule fails later, the parser will *not* backtrack to another alternative.
+  - [`Error`](../kiuatan-Error): will trigger an error with the given message.
+  - [`Look`](../kiuatan-Look): will attempt to match its child rule, but will *not* advance the match position.
+  - [`Neg`](../kiuatan-Neg): will succeed if its child rule does *not* match, and will not advance the match position.
+  - [`Star`](../kiuatan-Star): will match a number of repetitions of its child rule.  You can specify a minimum or maximum number of times to match.
+  - [`Bind`](../kiuatan-Bind): will bind the result of its child rule to an existing variable.  See the [calc example](https://github.com/kulibali/kiuatan/blob/main/examples/calc/calc/grammar_builder.pony) for an example of how to use `Bind`.
+  - [`Condition`](../kiuatan-Bind): will succeed only if its child matches and the given condition returns `true`.
 
 #### Recursion
 
-In order to allow recursive rules, you can create a rule with no body and set its body later using the [`set_body()`](/kiuatan-Rule/index.html#set_body) method:
+In order to allow recursive rules, you can create a rule with no body and set its body later using the [`set_body()`](../kiuatan-NamedRule/index.html#set_body) method:
 
 ```pony
 // Add <- Add Op Num | Num
@@ -109,13 +109,13 @@ Note that Kiuatan can handle both direct and indirect left-recursion.
 
 ### Source
 
-A [`Source`](/kiuatan-Source) is a sequence of sequences of your source type.  Internally this is represented as a linked list of sequences, called "segments".  The idea behind this is that you can swap out individual segments of text that your [`Parser`](/kiuatan-Parser) actor knows about, while maintaining the parse memo for the other segments.  This allows a text editor, for example, to handle localized changes without re-parsing the whole source file.
+A [`Source`](../kiuatan-Source) is a sequence of sequences of your source type.  Internally this is represented as a linked list of sequences, called "segments".  The idea behind this is that you can swap out individual segments of text that your [`Parser`](../kiuatan-Parser) actor knows about, while maintaining the parse memo for the other segments.  This allows a text editor, for example, to handle localized changes without re-parsing the whole source file.
 
 ### Parser
 
-A [`Parser`](/kiuatan-Parser) actor knows about the source you are parsing, and holds a memo of parsing results across parse attempts.
+A [`Parser`](../kiuatan-Parser) actor knows about the source you are parsing, and holds a memo of parsing results across parse attempts.
 
-In order to attempt to parse a particular sequence (or sequence of segments) of items, create a Parser actor, giving it an initial source, and then call its [`parse`](/kiuatan-Parser/#parse) behaviour, passing a rule to use and a callback for when the parse either succeeds or fails:
+In order to attempt to parse a particular sequence (or sequence of segments) of items, create a Parser actor, giving it an initial source, and then call its [`parse`](../kiuatan-Parser/index.html#parse) behaviour, passing a rule to use and a callback for when the parse either succeeds or fails:
 
 ```pony
   let segment = "one two three"
@@ -130,26 +130,26 @@ In order to attempt to parse a particular sequence (or sequence of segments) of 
   })
 ```
 
-The generic parameters for the [`Parser`](/kiuatan-Parser) actor type (and other types in Kiuatan) are as follows:
+The generic parameters for the [`Parser`](../kiuatan-Parser) actor type (and other types in Kiuatan) are as follows:
 
-  - `S`: this is the "source type"; i.e. your [`Source`](/kiuatan-Source)s will be sequences of values of this type.
-  - `D`: this is a "data" type. You can pass a value of this type to the [`Parser.parse()`](http://kulibali.github.io/kiuatan/kiuatan-Parser/#parse) behaviour, and this value will be passed to your semantic [`Action`](/kiuatan-Action)s.
-  - `V`: this is the "result value" type. For each successful parse result, zero or more result values (from child results) will be passed to your semantic [`Action`](/kiuatan-Action), if present.  If a rule has no action, child result values will be combined and passed to the next highest action.
+  - `S`: this is the "source type"; i.e. your [`Source`](../kiuatan-Source)s will be sequences of values of this type.
+  - `D`: this is a "data" type. You can pass a value of this type to the [`Parser.parse()`](http://kulibali.github.io/kiuatan/kiuatan-Parser/index.html#parse) behaviour, and this value will be passed to your semantic [`Action`](../kiuatan-Action)s.
+  - `V`: this is the "result value" type. For each successful parse result, zero or more result values (from child results) will be passed to your semantic [`Action`](../kiuatan-Action), if present.  If a rule has no action, child result values will be combined and passed to the next highest action.
 
 #### Updating Source
 
-You can update a parser's source by calling its [`remove_segment`](/kiuatan-Parser/index.html#remove_segment) and [`insert_segment`](/kiuatan-Parser/index.html#insert_segment) behaviours.  The next time you initiate a parse, the parser's source will have been updated.
+You can update a parser's source by calling its [`remove_segment`](../kiuatan-Parser/index.html#remove_segment) and [`insert_segment`](../kiuatan-Parser/index.html#insert_segment) behaviours.  The next time you initiate a parse, the parser's source will have been updated.
 
 ### Results
 
-If a parse succeeds, the result will be of type [`Success`](/kiuatan-Success), which represents the concrete parse tree.  You can get details about the location of the match and results from child rules.
+If a parse succeeds, the result will be of type [`Success`](../kiuatan-Success), which represents the concrete parse tree.  You can get details about the location of the match and results from child rules.
 
-If a parse fails, the result will be of type [`Failure`](/kiuatan-Failure), which contains some information about the location in the source where the failure occurred, and possibly an error message.
+If a parse fails, the result will be of type [`Failure`](../kiuatan-Failure), which contains some information about the location in the source where the failure occurred, and possibly an error message.
 
 ### Actions and Result Values
 
-If you wish, you can build a more abstract parse tree using semantic [`Action`](/kiuatan-Action)s that you pass to rules.  These actions should return a "result value" of your desired type.  The result values from child rule successes are passed to the action.
+If you wish, you can build a more abstract parse tree using semantic [`Action`](../kiuatan-Action)s that you pass to rules.  These actions should return a "result value" of your desired type.  The result values from child rule successes are passed to the action.
 
-Actions also receive a [`Bindings`](/kiuatan-Bindings) map; you can access bound result values from child parses using this; you must return the map with the result of the action.
+Actions also receive a [`Bindings`](../kiuatan-Bindings) map; you can access bound result values from child parses using this; you must return the map with the result of the action.
 
 """
