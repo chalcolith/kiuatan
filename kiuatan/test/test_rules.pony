@@ -1,6 +1,6 @@
 use "collections/persistent"
 use "itertools"
-use "ponytest"
+use "pony_test"
 use "promises"
 
 use ".."

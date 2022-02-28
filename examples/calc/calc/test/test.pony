@@ -1,6 +1,6 @@
 
 use k = "../../../../kiuatan"
-use "ponytest"
+use "pony_test"
 use calc = ".."
 
 actor Main is TestList
