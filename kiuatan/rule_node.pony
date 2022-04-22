@@ -1,7 +1,7 @@
 use per = "collections/persistent"
 
 interface val RuleNode[S, D: Any #share, V: Any #share]
-  fun val is_terminal(stack: _RuleNodeStack[S, D, V]): Bool
+  fun val not_recursive(stack: _RuleNodeStack[S, D, V]): Bool
   fun val parse(
     parser: Parser[S, D, V],
     src: Source[S],

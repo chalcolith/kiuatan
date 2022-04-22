@@ -19,7 +19,7 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
   fun ref set_body(body: RuleNode[S, D, V] box) =>
     _body = body
 
-  fun val is_terminal(stack: _RuleNodeStack[S, D, V] =
+  fun val not_recursive(stack: _RuleNodeStack[S, D, V] =
     per.Lists[RuleNode[S, D, V] tag].empty()): Bool
   =>
     match _body
@@ -28,7 +28,7 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
       if stack.exists({(x) => x is rule}) then
         false
       else
-        body.is_terminal(stack.prepend(rule))
+        body.not_recursive(stack.prepend(rule))
       end
     else
       true

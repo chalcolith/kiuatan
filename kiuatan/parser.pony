@@ -116,11 +116,11 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   =>
     match node
     | let rule: NamedRule[S, D, V] =>
-      let is_terminal = rule.is_terminal()
+      let not_recursive = rule.not_recursive()
       ifdef debug then
         _Dbg[S, D, V]._dbg(stack, "_parse_with_memo: " + rule.name + "@" +
           loc.string() + ": " +
-          (if is_terminal then "terminal" else "nonterminal" end))
+          (if not_recursive then "terminal" else "nonterminal" end))
       end
 
       match _lookup(rule, loc, 0)
@@ -131,7 +131,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         end
         cont(result, stack, recur)
       else
-        if is_terminal then
+        if not_recursive then
           _parse_non_lr(rule, src, loc, data, stack, recur, cont)
         else
           ifdef debug then

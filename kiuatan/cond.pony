@@ -12,12 +12,12 @@ class val Cond[S, D: Any #share = None, V: Any #share = None]
     _body = body
     _cond = cond
 
-  fun val is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
+  fun val not_recursive(stack: _RuleNodeStack[S, D, V]): Bool =>
     let rule = this
     if stack.exists({(x) => x is rule}) then
       false
     else
-      _body.is_terminal(stack.prepend(rule))
+      _body.not_recursive(stack.prepend(rule))
     end
 
   fun val parse(

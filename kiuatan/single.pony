@@ -15,7 +15,7 @@ class val Single[S: (Any #read & Equatable[S]), D: Any #share = None,
     _expected = expected
     _action = action
 
-  fun val is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
+  fun val not_recursive(stack: _RuleNodeStack[S, D, V]): Bool =>
     true
 
   fun val parse(

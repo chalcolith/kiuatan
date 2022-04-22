@@ -15,14 +15,14 @@ class val Conj[S, D: Any #share = None, V: Any #share = None]
     _children = children
     _action = action
 
-  fun val is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
+  fun val not_recursive(stack: _RuleNodeStack[S, D, V]): Bool =>
     let rule = this
     if stack.exists({(x) => x is rule}) then
       false
     else
       let stack' = stack.prepend(rule)
       for child in _children.values() do
-        if not child.is_terminal(stack') then
+        if not child.not_recursive(stack') then
           return false
         end
       end

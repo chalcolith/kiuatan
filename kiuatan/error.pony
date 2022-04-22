@@ -13,7 +13,7 @@ class val Error[S, D: Any #share = None, V: Any #share = None]
     _message = message
     _action = action
 
-  fun val is_terminal(stack: _RuleNodeStack[S, D, V]): Bool =>
+  fun val not_recursive(stack: _RuleNodeStack[S, D, V]): Bool =>
     true
 
   fun val parse(
