@@ -16,6 +16,9 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
     _body = body
     _action = action
 
+  fun val has_body(): Bool =>
+    not (_body is None)
+
   fun ref set_body(body: RuleNode[S, D, V] box) =>
     _body = body
 
