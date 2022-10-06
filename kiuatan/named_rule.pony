@@ -7,7 +7,7 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
   """
   let name: String
   var _body: (RuleNode[S, D, V] box | None)
-  let _action: (Action[S, D, V] | None)
+  var _action: (Action[S, D, V] | None)
 
   new create(name': String, body: (RuleNode[S, D, V] box | None) = None,
     action: (Action[S, D, V] | None) = None)
@@ -19,8 +19,13 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
   fun val has_body(): Bool =>
     not (_body is None)
 
-  fun ref set_body(body: RuleNode[S, D, V] box) =>
+  fun ref set_body(body: RuleNode[S, D, V] box,
+    action: (Action[S, D, V] | None) = None)
+  =>
     _body = body
+    if not (action is None) then
+      _action = action
+    end
 
   fun val not_recursive(stack: _RuleNodeStack[S, D, V] =
     per.Lists[RuleNode[S, D, V] tag].empty()): Bool
