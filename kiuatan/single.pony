@@ -1,7 +1,10 @@
 use per = "collections/persistent"
 
-class val Single[S: (Any #read & Equatable[S]), D: Any #share = None,
-  V: Any #share = None] is RuleNode[S, D, V]
+class val Single[
+  S: (Any #read & Equatable[S]),
+  D: Any #share = None,
+  V: Any #share = None]
+  is RuleNode[S, D, V]
   """
   Matches a single item.  If given a list of possibilities, will only succeed if it matches one of them.  Otherwise, it succeeds for any single item.
   """
@@ -15,39 +18,44 @@ class val Single[S: (Any #read & Equatable[S]), D: Any #share = None,
     _expected = expected
     _action = action
 
-  fun val not_recursive(stack: _RuleNodeStack[S, D, V]): Bool =>
+  fun val cant_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
     true
 
   fun val parse(
-    parser: Parser[S, D, V],
-    src: Source[S],
+    state: _ParseState[S, D, V],
+    depth: USize,
     loc: Loc[S],
-    data: D,
-    stack: _LRStack[S, D, V],
-    recur: _LRByRule[S, D, V],
-    continue_next: _Continuation[S, D, V])
+    outer: _Continuation[S, D, V])
   =>
+    ifdef debug then
+      _Dbg.out(depth, "SING @" + loc._dbg(state.source))
+    end
+
+    let result = _parse_single(loc, state.data)
+    ifdef debug then
+      _Dbg.out(depth, "< " + result.string())
+    end
+    outer(consume state, result)
+
+  fun val _parse_single(loc: Loc[S], data: D): Result[S, D, V] =>
     try
       if loc.has_value() then
         if _expected.size() > 0 then
           for exp in _expected.values() do
             if exp == loc()? then
-              continue_next(Success[S, D, V](this, loc, loc.next(), data),
-                stack, recur)
-              return
+              return Success[S, D, V](this, loc, loc.next(), data)
             end
           end
+          Failure[S, D, V](this, loc, data)
         else
-          continue_next(Success[S, D, V](this, loc, loc.next(), data), stack,
-            recur)
-          return
+          Success[S, D, V](this, loc, loc.next(), data)
         end
+      else
+        Failure[S, D, V](this, loc, data)
       end
     else
-      continue_next(Failure[S, D, V](this, loc, data, ErrorMsg.single_failed()),
-        stack, recur)
+      Failure[S, D, V](this, loc, data, ErrorMsg.single_failed())
     end
-    continue_next(Failure[S, D, V](this, loc, data, None), stack, recur)
 
   fun val get_action(): (Action[S, D, V] | None) =>
     _action

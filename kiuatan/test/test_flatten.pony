@@ -2,7 +2,7 @@ use "pony_test"
 use ".."
 
 class iso _TestFlatten is UnitTest
-  fun name(): String => "Flatten"
+  fun name(): String => "Value_Flatten"
 
   fun apply(h: TestHelper) =>
     let rule =

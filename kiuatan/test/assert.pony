@@ -21,7 +21,7 @@ primitive \nodoc\ Assert[S: (Stringable #read & Equatable[S] #read),
 
   fun test_matches(
     h: TestHelper,
-    grammar: NamedRule[S, D, V],
+    rule: NamedRule[S, D, V] val,
     should_match: Bool,
     source: ReadSeq[Segment[S]] val,
     start_index: USize,
@@ -39,7 +39,7 @@ primitive \nodoc\ Assert[S: (Stringable #read & Equatable[S] #read),
     let next_exp = start_exp + length
 
     try
-      parser.parse(grammar, data as D,
+      parser.parse(rule, data as D,
         this~_handle_result(h, promise, should_match, start_index, length,
           start_exp, next_exp, expected_value, expected_msg),
         start_exp)
@@ -66,7 +66,7 @@ primitive \nodoc\ Assert[S: (Stringable #read & Equatable[S] #read),
           None
         | let expected: V =>
           try
-            h.assert_eq[V](expected, result_values(0)?)
+            h.assert_eq[V](expected, result_values(result_values.size() - 1)?)
           else
             h.fail("expected " + expected.string() + "; no value returned")
           end

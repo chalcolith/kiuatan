@@ -30,4 +30,5 @@ primitive ErrorMsg
     "named rule combinator is empty"
 
   fun tag _lr_started(): String val => "LR started"
+
   fun tag _lr_not_memoized(): String val => "LR not memoized"

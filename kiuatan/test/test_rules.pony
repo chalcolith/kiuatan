@@ -9,7 +9,7 @@ class iso _TestRuleAny is UnitTest
   fun name(): String => "Rule_Any"
 
   fun apply(h: TestHelper) =>
-    let rule = recover val NamedRule[U8]("Any", Single[U8]()) end
+    let rule = recover val NamedRule[U8]("Any", Single[U8]) end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, true, [['a']], 0, 1)
@@ -57,10 +57,15 @@ class iso _TestRuleConj is UnitTest
   fun name(): String => "Rule_Conj_Valid"
 
   fun apply(h: TestHelper) =>
-    let ab = recover val NamedRule[U8]("AB", Literal[U8]("ab")) end
-    let cd = recover val NamedRule[U8]("CD", Literal[U8]("cd")) end
-    let ef = recover val NamedRule[U8]("EF", Literal[U8]("ef")) end
-    let rule = recover val NamedRule[U8]("Conj", Conj[U8]([ab; cd; ef])) end
+    let rule =
+      recover val
+        NamedRule[U8]("Conj",
+          Conj[U8]([
+            NamedRule[U8]("AB", Literal[U8]("ab"))
+            NamedRule[U8]("CD", Literal[U8]("cd"))
+            NamedRule[U8]("EF", Literal[U8]("ef"))
+          ]))
+      end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, true, [['a';'b';'c';'d';'e';'f']], 0, 6) ])
@@ -69,9 +74,12 @@ class iso _TestRuleConjInvalid is UnitTest
   fun name(): String => "Rule_Conj_Invalid"
 
   fun apply(h: TestHelper) =>
-    let ab = recover val NamedRule[U8]("AB", Literal[U8]("ab")) end
-    let cd = recover val NamedRule[U8]("CD", Literal[U8]("cd")) end
-    let rule = recover val NamedRule[U8]("Conj", Conj[U8]([ab; cd])) end
+    let rule =
+      recover val
+        let ab = NamedRule[U8]("AB", Literal[U8]("ab"))
+        let cd = NamedRule[U8]("CD", Literal[U8]("cd"))
+        NamedRule[U8]("Conj", Conj[U8]([ab; cd]))
+      end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, false, [['a';'b';'x';'y']], 0, 4) ]
@@ -81,9 +89,12 @@ class iso _TestRuleDisj is UnitTest
   fun name(): String => "Rule_Disj"
 
   fun apply(h: TestHelper) =>
-    let ab = recover val NamedRule[U8]("AB", Literal[U8]("ab")) end
-    let cd = recover val NamedRule[U8]("CD", Literal[U8]("cd")) end
-    let rule = recover val NamedRule[U8]("Disj", Disj[U8]([ab; cd])) end
+    let rule =
+      recover val
+        let ab = NamedRule[U8]("AB", Literal[U8]("ab"))
+        let cd = NamedRule[U8]("CD", Literal[U8]("cd"))
+        NamedRule[U8]("Disj", Disj[U8]([ab; cd]))
+      end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, true, [['a';'b']], 0, 2)
@@ -97,18 +108,21 @@ class iso _TestRuleErr is UnitTest
 
   fun apply(h: TestHelper) =>
     let msg = "parse failed"
-    let ab = recover val NamedRule[U8]("AB", Literal[U8]("ab")) end
-    let er = recover val NamedRule[U8]("ER", Error[U8](msg)) end
 
     let rule =
-      recover val NamedRule[U8](name(),
-        Conj[U8]([
-          ab
-          Disj[U8]([
-            Literal[U8]("mn")
-            er
-          ])
-        ]))
+      recover val
+        let ab = NamedRule[U8]("AB", Literal[U8]("ab"))
+        let er = NamedRule[U8]("ER", Error[U8](msg))
+
+        NamedRule[U8](
+          name(),
+          Conj[U8]([
+            ab
+            Disj[U8]([
+              Literal[U8]("mn")
+              er
+            ])
+          ]))
       end
 
     Assert[U8].test_promises(h,
@@ -120,10 +134,12 @@ class iso _TestRuleLook is UnitTest
   fun name(): String => "Rule_Look"
 
   fun apply(h: TestHelper) =>
-    let ab = recover val NamedRule[U8]("AB", Literal[U8]("ab")) end
-    let cd =
-      recover val NamedRule[U8]("CD", Look[U8](Literal[U8]("cd"))) end
-    let rule = recover val NamedRule[U8](name(), Conj[U8]([ab; cd])) end
+    let rule =
+      recover val
+        let ab = NamedRule[U8]("AB", Literal[U8]("ab"))
+        let cd = NamedRule[U8]("CD", Look[U8](Literal[U8]("cd")))
+        NamedRule[U8](name(), Conj[U8]([ab; cd]))
+      end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, true, [['a';'b';'c';'d']], 0, 2)
@@ -134,10 +150,12 @@ class iso _TestRuleNeg is UnitTest
   fun name(): String => "Rule_Neg"
 
   fun apply(h: TestHelper) =>
-    let ab = recover val NamedRule[U8]("AB", Literal[U8]("ab")) end
-    let cd =
-      recover val NamedRule[U8]("CD", Neg[U8](Literal[U8]("cd"))) end
-    let rule = recover val NamedRule[U8](name(), Conj[U8]([ab; cd])) end
+    let rule =
+      recover val
+        let ab = NamedRule[U8]("AB", Literal[U8]("ab"))
+        let cd = NamedRule[U8]("CD", Neg[U8](Literal[U8]("cd")))
+        NamedRule[U8](name(), Conj[U8]([ab; cd]))
+      end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, true, [['a';'b';'x';'y']], 0, 2)
@@ -148,8 +166,11 @@ class iso _TestRuleStarZero is UnitTest
   fun name(): String => "Rule_Star_Zero"
 
   fun apply(h: TestHelper) =>
-    let ab = recover val NamedRule[U8]("AB", Literal[U8]("ab")) end
-    let rule = recover val NamedRule[U8](name(), Star[U8](ab, 0)) end
+    let rule =
+      recover val
+        let ab = NamedRule[U8]("AB", Literal[U8]("ab"))
+        NamedRule[U8](name(), Star[U8](ab, 0))
+      end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, true, [['a';'b']], 0, 2)
@@ -161,8 +182,11 @@ class iso _TestRuleStarMin is UnitTest
   fun name(): String => "Rule_Star_Min"
 
   fun apply(h: TestHelper) =>
-    let ab = recover val NamedRule[U8]("AB", Literal[U8]("ab")) end
-    let rule = recover val NamedRule[U8](name(), Star[U8](ab, 2)) end
+    let rule =
+      recover val
+        let ab = NamedRule[U8]("AB", Literal[U8]("ab"))
+        NamedRule[U8](name(), Star[U8](ab, 2))
+      end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, true, [['a';'b';'a';'b']], 0, 4)
@@ -174,9 +198,11 @@ class iso _TestRuleStarMax is UnitTest
   fun name(): String => "Rule_Star_Max"
 
   fun apply(h: TestHelper) =>
-    let ab = recover val NamedRule[U8]("AB", Literal[U8]("ab")) end
     let rule =
-      recover val NamedRule[U8](name(), Star[U8](ab, 2, None, 4)) end
+      recover val
+        let ab = NamedRule[U8]("AB", Literal[U8]("ab"))
+        NamedRule[U8](name(), Star[U8](ab, 2, None, 4))
+      end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, true, [['a';'b';'a';'b']], 0, 4)
@@ -196,13 +222,26 @@ class iso _TestRuleStarChildren is UnitTest
       recover val
         NamedRule[U8, None, USize]("Dots",
           Star[U8, None, USize](
-            Single[U8, None, USize](".", {(r, _, b) => (USize(1), b)}), 1),
-          {(r, c, b) => (c.size(), b)})
+            Single[U8, None, USize](".",
+              {(_, _, b) =>
+                (USize(1), b)
+              }),
+            1),
+          {(_, c, b) =>
+            (c.size(), b)
+          })
       end
 
     Assert[U8, None, USize].test_promises(h, [
-      Assert[U8, None, USize].test_matches(h, rule, true, [[ '.'; '.' ]], 0,
-        2, None, 2)
+      Assert[U8, None, USize].test_matches(
+        h,
+        rule,
+        true,
+        [[ '.'; '.' ]],
+        0,
+        2,
+        None,
+        2)
     ])
 
 class iso _TestRuleForwardDeclare is UnitTest
@@ -294,8 +333,9 @@ class iso _TestRuleVariableBind is UnitTest
   fun name(): String => "Rule_Variable_Bind"
 
   fun apply(h: TestHelper) =>
-    let x = Variable
-    let y = Variable
+    let x = Variable("x")
+    let y = Variable("y")
+
     let rule =
       recover val
         NamedRule[U8, None, USize]("Rule", Conj[U8, None, USize](
@@ -390,7 +430,7 @@ class iso _TestRuleBindStar is UnitTest
   fun apply(h: TestHelper) =>
     let rule =
       recover val
-        let v = Variable
+        let v = Variable("v")
         NamedRule[U8,None,USize]("BindStar",
           Bind[U8,None,USize](v,
             Star[U8,None,USize](

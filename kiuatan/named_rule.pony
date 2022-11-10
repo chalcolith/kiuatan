@@ -16,65 +16,74 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
     _body = body
     _action = action
 
-  fun val has_body(): Bool =>
+  fun has_body(): Bool =>
     not (_body is None)
 
-  fun ref set_body(body: RuleNode[S, D, V] box,
+  fun ref set_body(
+    body: RuleNode[S, D, V] box,
     action: (Action[S, D, V] | None) = None)
   =>
     _body = body
-    if not (action is None) then
+    if action isnt None then
       _action = action
     end
 
-  fun val not_recursive(stack: _RuleNodeStack[S, D, V] =
+  fun val cant_recurse(stack: _RuleNodeStack[S, D, V] =
     per.Lists[RuleNode[S, D, V] tag].empty()): Bool
   =>
     match _body
-    | let body: val->RuleNode[S, D, V] =>
+    | let body: RuleNode[S, D, V] =>
       let rule = this
       if stack.exists({(x) => x is rule}) then
         false
       else
-        body.not_recursive(stack.prepend(rule))
+        body.cant_recurse(stack.prepend(rule))
       end
     else
       true
     end
 
   fun val parse(
-    parser: Parser[S, D, V],
-    src: Source[S],
+    state: _ParseState[S, D, V],
+    depth: USize,
     loc: Loc[S],
-    data: D,
-    stack: _LRStack[S, D, V],
-    recur: _LRByRule[S, D, V],
-    continue_next: _Continuation[S, D, V])
+    outer: _Continuation[S, D, V])
   =>
+    ifdef debug then
+      _Dbg.out(depth, "RULE " + name + " @" + loc._dbg(state.source))
+    end
+
     match _body
     | let body: RuleNode[S, D, V] =>
-      parser._parse_with_memo(body, src, loc, data, stack, recur,
-        this~_continue_first(data, continue_next))
+      let self = this
+      let parser = state.parser
+      parser._parse_named_rule(this, body, consume state, depth, loc,
+        {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
+          let result'' =
+            match result'
+            | let success: Success[S, D, V] =>
+              Success[S, D, V](
+                self,
+                success.start,
+                success.next,
+                state'.data,
+                [success])
+            else
+              result'
+            end
+          ifdef debug then
+            _Dbg.out(depth, "< " + result''.string())
+          end
+          outer(consume state', result'')
+        })
     else
-      continue_next(Failure[S, D, V](this, loc, data, ErrorMsg.rule_empty()),
-        stack, recur)
+      let result =
+        Failure[S, D, V](this, loc, state.data, ErrorMsg.rule_empty())
+      ifdef debug then
+        _Dbg.out(depth, "< " + result.string())
+      end
+      outer(consume state, result)
     end
 
-  fun val _continue_first(
-    data: D,
-    continue_next: _Continuation[S, D, V],
-    result: Result[S, D, V],
-    stack: _LRStack[S, D, V],
-    recur: _LRByRule[S, D, V])
-  =>
-    match result
-    | let success: Success[S, D, V] =>
-      continue_next(Success[S, D, V](this, success.start, success.next, data,
-        [success]), stack, recur)
-    | let failure: Failure[S, D, V] =>
-      continue_next(Failure[S, D, V](this, failure.start, data,
-        ErrorMsg.rule_expected(name), failure), stack, recur)
-    end
-
-  fun get_action(): (Action[S, D, V] | None) =>
+  fun val get_action(): (Action[S, D, V] | None) =>
     _action
