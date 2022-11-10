@@ -16,19 +16,8 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
     _children = children
     _action = action
 
-  fun val cant_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
-    let rule = this
-    if stack.exists({(x) => x is rule}) then
-      false
-    else
-      let stack' = stack.prepend(rule)
-      for child in _children.values() do
-        if not child.cant_recurse(stack') then
-          return false
-        end
-      end
-      true
-    end
+  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
+    _ChildrenMightRecurse[S, D, V](this, _children, stack)
 
   fun val parse(
     state: _ParseState[S, D, V],

@@ -273,10 +273,16 @@ class iso _TestRuleLRImmediate is UnitTest
     // Num <- [0-9]+
     let rule: NamedRule[U8] val =
       recover
-        let add = NamedRule[U8](name())
+        let add = NamedRule[U8]("Add")
         let num = NamedRule[U8]("Num", Star[U8](Single[U8]("0123456789"), 1))
         let op = NamedRule[U8]("Op", Single[U8]("+-"))
-        let body = Disj[U8]([Conj[U8]([add; op; num]); num])
+        let body = Disj[U8]([
+          Conj[U8]([
+            add
+            op
+            num
+          ])
+          num])
         add.set_body(body)
         add
       end

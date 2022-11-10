@@ -8,18 +8,16 @@ class val Bind[S, D: Any #share = None, V: Any #share = None]
 
   new create(
     variable': Variable,
-    body: RuleNode[S, D, V] box)
+    body': RuleNode[S, D, V] box)
   =>
     variable = variable'
-    _body = body
+    _body = body'
 
-  fun val cant_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
-    let rule = this
-    if stack.exists({(x) => x is rule}) then
-      false
-    else
-      _body.cant_recurse(stack.prepend(rule))
-    end
+  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
+    _BodyMightRecurse[S, D, V](this, _body, stack)
+
+  fun body(): (RuleNode[S, D, V] val | None) =>
+    recover val _body end
 
   fun val parse(
     state: _ParseState[S, D, V],

@@ -12,23 +12,18 @@ class val Star[S, D: Any #share = None, V: Any #share = None]
   let _action: (Action[S, D, V] | None)
 
   new create(
-    body: RuleNode[S, D, V] box,
-    min: USize = 0,
-    action: (Action[S, D, V] | None) = None,
-    max: USize = USize.max_value())
+    body': RuleNode[S, D, V] box,
+    min': USize = 0,
+    action': (Action[S, D, V] | None) = None,
+    max': USize = USize.max_value())
   =>
-    _body = body
-    _min = min
-    _max = max
-    _action = action
+    _body = body'
+    _min = min'
+    _max = max'
+    _action = action'
 
-  fun val cant_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
-    let rule: RuleNode[S, D, V] tag = this
-    if stack.exists({(x) => x is rule}) then
-      false
-    else
-      _body.cant_recurse(stack.prepend(rule))
-    end
+  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
+    _BodyMightRecurse[S, D, V](this, _body, stack)
 
   fun val parse(
     state: _ParseState[S, D, V],

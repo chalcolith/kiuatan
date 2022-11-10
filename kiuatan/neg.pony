@@ -10,19 +10,14 @@ class val Neg[S, D: Any #share = None, V: Any #share = None]
   let _action: (Action[S, D, V] | None)
 
   new create(
-    body: RuleNode[S, D, V] box,
-    action: (Action[S, D, V] | None) = None)
+    body': RuleNode[S, D, V] box,
+    action': (Action[S, D, V] | None) = None)
   =>
-    _body = body
-    _action = action
+    _body = body'
+    _action = action'
 
-  fun val cant_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
-    let rule = this
-    if stack.exists({(x) => x is rule}) then
-      false
-    else
-      _body.cant_recurse(stack.prepend(rule))
-    end
+  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
+    _BodyMightRecurse[S, D, V](this, _body, stack)
 
   fun val parse(
     state: _ParseState[S, D, V],

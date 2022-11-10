@@ -151,9 +151,3 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     cont: _Continuation[S, D, V])
   =>
     body.parse(consume state, depth + 1, loc, cont)
-
-interface val ParseCallback[S, D: Any #share, V: Any #share]
-  """
-  Used to report the results of a parse attempt.
-  """
-  fun apply(result: Result[S, D, V], values: ReadSeq[V] val)

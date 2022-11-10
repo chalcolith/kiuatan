@@ -5,43 +5,32 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
   """
   Represents a named grammar rule.  Memoization and left-recursion handling happens per named `Rule`.
   """
+
   let name: String
   var _body: (RuleNode[S, D, V] box | None)
   var _action: (Action[S, D, V] | None)
 
-  new create(name': String, body: (RuleNode[S, D, V] box | None) = None,
-    action: (Action[S, D, V] | None) = None)
+  new create(name': String, body': (RuleNode[S, D, V] box | None) = None,
+    action': (Action[S, D, V] | None) = None)
   =>
     name = name'
-    _body = body
-    _action = action
+    _body = body'
+    _action = action'
 
   fun has_body(): Bool =>
-    not (_body is None)
+    _body isnt None
 
   fun ref set_body(
-    body: RuleNode[S, D, V] box,
-    action: (Action[S, D, V] | None) = None)
+    body': RuleNode[S, D, V] box,
+    action': (Action[S, D, V] | None) = None)
   =>
-    _body = body
-    if action isnt None then
-      _action = action
+    _body = body'
+    if action' isnt None then
+      _action = action'
     end
 
-  fun val cant_recurse(stack: _RuleNodeStack[S, D, V] =
-    per.Lists[RuleNode[S, D, V] tag].empty()): Bool
-  =>
-    match _body
-    | let body: RuleNode[S, D, V] =>
-      let rule = this
-      if stack.exists({(x) => x is rule}) then
-        false
-      else
-        body.cant_recurse(stack.prepend(rule))
-      end
-    else
-      true
-    end
+  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
+    _BodyMightRecurse[S, D, V](this, _body, stack)
 
   fun val parse(
     state: _ParseState[S, D, V],
@@ -54,10 +43,10 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
     end
 
     match _body
-    | let body: RuleNode[S, D, V] =>
+    | let body': RuleNode[S, D, V] =>
       let self = this
       let parser = state.parser
-      parser._parse_named_rule(this, body, consume state, depth, loc,
+      parser._parse_named_rule(self, body', consume state, depth, loc,
         {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
           let result'' =
             match result'

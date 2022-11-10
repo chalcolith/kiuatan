@@ -7,19 +7,14 @@ class val Cond[S, D: Any #share = None, V: Any #share = None]
   let _cond: {(Success[S, D, V]): (Bool, (String | None))} val
 
   new create(
-    body: RuleNode[S, D, V] box,
-    cond: {(Success[S, D, V]): (Bool, (String | None))} val)
+    body': RuleNode[S, D, V] box,
+    cond': {(Success[S, D, V]): (Bool, (String | None))} val)
   =>
-    _body = body
-    _cond = cond
+    _body = body'
+    _cond = cond'
 
-  fun val cant_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
-    let rule = this
-    if stack.exists({(x) => x is rule}) then
-      false
-    else
-      _body.cant_recurse(stack.prepend(rule))
-    end
+  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
+    _BodyMightRecurse[S, D, V](this, _body, stack)
 
   fun val parse(
     state: _ParseState[S, D, V],

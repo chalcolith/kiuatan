@@ -1,16 +1,14 @@
-use "collections"
-
 class iso _ParseState[S, D: Any #share, V: Any #share]
   let parser: Parser[S, D, V]
   let data: D
   let source: Source[S]
-  let lr_stack: Map[Loc[S], Array[_LRState[S, D, V]]]
+  let lr_stack: Array[_LRState[S, D, V]]
 
   new iso create(parser': Parser[S, D, V], data': D, source': Source[S]) =>
     parser = parser'
     data = data'
     source = source'
-    lr_stack = Map[Loc[S], Array[_LRState[S, D, V]]]
+    lr_stack = Array[_LRState[S, D, V]]
 
 class iso _LRState[S, D: Any #share, V: Any #share]
   let node: RuleNode[S, D, V]

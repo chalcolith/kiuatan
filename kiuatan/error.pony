@@ -11,8 +11,8 @@ class val Error[S, D: Any #share = None, V: Any #share = None]
     _message = message
     _action = action
 
-  fun val cant_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
-    true
+  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
+    false
 
   fun val parse(
     state: _ParseState[S, D, V],
