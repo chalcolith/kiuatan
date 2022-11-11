@@ -122,18 +122,20 @@ class val Loc[S]
     """
     Returns `true` if `this` is further along in the source than `that`.  Should be used sparingly, as it has to count up from `this`, possibly to the end of the source.
     """
-    if this._segment is that._segment then
-      this._index > that._index
-    else
-      var cur = that.next()
-      while cur.has_value() do
-        if cur == this then
-          return true
+    try
+      if this._segment(0)? is that._segment(0)? then
+        return this._index > that._index
+      else
+        var cur = that.next()
+        while cur.has_value() do
+          if cur == this then
+            return true
+          end
+          cur = cur.next()
         end
-        cur = cur.next()
       end
-      false
     end
+    false
 
   fun ge(that: Loc[S] box): Bool =>
     (this == that) or (this > that)
@@ -142,18 +144,20 @@ class val Loc[S]
     """
     Returns `true` if `that` is further along in the source than `this`.  Should be used sparingly, as it has to count up from `that`, possibly to the end of the source.
     """
-    if this._segment is that._segment then
-      this._index < that._index
-    else
-      var cur = this.next()
-      while cur.has_value() do
-        if cur == that then
-          return true
+    try
+      if this._segment(0)? is that._segment(0)? then
+        return this._index < that._index
+      else
+        var cur = this.next()
+        while cur.has_value() do
+          if cur == that then
+            return true
+          end
+          cur = cur.next()
         end
-        cur = cur.next()
       end
-      false
     end
+    false
 
   fun le(that: Loc[S] box): Bool =>
     (this == that) or (this < that)

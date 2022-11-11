@@ -26,7 +26,7 @@ actor \nodoc\ Main is TestList
     test(_TestRuleStarMax)
     test(_TestRuleStarChildren)
     test(_TestRuleForwardDeclare)
-    // test(_TestRuleLRImmediate)
+    test(_TestRuleLRImmediate)
     // test(_TestRuleLRLeftAssoc)
     // test(_TestRuleLRIndirect)
     test(_TestRuleVariableBind)

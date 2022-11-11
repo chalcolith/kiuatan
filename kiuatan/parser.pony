@@ -153,11 +153,8 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     let self: Parser[S, D, V] tag = this
 
     // look in memo for a top-level memoized result
-    match _lookup(rule, loc, 0)
+    match _lookup(depth + 1, rule, loc)
     | let result: Result[S, D, V] =>
-      ifdef debug then
-        _Dbg.out(depth + 1, "found " + rule.name + "::0")
-      end
       cont(consume state, result)
       return
     end
@@ -166,18 +163,13 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     if not rule.might_recurse(per.Lists[RuleNode[S, D, V] tag].empty()) then
       body.parse(consume state, depth + 1, loc,
         {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
-          ifdef debug then
-            _Dbg.out(
-              depth + 2,
-              "memoizing " + rule.name + "::0 " + result'.string())
-          end
-          self._memoize(consume state', rule, loc, result', cont)
+          self._memoize(consume state', depth + 1, rule, loc, result', cont)
         })
       return
     end
 
-    // look in the LR records to see if we're in an LR
-    match state.existing_lr_state(rule, depth, loc)
+    // look in the LR records to see if we have a previous expansion
+    match state.prev_lr_result(rule, depth, loc)
     | let result: Result[S, D, V] =>
       cont(consume state, result)
       return
@@ -186,61 +178,101 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     // otherwise, memoize this rule as having failed for this expansion
     // and try parsing
     let failure = Failure[S, D, V](rule, loc, state.data)
+    let lr_index = state.push_state(depth + 1, rule, loc, failure)
+
     ifdef debug then
       _Dbg.out(depth + 1, rule.name + "::1")
-      _Dbg.out(depth + 2, "expansion " + rule.name + "::1 " + failure.string())
     end
+    _parse_lr(rule, body, consume state, depth, loc, lr_index, cont)
 
-    let lr_index = state.push_state(rule, loc, failure)
+  be _parse_lr(
+    rule: NamedRule[S, D, V],
+    body: RuleNode[S, D, V],
+    state: _ParseState[S, D, V],
+    depth: USize,
+    loc: Loc[S],
+    lr_index: USize,
+    cont: _Continuation[S, D, V])
+  =>
+    let self: Parser[S, D, V] tag = this
+
     body.parse(consume state, depth + 2, loc,
       {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
-        let exp = state'.cur_exp(lr_index)
-        ifdef debug then
-          _Dbg.out(depth + 2, "expansion " + rule.name + "::" +
-            exp.string() + " " + result'.string())
-        end
-        state'.push_result(lr_index, result')
+        if state'.lr_detected(lr_index) then
+          match result'
+          | let success: Success[S, D, V] =>
+            let last_next = state'.last_next(lr_index)
+            if success.next > last_next then
+              // try another expansion
+              let cur_exp = state'.cur_exp(lr_index)
+              state'.push_result(depth + 2, lr_index, result')
 
-        match result'
-        | let success: Success[S, D, V] =>
-          // if we've detected left-recursion, and our result is bigger than
-          // the last expansion, start another expansion
-          if state'.lr_detected(lr_index) and
-            (success.next > state'.next(lr_index))
-          then
-            self._parse_named_rule(rule, body, consume state', depth, loc, cont)
-            return
-          elseif lr_index == 0 then
-            // we're at the top level; memoize everything
-            let to_memoize = state'.cleanup(depth)
-            self._memoize_seq(consume state', to_memoize, result', cont)
-            return
+              ifdef debug then
+                _Dbg.out(depth + 1, rule.name + "::" + (cur_exp + 1).string())
+              end
+              self._parse_lr(
+                rule,
+                body,
+                consume state',
+                depth,
+                loc,
+                lr_index,
+                cont)
+              return
+            end
           end
-        | let failure: Failure[S, D, V] =>
+
+          // we're done; continue with the last expansion, if any
+          let result'' =
+            match state'.last_result(lr_index)
+            | let r: Result[S, D, V] =>
+              r
+            else
+              result'
+            end
           if lr_index == 0 then
             // we're at the top level; memoize everything
-            let to_memoize = state'.cleanup(depth)
-            self._memoize_seq(consume state', to_memoize, result', cont)
-            return
+            let to_memoize = state'.cleanup()
+            self._memoize_seq(
+              consume state',
+              depth + 2,
+              to_memoize,
+              result'',
+              cont)
+          else
+            // don't memoize intermediate results
+            cont(consume state', result'')
           end
+        else
+          self._memoize(consume state', depth + 2, rule, loc, result', cont)
         end
-        cont(consume state', result')
       })
 
-  fun _lookup(rule: NamedRule[S, D, V], loc: Loc[S], exp: USize)
+  fun _lookup(depth: USize, rule: NamedRule[S, D, V], loc: Loc[S])
     : (Result[S, D, V] | None)
   =>
     try
-      _memo(rule)?(loc)?
+      let result = _memo(rule)?(loc)?
+
+      ifdef debug then
+        _Dbg.out(depth, "found " + rule.name + " " + result.string())
+      end
+
+      result
     end
 
   be _memoize(
     state: _ParseState[S, D, V],
+    depth: USize,
     rule: NamedRule[S, D, V],
     loc: Loc[S],
     result: Result[S, D, V],
     cont: _Continuation[S, D, V])
   =>
+    ifdef debug then
+      _Dbg.out(depth, "memoize " + rule.name + " " + result.string())
+    end
+
     let by_loc =
       try
         _memo(rule)?
@@ -254,11 +286,16 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
 
   be _memoize_seq(
     state: _ParseState[S, D, V],
+    depth: USize,
     results: ReadSeq[(NamedRule[S, D, V], Loc[S], Result[S, D, V])] val,
     result: Result[S, D, V],
     cont: _Continuation[S, D, V])
   =>
     for (rule, loc, res) in results.values() do
+      ifdef debug then
+        _Dbg.out(depth, "memoize " + rule.name + " " + res.string())
+      end
+
       let by_loc =
         try
           _memo(rule)?
