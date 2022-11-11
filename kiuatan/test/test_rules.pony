@@ -288,10 +288,10 @@ class iso _TestRuleLRImmediate is UnitTest
       end
 
     Assert[U8].test_promises(h,
-      [ // Assert[U8].test_matches(h, rule, true, [ "123" ], 0, 3)
+      [ Assert[U8].test_matches(h, rule, true, [ "123" ], 0, 3)
         Assert[U8].test_matches(h, rule, true, [ "123+456" ], 0, 7)
-        // Assert[U8].test_matches(h, rule, false, [ "+" ], 0, 0)
-        // Assert[U8].test_matches(h, rule, false, [ "" ], 0, 0)
+        Assert[U8].test_matches(h, rule, false, [ "+" ], 0, 0)
+        Assert[U8].test_matches(h, rule, false, [ "" ], 0, 0)
       ])
 
 class iso _TestRuleLRLeftAssoc is UnitTest
@@ -319,11 +319,13 @@ class iso _TestRuleLRIndirect is UnitTest
 
   fun apply(h: TestHelper) =>
     // A <- B 'z' | 'x'
-    // B <- A 'y'
+    // B <- A C
+    // C <- 'y'
     let rule: NamedRule[U8] val =
       recover
         let a = NamedRule[U8]("A")
-        let b = NamedRule[U8]("B", Conj[U8]([ a; Literal[U8]("y") ]))
+        let c = NamedRule[U8]("C", Literal[U8]("y"))
+        let b = NamedRule[U8]("B", Conj[U8]([ a; c ]))
         a.set_body(Disj[U8](
           [ Conj[U8]([ b; Literal[U8]("z") ])
             Literal[U8]("x")

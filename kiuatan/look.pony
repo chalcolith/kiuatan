@@ -39,7 +39,7 @@ class val Look[S, D: Any #share = None, V: Any #share = None]
             Failure[S, D, V](self, loc, state'.data, None, failure)
           end
         ifdef debug then
-          _Dbg.out(depth, "< " + result''.string())
+          _Dbg.out(depth, "= " + result''.string())
         end
         outer(consume state', result'')
       })

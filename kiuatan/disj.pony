@@ -59,7 +59,7 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
                 state'.data,
                 [success])
               ifdef debug then
-                _Dbg.out(depth, "< " + result''.string())
+                _Dbg.out(depth, "= " + result''.string())
               end
               outer(consume state', result'')
             | let failure: Failure[S, D, V] =>
@@ -71,7 +71,7 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
         let result = Failure[S, D, V](this, loc, state.data,
           ErrorMsg.disjunction_failed(), None)
         ifdef debug then
-          _Dbg.out(depth, "< " + result.string())
+          _Dbg.out(depth, "= " + result.string())
         end
         outer(consume state, result)
       end

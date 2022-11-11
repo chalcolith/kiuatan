@@ -41,7 +41,7 @@ class val Cond[S, D: Any #share = None, V: Any #share = None]
             failure
           end
         ifdef debug then
-          _Dbg.out(depth, "< " + result''.string())
+          _Dbg.out(depth, "= " + result''.string())
         end
         outer(consume state', result'')
       })

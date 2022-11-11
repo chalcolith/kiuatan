@@ -48,7 +48,7 @@ class val Bind[S, D: Any #share = None, V: Any #share = None]
             result'
           end
         ifdef debug then
-          _Dbg.out(depth, "< " + variable.name + " = " + result''.string())
+          _Dbg.out(depth, "= " + variable.name + " := " + result''.string())
         end
         outer(consume state', result'')
       })

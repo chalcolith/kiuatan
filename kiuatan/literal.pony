@@ -25,7 +25,7 @@ class val Literal[
     outer: _Continuation[S, D, V])
   =>
     ifdef debug then
-      _Dbg.out(depth, "LIT  @" + loc._dbg(state.source))
+      _Dbg.out(depth, "LIT @" + loc._dbg(state.source))
     end
 
     let result =
@@ -44,7 +44,7 @@ class val Literal[
         Failure[S, D, V](this, loc, state.data, ErrorMsg.literal_failed())
       end
     ifdef debug then
-      _Dbg.out(depth, "< " + result.string())
+      _Dbg.out(depth, "= " + result.string())
     end
     outer(consume state, result)
 

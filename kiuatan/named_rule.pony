@@ -46,7 +46,12 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
     | let body': RuleNode[S, D, V] =>
       let self = this
       let parser = state.parser
-      parser._parse_named_rule(self, body', consume state, depth, loc,
+      parser._parse_named_rule(
+        consume state,
+        depth,
+        self,
+        body',
+        loc,
         {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
           let result'' =
             match result'
@@ -61,7 +66,7 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
               result'
             end
           ifdef debug then
-            _Dbg.out(depth, "< " + result''.string())
+            _Dbg.out(depth, "= " + result''.string())
           end
           outer(consume state', result'')
         })
@@ -69,7 +74,7 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
       let result =
         Failure[S, D, V](this, loc, state.data, ErrorMsg.rule_empty())
       ifdef debug then
-        _Dbg.out(depth, "< " + result.string())
+        _Dbg.out(depth, "= " + result.string())
       end
       outer(consume state, result)
     end

@@ -143,10 +143,10 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     end
 
   be _parse_named_rule(
-    rule: NamedRule[S, D, V],
-    body: RuleNode[S, D, V],
     state: _ParseState[S, D, V],
     depth: USize,
+    rule: NamedRule[S, D, V],
+    body: RuleNode[S, D, V],
     loc: Loc[S],
     cont: _Continuation[S, D, V])
   =>
@@ -169,8 +169,16 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     end
 
     // look in the LR records to see if we have a previous expansion
-    match state.prev_lr_result(rule, depth, loc)
-    | let result: Result[S, D, V] =>
+    match state.prev_expansion(rule, loc, true)
+    | (let result: Result[S, D, V], let first_lr: Bool) =>
+      ifdef debug then
+        if first_lr then
+          _Dbg.out(depth + 1, rule.name + ": LR DETECTED")
+        end
+        let prev_exp = state.current_expansion(rule, loc) - 1
+        _Dbg.out(depth + 1, "fnd_exp " + rule.name + "@" + loc.string() + " <" +
+          prev_exp.string() + "> " + result.string())
+      end
       cont(consume state, result)
       return
     end
@@ -178,73 +186,78 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     // otherwise, memoize this rule as having failed for this expansion
     // and try parsing
     let failure = Failure[S, D, V](rule, loc, state.data)
-    let lr_index = state.push_state(depth + 1, rule, loc, failure)
+    let topmost = state.memoize_expansion(depth + 1, rule, loc, failure)
 
     ifdef debug then
-      _Dbg.out(depth + 1, rule.name + "::1")
+      _Dbg.out(depth + 1, rule.name + "@" + loc.string() + " <" +
+        state.current_expansion(rule, loc).string() + ">")
     end
-    _parse_lr(rule, body, consume state, depth, loc, lr_index, cont)
+    _try_expansion(consume state, depth, rule, body, loc, topmost, cont)
 
-  be _parse_lr(
-    rule: NamedRule[S, D, V],
-    body: RuleNode[S, D, V],
+  be _try_expansion(
     state: _ParseState[S, D, V],
     depth: USize,
+    rule: NamedRule[S, D, V],
+    body: RuleNode[S, D, V],
     loc: Loc[S],
-    lr_index: USize,
+    topmost: Bool,
     cont: _Continuation[S, D, V])
   =>
     let self: Parser[S, D, V] tag = this
 
     body.parse(consume state, depth + 2, loc,
       {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
-        if state'.lr_detected(lr_index) then
+        if state'.lr_detected(rule, loc) then
+          let cur_exp = state'.current_expansion(rule, loc)
+
           match result'
           | let success: Success[S, D, V] =>
-            let last_next = state'.last_next(lr_index)
+            let last_next = state'.last_next(rule, loc)
             if success.next > last_next then
               // try another expansion
-              let cur_exp = state'.cur_exp(lr_index)
-              state'.push_result(depth + 2, lr_index, result')
+              state'.memoize_expansion(depth + 2, rule, loc, success)
 
               ifdef debug then
-                _Dbg.out(depth + 1, rule.name + "::" + (cur_exp + 1).string())
+                _Dbg.out(depth + 1, rule.name + "@" + loc.string() + " <" +
+                  state'.current_expansion(rule, loc).string() + ">")
               end
-              self._parse_lr(
-                rule,
-                body,
+              self._try_expansion(
                 consume state',
                 depth,
+                rule,
+                body,
                 loc,
-                lr_index,
+                topmost,
                 cont)
               return
             end
+            // fall through
           end
 
-          // we're done; continue with the last expansion, if any
+          // we're done; continue with the last expansion
           let result'' =
-            match state'.last_result(lr_index)
-            | let r: Result[S, D, V] =>
+            match state'.prev_expansion(rule, loc)
+            | (let r: Result[S, D, V], _) =>
               r
             else
               result'
             end
-          if lr_index == 0 then
-            // we're at the top level; memoize everything
-            let to_memoize = state'.cleanup()
-            self._memoize_seq(
-              consume state',
-              depth + 2,
-              to_memoize,
-              result'',
-              cont)
+
+          if topmost then
+            // we're at the top level; memoize the previous expansion
+            state'.remove_expansions(rule, loc)
+            self._memoize(consume state', depth + 1, rule, loc, result'', cont)
           else
-            // don't memoize intermediate results
+            // we're not at the top level; don't memoize intermediate results
+            state'.remove_expansions(rule, loc)
             cont(consume state', result'')
           end
+        elseif topmost then
+          state'.remove_expansions(rule, loc)
+          self._memoize(consume state', depth + 1, rule, loc, result', cont)
         else
-          self._memoize(consume state', depth + 2, rule, loc, result', cont)
+          state'.remove_expansions(rule, loc)
+          cont(consume state', result')
         end
       })
 

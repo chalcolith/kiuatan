@@ -56,7 +56,7 @@ class val Conj[S, D: Any #share = None, V: Any #share = None]
         results.reverse())
 
       ifdef debug then
-        _Dbg.out(depth, "< " + result.string())
+        _Dbg.out(depth, "= " + result.string())
       end
 
       outer(consume state, result)
@@ -80,7 +80,7 @@ class val Conj[S, D: Any #share = None, V: Any #share = None]
               let result'' = Failure[S, D, V](
                 self, start, state'.data, None, failure)
               ifdef debug then
-                _Dbg.out(depth, "< " + result''.string())
+                _Dbg.out(depth, "= " + result''.string())
               end
               outer(consume state', result'')
             end
@@ -89,7 +89,7 @@ class val Conj[S, D: Any #share = None, V: Any #share = None]
         let result = Failure[S, D, V](
           this, start, state.data, ErrorMsg.conjunction_failed())
         ifdef debug then
-          _Dbg.out(depth, "< " + result.string())
+          _Dbg.out(depth, "= " + result.string())
         end
         outer(consume state, result)
       end
