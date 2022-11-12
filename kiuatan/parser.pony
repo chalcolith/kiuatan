@@ -241,7 +241,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
             // fall through
           end
 
-          // we're done; continue with the last expansion
+          // we're done; continue with the widest expansion
           let result'' =
             match state'.prev_expansion(rule, loc)
             | (let r: Result[S, D, V], _) =>
@@ -255,14 +255,17 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
             state'.remove_expansions_below(0, loc)
             self._memoize(consume state', depth + 1, rule, loc, result'', cont)
           else
-            // we're not at the top level; update our expansion but remove below
+            // we're not at the top level; memoize in this expansions
             state'.update_expansion(depth + 1, rule, loc, result'')
             cont(consume state', result'')
           end
         elseif topmost then
+          // no left-recursion was detected, memoize us globally
           state'.remove_expansions_below(0, loc)
           self._memoize(consume state', depth + 1, rule, loc, result', cont)
         else
+          // no left-recursion detected, but we are inside another,
+          // memoize in this expansion
           state'.update_expansion(depth + 1, rule, loc, result')
           cont(consume state', result')
         end
