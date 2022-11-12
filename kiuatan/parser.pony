@@ -186,7 +186,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     // otherwise, memoize this rule as having failed for this expansion
     // and try parsing
     let failure = Failure[S, D, V](rule, loc, state.data)
-    let topmost = state.memoize_expansion(depth + 1, rule, loc, failure)
+    let topmost = state.push_expansion(depth + 1, rule, loc, failure)
 
     ifdef debug then
       _Dbg.out(depth + 1, rule.name + "@" + loc.string() + " <" +
@@ -215,7 +215,8 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
             let last_next = state'.last_next(rule, loc)
             if success.next > last_next then
               // try another expansion
-              state'.memoize_expansion(depth + 2, rule, loc, success)
+              state'.remove_expansions_below(depth + 2, loc)
+              state'.push_expansion(depth + 2, rule, loc, success)
 
               ifdef debug then
                 _Dbg.out(depth + 1, rule.name + "@" + loc.string() + " <" +
@@ -244,19 +245,19 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
             end
 
           if topmost then
-            // we're at the top level; memoize the previous expansion
-            state'.remove_expansions(rule, loc)
+            // we're at the top level; memoize us and remove all LR records
+            state'.remove_expansions_below(0, loc)
             self._memoize(consume state', depth + 1, rule, loc, result'', cont)
           else
-            // we're not at the top level; don't memoize intermediate results
-            state'.remove_expansions(rule, loc)
+            // we're not at the top level; update our expansion but remove below
+            state'.update_expansion(depth + 1, rule, loc, result'')
             cont(consume state', result'')
           end
         elseif topmost then
-          state'.remove_expansions(rule, loc)
+          state'.remove_expansions_below(0, loc)
           self._memoize(consume state', depth + 1, rule, loc, result', cont)
         else
-          state'.remove_expansions(rule, loc)
+          state'.update_expansion(depth + 1, rule, loc, result')
           cont(consume state', result')
         end
       })

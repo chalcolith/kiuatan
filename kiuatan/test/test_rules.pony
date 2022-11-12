@@ -319,22 +319,35 @@ class iso _TestRuleLRIndirect is UnitTest
 
   fun apply(h: TestHelper) =>
     // A <- B 'z' | 'x'
-    // B <- A C
+    // B <- A D C
     // C <- 'y'
+
+    // D <- E 'n' | 'l'
+    // E <- D 'm'
+
     let rule: NamedRule[U8] val =
       recover
+        let d = NamedRule[U8]("D")
+        let e = NamedRule[U8]("E", Conj[U8]([ d; Literal[U8]("m")]))
+        d.set_body(
+          Disj[U8]([
+            Conj[U8]([ e; Literal[U8]("n")])
+            Literal[U8]("l")
+          ]))
+
         let a = NamedRule[U8]("A")
         let c = NamedRule[U8]("C", Literal[U8]("y"))
-        let b = NamedRule[U8]("B", Conj[U8]([ a; c ]))
-        a.set_body(Disj[U8](
-          [ Conj[U8]([ b; Literal[U8]("z") ])
+        let b = NamedRule[U8]("B", Conj[U8]([ a; d; c ]))
+        a.set_body(
+          Disj[U8]([
+            Conj[U8]([ b; Literal[U8]("z") ])
             Literal[U8]("x")
           ]))
         a
       end
 
     Assert[U8].test_promises(h,
-      [ Assert[U8].test_matches(h, rule, true, [ "xyz" ], 0, 3)
+      [ Assert[U8].test_matches(h, rule, true, [ "xlmnyz" ], 0, 6)
       ])
 
 class iso _TestRuleVariableBind is UnitTest

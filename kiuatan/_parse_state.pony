@@ -1,15 +1,18 @@
 use "collections"
 
 class _LRRuleState[S, D: Any #share, V: Any #share]
+  let depth: USize
   let rule: NamedRule[S, D, V]
   let loc: Loc[S]
   let expansions: Array[Result[S, D, V]] = expansions.create()
   var lr_detected: Bool = false
 
   new create(
+    depth': USize,
     rule': NamedRule[S, D, V],
     loc': Loc[S])
   =>
+    depth = depth'
     rule = rule'
     loc = loc'
 
@@ -46,7 +49,7 @@ class iso _ParseState[S, D: Any #share, V: Any #share]
     data = data'
     source = source'
 
-  fun ref memoize_expansion(
+  fun ref push_expansion(
     depth: USize,
     rule: NamedRule[S, D, V],
     loc: Loc[S],
@@ -55,21 +58,39 @@ class iso _ParseState[S, D: Any #share, V: Any #share]
     let toplevel = lr_states.size() == 0
     try
       let lr_state = lr_states((rule, loc))?
+      let cur_exp = lr_state.expansions.size()
       ifdef debug then
         _Dbg.out(depth, "mem_exp " + rule.name + "@" + loc.string() + " <" +
-          lr_state.expansions.size().string() + "> " + result.string())
+          cur_exp.string() + "> " + result.string())
       end
       lr_state.expansions.push(result)
     else
-      let lr_state = _LRRuleState[S, D, V](rule, loc)
+      let lr_state = _LRRuleState[S, D, V](depth, rule, loc)
+      let cur_exp = lr_state.expansions.size()
       ifdef debug then
         _Dbg.out(depth, "mem_exp " + rule.name + "@" + loc.string() + " <" +
-          lr_state.expansions.size().string() + "> " + result.string())
+          cur_exp.string() + "> " + result.string())
       end
       lr_state.expansions.push(result)
       lr_states((rule, loc)) = lr_state
     end
     toplevel
+
+  fun ref update_expansion(
+    depth: USize,
+    rule: NamedRule[S, D, V],
+    loc: Loc[S],
+    result: Result[S, D, V])
+  =>
+    try
+      let lr_state = lr_states((rule, loc))?
+      let prev_exp = lr_state.expansions.size() - 1
+      ifdef debug then
+        _Dbg.out(depth, "mem_upd " + rule.name + "@" + loc.string() + " <" +
+          prev_exp.string() + "> " + result.string())
+      end
+      lr_state.expansions(prev_exp)? = result
+    end
 
   fun current_expansion(rule: NamedRule[S, D, V], loc: Loc[S]): USize =>
     try
@@ -81,6 +102,19 @@ class iso _ParseState[S, D: Any #share, V: Any #share]
   fun ref remove_expansions(rule: NamedRule[S, D, V], loc: Loc[S]) =>
     try
       lr_states.remove((rule, loc))?
+    end
+
+  fun ref remove_expansions_below(depth: USize, loc: Loc[S]) =>
+    let to_remove = Array[(NamedRule[S, D, V], Loc[S])]
+    for lr_state in lr_states.values() do
+      if (lr_state.depth >= depth) and (lr_state.loc == loc) then
+        to_remove.push((lr_state.rule, lr_state.loc))
+      end
+    end
+    for key in to_remove.values() do
+      try
+        lr_states.remove(key)?
+      end
     end
 
   fun ref prev_expansion(
