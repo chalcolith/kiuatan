@@ -1,5 +1,3 @@
-use per = "collections/persistent"
-
 class val Error[S, D: Any #share = None, V: Any #share = None]
   is RuleNode[S, D, V]
   """
@@ -13,19 +11,20 @@ class val Error[S, D: Any #share = None, V: Any #share = None]
     _message = message
     _action = action
 
-  fun val not_recursive(stack: _RuleNodeStack[S, D, V]): Bool =>
-    true
+  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
+    false
 
   fun val parse(
-    parser: Parser[S, D, V],
-    src: Source[S],
+    state: _ParseState[S, D, V],
+    depth: USize,
     loc: Loc[S],
-    data: D,
-    stack: _LRStack[S, D, V],
-    recur: _LRByRule[S, D, V],
-    continue_next: _Continuation[S, D, V])
+    outer: _Continuation[S, D, V])
   =>
-    continue_next(Failure[S, D, V](this, loc, data, _message), stack, recur)
+    let result = Failure[S, D, V](this, loc, state.data, _message)
+    ifdef debug then
+      _Dbg.out(depth, "ERROR " + result.string())
+    end
+    outer(consume state, result)
 
   fun val get_action(): (Action[S, D, V] | None) =>
     _action

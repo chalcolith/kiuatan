@@ -70,9 +70,9 @@ class GrammarBuilder
     | let r: NamedRule ref =>
       r
     else
-      let a = Var
-      let o = Var
-      let b = Var
+      let a = Var("a")
+      let o = Var("o")
+      let b = Var("b")
 
       let add = NamedRule("Additive")
       _additive = add
@@ -120,9 +120,9 @@ class GrammarBuilder
     | let r: NamedRule ref =>
       r
     else
-      let a = Var
-      let o = Var
-      let b = Var
+      let a = Var("a")
+      let o = Var("o")
+      let b = Var("b")
 
       let mul = NamedRule("Multiplicative")
       _multiplicative = mul
@@ -234,9 +234,9 @@ class GrammarBuilder
     | let r: NamedRule =>
       r
     else
-      let i = Var
-      let f = Var
-      let e = Var
+      let i = Var("i")
+      let f = Var("f")
+      let e = Var("e")
 
       let float' =
         recover val
@@ -326,7 +326,7 @@ class GrammarBuilder
     else
       let fraction' =
         recover val
-          let i = Var
+          let i = Var("i")
 
           NamedRule("Frac",
             Conj(

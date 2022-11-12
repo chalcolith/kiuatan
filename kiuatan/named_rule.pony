@@ -5,76 +5,79 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
   """
   Represents a named grammar rule.  Memoization and left-recursion handling happens per named `Rule`.
   """
+
   let name: String
   var _body: (RuleNode[S, D, V] box | None)
   var _action: (Action[S, D, V] | None)
 
-  new create(name': String, body: (RuleNode[S, D, V] box | None) = None,
-    action: (Action[S, D, V] | None) = None)
+  new create(name': String, body': (RuleNode[S, D, V] box | None) = None,
+    action': (Action[S, D, V] | None) = None)
   =>
     name = name'
-    _body = body
-    _action = action
+    _body = body'
+    _action = action'
 
-  fun val has_body(): Bool =>
-    not (_body is None)
+  fun has_body(): Bool =>
+    _body isnt None
 
-  fun ref set_body(body: RuleNode[S, D, V] box,
-    action: (Action[S, D, V] | None) = None)
+  fun ref set_body(
+    body': RuleNode[S, D, V] box,
+    action': (Action[S, D, V] | None) = None)
   =>
-    _body = body
-    if not (action is None) then
-      _action = action
+    _body = body'
+    if action' isnt None then
+      _action = action'
     end
 
-  fun val not_recursive(stack: _RuleNodeStack[S, D, V] =
-    per.Lists[RuleNode[S, D, V] tag].empty()): Bool
-  =>
-    match _body
-    | let body: val->RuleNode[S, D, V] =>
-      let rule = this
-      if stack.exists({(x) => x is rule}) then
-        false
-      else
-        body.not_recursive(stack.prepend(rule))
-      end
-    else
-      true
-    end
+  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
+    _BodyMightRecurse[S, D, V](this, _body, stack)
 
   fun val parse(
-    parser: Parser[S, D, V],
-    src: Source[S],
+    state: _ParseState[S, D, V],
+    depth: USize,
     loc: Loc[S],
-    data: D,
-    stack: _LRStack[S, D, V],
-    recur: _LRByRule[S, D, V],
-    continue_next: _Continuation[S, D, V])
+    outer: _Continuation[S, D, V])
   =>
+    ifdef debug then
+      _Dbg.out(depth, "RULE " + name + " @" + loc._dbg(state.source))
+    end
+
     match _body
-    | let body: RuleNode[S, D, V] =>
-      parser._parse_with_memo(body, src, loc, data, stack, recur,
-        this~_continue_first(data, continue_next))
+    | let body': RuleNode[S, D, V] =>
+      let self = this
+      let parser = state.parser
+      parser._parse_named_rule(
+        consume state,
+        depth,
+        self,
+        body',
+        loc,
+        {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
+          let result'' =
+            match result'
+            | let success: Success[S, D, V] =>
+              Success[S, D, V](
+                self,
+                success.start,
+                success.next,
+                state'.data,
+                [success])
+            else
+              result'
+            end
+          ifdef debug then
+            _Dbg.out(depth, "= " + result''.string())
+          end
+          outer(consume state', result'')
+        })
     else
-      continue_next(Failure[S, D, V](this, loc, data, ErrorMsg.rule_empty()),
-        stack, recur)
+      let result =
+        Failure[S, D, V](this, loc, state.data, ErrorMsg.rule_empty())
+      ifdef debug then
+        _Dbg.out(depth, "= " + result.string())
+      end
+      outer(consume state, result)
     end
 
-  fun val _continue_first(
-    data: D,
-    continue_next: _Continuation[S, D, V],
-    result: Result[S, D, V],
-    stack: _LRStack[S, D, V],
-    recur: _LRByRule[S, D, V])
-  =>
-    match result
-    | let success: Success[S, D, V] =>
-      continue_next(Success[S, D, V](this, success.start, success.next, data,
-        [success]), stack, recur)
-    | let failure: Failure[S, D, V] =>
-      continue_next(Failure[S, D, V](this, failure.start, data,
-        ErrorMsg.rule_expected(name), failure), stack, recur)
-    end
-
-  fun get_action(): (Action[S, D, V] | None) =>
+  fun val get_action(): (Action[S, D, V] | None) =>
     _action

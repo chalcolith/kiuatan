@@ -1,5 +1,3 @@
-use per = "collections/persistent"
-
 class val Disj[S, D: Any #share = None, V: Any #share = None]
   is RuleNode[S, D, V]
   """
@@ -11,82 +9,72 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
   let _children: ReadSeq[RuleNode[S, D, V] box]
   let _action: (Action[S, D, V] | None)
 
-  new create(children: ReadSeq[RuleNode[S, D, V] box],
+  new create(
+    children: ReadSeq[RuleNode[S, D, V] box],
     action: (Action[S, D, V] | None) = None)
   =>
     _children = children
     _action = action
 
-  fun val not_recursive(stack: _RuleNodeStack[S, D, V]): Bool =>
-    let rule = this
-    if stack.exists({(x) => x is rule}) then
-      false
-    else
-      let stack' = stack.prepend(rule)
-      for child in _children.values() do
-        if not child.not_recursive(stack') then
-          return false
-        end
-      end
-      true
-    end
+  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
+    _ChildrenMightRecurse[S, D, V](this, _children, stack)
 
   fun val parse(
-    parser: Parser[S, D, V],
-    src: Source[S],
+    state: _ParseState[S, D, V],
+    depth: USize,
     loc: Loc[S],
-    data: D,
-    stack: _LRStack[S, D, V],
-    recur: _LRByRule[S, D, V],
-    cont: _Continuation[S, D, V])
+    outer: _Continuation[S, D, V])
   =>
-    _parse_one(0, loc, parser, src, loc, data, stack, recur, None, cont)
+    ifdef debug then
+      _Dbg.out(depth, "DISJ @" + loc._dbg(state.source))
+    end
+    _parse_child(consume state, depth, 0, loc, None, outer)
 
-  fun val _parse_one(
+  fun val _parse_child(
+    state: _ParseState[S, D, V],
+    depth: USize,
     child_index: USize,
-    start: Loc[S],
-    parser: Parser[S, D, V],
-    src: Source[S],
     loc: Loc[S],
-    data: D,
-    stack: _LRStack[S, D, V],
-    recur: _LRByRule[S, D, V],
     last_failure: (Failure[S, D, V] | None),
-    continue_next: _Continuation[S, D, V])
+    outer: _Continuation[S, D, V])
   =>
     if child_index == _children.size() then
-      continue_next(Failure[S, D, V](this, start, data, None, last_failure),
-        stack, recur)
-    else
-      try
-        parser._parse_with_memo(_children(child_index)?, src, start, data,
-          stack, recur, this~_continue_first(child_index, start, parser, src,
-            loc, data, continue_next))
-      else
-        continue_next(Failure[S, D, V](this, start, data, None, last_failure),
-          stack, recur)
+      let result = Failure[S, D, V](this, loc, state.data, None, last_failure)
+      ifdef debug then
+        _Dbg.out(depth, "< " + result.string())
       end
-    end
-
-  fun val _continue_first(
-    child_index: USize,
-    start: Loc[S],
-    parser: Parser[S, D, V],
-    src: Source[S],
-    loc: Loc[S],
-    data: D,
-    continue_next: _Continuation[S, D, V],
-    result: Result[S, D, V],
-    stack: _LRStack[S, D, V],
-    recur: _LRByRule[S, D, V])
-  =>
-    match result
-    | let success: Success[S, D, V] =>
-      continue_next(Success[S, D, V](this, start, success.next, data,
-        [success]), stack, recur)
-    | let failure: Failure[S, D, V] =>
-      this._parse_one(child_index + 1, start, parser, src,
-        start, data, stack, recur, failure, continue_next)
+      outer(consume state, result)
+    else
+      match try _children(child_index)? end
+      | let child: RuleNode[S, D, V] =>
+        let self = this
+        child.parse(consume state, depth + 1, loc,
+          {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
+            match result'
+            | let success: Success[S, D, V] =>
+              let result'' = Success[S, D, V](
+                self,
+                loc,
+                success.next,
+                state'.data,
+                [success])
+              ifdef debug then
+                _Dbg.out(depth, "= " + result''.string())
+              end
+              outer(consume state', result'')
+            | let failure: Failure[S, D, V] =>
+              self._parse_child(
+                consume state', depth, child_index + 1, loc, failure, outer)
+            end
+          })
+      else
+        let result = Failure[S, D, V](this, loc, state.data,
+          ErrorMsg.disjunction_failed(), None)
+        ifdef debug then
+          _Dbg.out(depth, "= " + result.string())
+        end
+        outer(consume state, result)
+      end
     end
 
   fun val get_action(): (Action[S, D, V] | None) =>

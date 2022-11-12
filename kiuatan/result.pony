@@ -1,7 +1,7 @@
 use per = "collections/persistent"
 
 type Result[S, D: Any #share = None, V: Any #share = None]
-  is ( Success[S, D, V] | Failure[S, D, V] )
+  is (Success[S, D, V] | Failure[S, D, V])
   """
   The result of a parse attempt, either successful or failed.
   """
@@ -10,6 +10,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
   """
   The result of a successful parse.
   """
+
   let node: RuleNode[S, D, V]
   """The rule that matched successfully."""
 
@@ -24,9 +25,13 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
 
   let data: D
 
-  new val create(node': RuleNode[S, D, V], start': Loc[S], next': Loc[S],
-    data': D, children': ReadSeq[Success[S, D, V]] val
-      = recover Array[Success[S, D, V]](0) end)
+  new val create(
+    node': RuleNode[S, D, V],
+    start': Loc[S],
+    next': Loc[S],
+    data': D,
+    children': ReadSeq[Success[S, D, V]] val =
+      recover Array[Success[S, D, V]] end)
   =>
     node = node'
     start = start'
@@ -71,7 +76,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
       end
     end
 
-    // now bind variables (to the last child value)
+    // now bind variables
     match node
     | let bind: Bind[S, D, V] =>
       bindings' = bindings'.update(bind.variable, (this, result_values))
@@ -96,24 +101,28 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
         s.append("Success(" + rule.name + "@[" + start.string() + "," +
           next.string() + "))")
       else
-        s.append("Success(_@[" + start.string() + "," + next.string() + "))")
+        s.append("Success(@[" + start.string() + "," + next.string() + "))")
       end
       s
     end
-
 
 class val Failure[S, D: Any #share = None, V: Any #share = None]
   """
   The result of a failed match.
   """
+
   let node: RuleNode[S, D, V]
   let start: Loc[S]
   let message: (String | None)
   let inner: (Failure[S, D, V] | None)
   let data: D
 
-  new val create(node': RuleNode[S, D, V], start': Loc[S], data': D,
-    message': (String | None) = None, inner': (Failure[S, D, V] | None) = None)
+  new val create(
+    node': RuleNode[S, D, V],
+    start': Loc[S],
+    data': D,
+    message': (String | None) = None,
+    inner': (Failure[S, D, V] | None) = None)
   =>
     node = node'
     start = start'
@@ -150,7 +159,7 @@ class val Failure[S, D: Any #share = None, V: Any #share = None]
       | let rule: NamedRule[S, D, V] =>
         s.append("Failure(" + rule.name + "@" + start.string() + ")")
       else
-        s.append("Failure(_@" + start.string() + ")")
+        s.append("Failure(@" + start.string() + ")")
       end
       s
     end
