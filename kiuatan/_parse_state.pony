@@ -104,11 +104,20 @@ class iso _ParseState[S, D: Any #share, V: Any #share]
       lr_states.remove((rule, loc))?
     end
 
-  fun ref remove_expansions_below(depth: USize, loc: Loc[S]) =>
+  fun ref remove_expansions_below(depth: USize, loc: Loc[S])
+    : Array[(NamedRule[S, D, V], Loc[S], Result[S, D, V])] iso^
+  =>
+    let to_memoize: Array[(NamedRule[S, D, V], Loc[S], Result[S, D, V])] iso
+       = Array[(NamedRule[S, D, V], Loc[S], Result[S, D, V])]
     let to_remove = Array[(NamedRule[S, D, V], Loc[S])]
     for lr_state in lr_states.values() do
       if (lr_state.depth >= depth) and (lr_state.loc == loc) then
-        to_remove.push((lr_state.rule, lr_state.loc))
+        let last_exp = lr_state.expansions.size() - 1
+        try
+          to_memoize.push(
+            (lr_state.rule, lr_state.loc, lr_state.expansions(last_exp)?))
+          to_remove.push((lr_state.rule, lr_state.loc))
+        end
       end
     end
     for key in to_remove.values() do
@@ -116,6 +125,7 @@ class iso _ParseState[S, D: Any #share, V: Any #share]
         lr_states.remove(key)?
       end
     end
+    consume to_memoize
 
   fun ref prev_expansion(
     rule: NamedRule[S, D, V],

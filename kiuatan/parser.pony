@@ -251,9 +251,16 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
             end
 
           if topmost then
-            // we're at the top level; memoize us and remove all LR records
-            state'.remove_expansions_below(0, loc)
-            self._memoize(consume state', depth + 1, rule, loc, result'', cont)
+            // we're at the top level; memoize us and all rules below us,
+            // then remove all LR records
+            let to_memoize = state'.remove_expansions_below(0, loc)
+            to_memoize.push((rule, loc, result''))
+            self._memoize_seq(
+              consume state',
+              depth + 1,
+              consume to_memoize,
+              result'',
+              cont)
           else
             // we're not at the top level; memoize in this expansions
             state'.update_expansion(depth + 1, rule, loc, result'')
@@ -261,8 +268,14 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
           end
         elseif topmost then
           // no left-recursion was detected, memoize us globally
-          state'.remove_expansions_below(0, loc)
-          self._memoize(consume state', depth + 1, rule, loc, result', cont)
+          let to_memoize = state'.remove_expansions_below(0, loc)
+          to_memoize.push((rule, loc, result'))
+          self._memoize_seq(
+            consume state',
+            depth + 1,
+            consume to_memoize,
+            result',
+            cont)
         else
           // no left-recursion detected, but we are inside another,
           // memoize in this expansion
@@ -310,11 +323,11 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   be _memoize_seq(
     state: _ParseState[S, D, V],
     depth: USize,
-    results: ReadSeq[(NamedRule[S, D, V], Loc[S], Result[S, D, V])] val,
+    results: ReadSeq[(NamedRule[S, D, V], Loc[S], Result[S, D, V])] iso,
     result: Result[S, D, V],
     cont: _Continuation[S, D, V])
   =>
-    for (rule, loc, res) in results.values() do
+    for (rule, loc, res) in (consume results).values() do
       ifdef debug then
         _Dbg.out(depth, "memoize " + rule.name + " " + res.string())
       end
