@@ -163,7 +163,13 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     if not rule.might_recurse(per.Lists[RuleNode[S, D, V] tag].empty()) then
       body.parse(consume state, depth + 1, loc,
         {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
-          self._memoize(consume state', depth + 1, rule, loc, result', cont)
+          // don't memoize failures, there will be too many
+          match result'
+          | let success: Success[S, D, V] =>
+            self._memoize(consume state', depth + 1, rule, loc, success, cont)
+          else
+            cont(consume state', result')
+          end
         })
       return
     end
