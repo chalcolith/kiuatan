@@ -1,5 +1,5 @@
 class val Disj[S, D: Any #share = None, V: Any #share = None]
-  is RuleNode[S, D, V]
+  is RuleNodeWithChildren[S, D, V]
   """
   Matches one out of a list of possible alternatives.  Tries each alternative in
   order.  If one alternative fails, but an outer rule later fails, will *not*
@@ -10,14 +10,14 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
   let _action: (Action[S, D, V] | None)
 
   new create(
-    children: ReadSeq[RuleNode[S, D, V] box],
-    action: (Action[S, D, V] | None) = None)
+    children': ReadSeq[RuleNode[S, D, V] box],
+    action': (Action[S, D, V] | None) = None)
   =>
-    _children = children
-    _action = action
+    _children = children'
+    _action = action'
 
-  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
-    _ChildrenMightRecurse[S, D, V](this, _children, stack)
+  fun children(): ReadSeq[this->(RuleNode[S, D, V] box)] =>
+    _children
 
   fun val parse(
     state: _ParseState[S, D, V],

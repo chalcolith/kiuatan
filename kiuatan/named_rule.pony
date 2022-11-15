@@ -1,7 +1,7 @@
 use per = "collections/persistent"
 
 class val NamedRule[S, D: Any #share = None, V: Any #share = None]
-  is RuleNode[S, D, V]
+  is RuleNodeWithBody[S, D, V]
   """
   Represents a named grammar rule.  Memoization and left-recursion handling happens per named `Rule`.
   """
@@ -17,6 +17,9 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
     _body = body'
     _action = action'
 
+  fun body(): (this->(RuleNode[S, D, V] box) | None) =>
+    _body
+
   fun has_body(): Bool =>
     _body isnt None
 
@@ -28,9 +31,6 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
     if action' isnt None then
       _action = action'
     end
-
-  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
-    _BodyMightRecurse[S, D, V](this, _body, stack)
 
   fun val parse(
     state: _ParseState[S, D, V],

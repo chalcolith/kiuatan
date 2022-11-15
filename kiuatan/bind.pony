@@ -1,7 +1,7 @@
 use per = "collections/persistent"
 
 class val Bind[S, D: Any #share = None, V: Any #share = None]
-  is RuleNode[S, D, V]
+  is RuleNodeWithBody[S, D, V]
 
   let variable: Variable
   let _body: RuleNode[S, D, V] box
@@ -13,11 +13,8 @@ class val Bind[S, D: Any #share = None, V: Any #share = None]
     variable = variable'
     _body = body'
 
-  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
-    _BodyMightRecurse[S, D, V](this, _body, stack)
-
-  fun body(): (RuleNode[S, D, V] val | None) =>
-    recover val _body end
+  fun body(): (this->(RuleNode[S, D, V] box) | None) =>
+    _body
 
   fun val parse(
     state: _ParseState[S, D, V],
