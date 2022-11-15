@@ -18,9 +18,6 @@ class val Single[
     _expected = expected
     _action = action
 
-  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
-    false
-
   fun val parse(
     state: _ParseState[S, D, V],
     depth: USize,

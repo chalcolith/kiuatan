@@ -1,4 +1,7 @@
+use col = "collections"
 use per = "collections/persistent"
+
+use "debug"
 
 actor Parser[S, D: Any #share = None, V: Any #share = None]
   """
@@ -10,11 +13,13 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   var _updates: Array[_SegmentUpdate[S]]
 
   let _memo: _Memo[S, D, V]
+  let _left_recursive_rules: per.MapIs[NamedRule[S, D, V], Bool]
 
   new create(source: ReadSeq[Segment[S]] val) =>
     _segments = per.Lists[Segment[S]].from(source.values())
     _updates = Array[_SegmentUpdate[S]]
     _memo = _Memo[S, D, V]
+    _left_recursive_rules = per.MapIs[NamedRule[S, D, V], Bool]
 
   fun num_segments(): USize =>
     """
@@ -160,7 +165,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     end
 
     // if we can't be left-recursive, go ahead and parse
-    if not rule.might_recurse(per.Lists[RuleNode[S, D, V] tag].empty()) then
+    if not _is_left_recursive(rule, per.Lists[NamedRule[S, D, V]].empty()) then
       body.parse(consume state, depth + 1, loc,
         {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
           // don't memoize failures, there will be too many
@@ -199,6 +204,48 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         state.current_expansion(rule, loc).string() + ">")
     end
     _try_expansion(consume state, depth, rule, body, loc, topmost, cont)
+
+  fun ref _is_left_recursive(
+    node: RuleNode[S, D, V],
+    stack: per.List[NamedRule[S, D, V]]): Bool
+  =>
+    match node
+    | let named: NamedRule[S, D, V] =>
+      try
+        return _left_recursive_rules(named)?
+      end
+
+      if stack.exists({(rn) => rn.name == named.name }) then
+        return true
+      end
+
+      match named.body()
+      | let body: RuleNode[S, D, V] =>
+        let is_lr = _is_left_recursive(body, stack.prepend(named))
+        _left_recursive_rules(named) = is_lr
+        return is_lr
+      end
+    | let conj: Conj[S, D, V] =>
+      try
+        return _is_left_recursive(conj.children()(0)?, stack)
+      end
+    | let disj: Disj[S, D, V] =>
+      let children = disj.children()
+      for i in col.Range(0, children.size()) do
+        try
+          let child = children(i)?
+          if _is_left_recursive(child, stack) then
+            return true
+          end
+        end
+      end
+    | let with_body: RuleNodeWithBody[S, D, V] =>
+      match with_body.body()
+      | let body: RuleNode[S, D, V] =>
+        return _is_left_recursive(body, stack)
+      end
+    end
+    false
 
   be _try_expansion(
     state: _ParseState[S, D, V],

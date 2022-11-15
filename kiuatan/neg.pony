@@ -1,7 +1,7 @@
 use per = "collections/persistent"
 
 class val Neg[S, D: Any #share = None, V: Any #share = None]
-  is RuleNode[S, D, V]
+  is RuleNodeWithBody[S, D, V]
   """
   Negative lookahead: will succeed if its child rule does not match, and will not advance the match position.
   """
@@ -16,8 +16,8 @@ class val Neg[S, D: Any #share = None, V: Any #share = None]
     _body = body'
     _action = action'
 
-  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
-    _BodyMightRecurse[S, D, V](this, _body, stack)
+  fun body(): (this->(RuleNode[S, D, V] box) | None) =>
+    _body
 
   fun val parse(
     state: _ParseState[S, D, V],

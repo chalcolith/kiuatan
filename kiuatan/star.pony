@@ -1,7 +1,7 @@
 use per = "collections/persistent"
 
 class val Star[S, D: Any #share = None, V: Any #share = None]
-  is RuleNode[S, D, V]
+  is RuleNodeWithBody[S, D, V]
 
   """
   A generalization of Kleene star: will match from `min` to `max` repetitions of its child rule.
@@ -22,8 +22,8 @@ class val Star[S, D: Any #share = None, V: Any #share = None]
     _max = max'
     _action = action'
 
-  fun might_recurse(stack: _RuleNodeStack[S, D, V]): Bool =>
-    _BodyMightRecurse[S, D, V](this, _body, stack)
+  fun body(): (this->(RuleNode[S, D, V] box) | None) =>
+    _body
 
   fun val parse(
     state: _ParseState[S, D, V],
