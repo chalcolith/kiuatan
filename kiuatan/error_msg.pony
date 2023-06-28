@@ -24,10 +24,10 @@ primitive ErrorMsg
     "star combinator did not match enough times"
 
   fun tag rule_expected(name: String): String val =>
-    "expected " + name
+    "expected '" + name + "'"
 
-  fun tag rule_empty(): String val =>
-    "named rule combinator is empty"
+  fun tag rule_empty(name: String): String val =>
+    "named rule combinator '" + name + "' is empty"
 
   fun tag _lr_started(): String val => "LR started"
 

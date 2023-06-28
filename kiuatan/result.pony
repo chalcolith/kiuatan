@@ -142,7 +142,9 @@ class val Failure[S, D: Any #share = None, V: Any #share = None]
       | let inner': Failure[S, D, V] =>
         let inner_msg = inner'.get_message()
         if inner_msg.size() > 0 then
-          s.append(": ")
+          if message'.size() > 0 then
+            s.append(": ")
+          end
           s.append(inner_msg)
         end
       end

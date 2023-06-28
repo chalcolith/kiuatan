@@ -72,7 +72,7 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
         })
     else
       let result =
-        Failure[S, D, V](this, loc, state.data, ErrorMsg.rule_empty())
+        Failure[S, D, V](this, loc, state.data, ErrorMsg.rule_empty(name))
       ifdef debug then
         _Dbg.out(depth, "= " + result.string())
       end
