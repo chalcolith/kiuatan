@@ -18,7 +18,7 @@ Kiuatan ("horse" or "pony" in [Chinook Jargon](https://en.wikipedia.org/wiki/Chi
 The easiest way to incorporate Kiuatan into your Pony project is to use Pony [Corral](https://github.com/ponylang/corral).  Once you have it installed, `cd` to your project's directory and type:
 
 ```bash
-corral add github kulibali/kiuatan
+corral add github chalcolith/kiuatan
 ```
 
 This will add the library to your project.  You can then build your project with something like:
@@ -33,7 +33,7 @@ corral run -- ponyc .
 You can clone and build Kiuatan directly from GitHub (you must have [Corral](https://github.com/ponylang/corral) in your `PATH`):
 
 ```bash
-git clone https://github.com/kulibali/kiuatan.git
+git clone https://github.com/chalcolith/kiuatan.git
 cd kiuatan
 make && make test
 ```
@@ -42,7 +42,7 @@ To use Kiuatan in a project without [Corral](https://github.com/ponylang/corral)
 
 ## Examples
 
-The Kiuatan repo contains a canonical calulator example of how to use Kiuatan: [calc](https://github.com/kulibali/kiuatan/blob/main/examples/calc/calc).
+The Kiuatan repo contains a canonical calulator example of how to use Kiuatan: [calc](https://github.com/chalcolith/kiuatan/blob/main/examples/calc/calc).
 
 ## Concepts
 
@@ -83,7 +83,7 @@ You can build the body of a rule from the following combinator classes:
   - [`Look`](../kiuatan-Look): will attempt to match its child rule, but will *not* advance the match position.
   - [`Neg`](../kiuatan-Neg): will succeed if its child rule does *not* match, and will not advance the match position.
   - [`Star`](../kiuatan-Star): will match a number of repetitions of its child rule.  You can specify a minimum or maximum number of times to match.
-  - [`Bind`](../kiuatan-Bind): will bind the result of its child rule to an existing variable.  See the [calc example](https://github.com/kulibali/kiuatan/blob/main/examples/calc/calc/grammar_builder.pony) for an example of how to use `Bind`.
+  - [`Bind`](../kiuatan-Bind): will bind the result of its child rule to an existing variable.  See the [calc example](https://github.com/chalcolith/kiuatan/blob/main/examples/calc/calc/grammar_builder.pony) for an example of how to use `Bind`.
   - [`Condition`](../kiuatan-Bind): will succeed only if its child matches and the given condition returns `true`.
 
 #### Recursion
@@ -133,7 +133,7 @@ In order to attempt to parse a particular sequence (or sequence of segments) of 
 The generic parameters for the [`Parser`](../kiuatan-Parser) actor type (and other types in Kiuatan) are as follows:
 
   - `S`: this is the "source type"; i.e. your [`Source`](../kiuatan-Source)s will be sequences of values of this type.
-  - `D`: this is a "data" type. You can pass a value of this type to the [`Parser.parse()`](http://kulibali.github.io/kiuatan/kiuatan-Parser/index.html#parse) behaviour, and this value will be passed to your semantic [`Action`](../kiuatan-Action)s.
+  - `D`: this is a "data" type. You can pass a value of this type to the [`Parser.parse()`](http://chalcolith.github.io/kiuatan/kiuatan-Parser/index.html#parse) behaviour, and this value will be passed to your semantic [`Action`](../kiuatan-Action)s.
   - `V`: this is the "result value" type. For each successful parse result, zero or more result values (from child results) will be passed to your semantic [`Action`](../kiuatan-Action), if present.  If a rule has no action, child result values will be combined and passed to the next highest action.
 
 #### Updating Source

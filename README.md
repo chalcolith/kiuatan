@@ -1,6 +1,6 @@
 # Kiuatan
 
-![CI](https://github.com/kulibali/kiuatan/workflows/CI/badge.svg)
+![CI](https://github.com/chalcolith/kiuatan/workflows/CI/badge.svg)
 
 Kiuatan ("horse" or "pony" in [Chinook Jargon](https://en.wikipedia.org/wiki/Chinook_Jargon#Chinook_Jargon_words_used_by_English-language_speakers)) is a library for building and running parsers in the [Pony](https://www.ponylang.org) programming language.
 
@@ -12,7 +12,7 @@ Kiuatan ("horse" or "pony" in [Chinook Jargon](https://en.wikipedia.org/wiki/Chi
 - Kiuatan parsers are "packrat" parsers; they memoize intermediate results, resulting in linear-time parsing.
 - Parsers use Mederios et al's [algorithm](https://arxiv.org/abs/1207.0443) to handle unlimited left-recursion.
 
-Further [documentation is here](https://kulibali.github.io/kiuatan/kiuatan--index/).
+Further [documentation is here](https://chalcolith.github.io/kiuatan/kiuatan--index/).
 
 ## Obtaining Kiuatan
 
@@ -21,7 +21,7 @@ Further [documentation is here](https://kulibali.github.io/kiuatan/kiuatan--inde
 The easiest way to incorporate Kiuatan into your Pony project is to use Pony [Corral](https://github.com/ponylang/corral).  Once you have it installed, `cd` to your project's directory and type:
 
 ```bash
-corral add github kulibali/kiuatan
+corral add github chalcolith/kiuatan
 ```
 
 This will add the library to your project.  You can then build your project with something like:
@@ -36,7 +36,7 @@ corral run -- ponyc .
 You can clone and build Kiuatan directly from GitHub:
 
 ```bash
-git clone https://github.com/kulibali/kiuatan.git
+git clone https://github.com/chalcolith/kiuatan.git
 cd kiuatan
 make test
 ```
@@ -45,8 +45,8 @@ To use Kiuatan in a project you will need to add `kiuatan/kiuatan` to your `PONY
 
 ## Documentation
 
-[Documentation is here](https://kulibali.github.io/kiuatan/kiuatan--index/).
+[Documentation is here](https://chalcolith.github.io/kiuatan/kiuatan--index/).
 
 ## Example
 
-See the [calc example](https://github.com/kulibali/kiuatan/blob/main/examples/calc/calc) for a sample of how to define and use a grammar for Kiuatan.
+See the [calc example](https://github.com/chalcolith/kiuatan/blob/main/examples/calc/calc) for a sample of how to define and use a grammar for Kiuatan.
