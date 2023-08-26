@@ -66,7 +66,7 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
               result'
             end
           ifdef debug then
-            _Dbg.out(depth, "= " + result''.string())
+            _Dbg.out(depth, name + " = " + result''.string())
           end
           outer(consume state', result'')
         })
@@ -74,7 +74,7 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
       let result =
         Failure[S, D, V](this, loc, state.data, ErrorMsg.rule_empty(name))
       ifdef debug then
-        _Dbg.out(depth, "= " + result.string())
+        _Dbg.out(depth, name + " = " + result.string())
       end
       outer(consume state, result)
     end

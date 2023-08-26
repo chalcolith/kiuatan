@@ -45,21 +45,35 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
     """
     Call the matched rules' actions to assemble a custom result value.
     """
-    (let result_values: ReadSeq[V] val, _) = _values_aux(0, bindings)
-    result_values
+    match _values_aux(0, bindings)
+    | (let result_values: Array[V] val, _) =>
+      result_values
+    else
+      []
+    end
 
   fun val _values_aux(indent: USize, bindings: Bindings[S, D, V])
-    : (ReadSeq[V] val, Bindings[S, D, V])
+    : ((Array[V] val | None), Bindings[S, D, V])
   =>
     // collect values from child results
     var bindings' = bindings
-    var result_values: Array[V] val =
+    var result_values: (Array[V] val | None) =
       recover val
-        let result_values' = Array[V]
+        var result_values': (Array[V] | None) = None
         for child in children.values() do
-          (let child_result_values: ReadSeq[V] val, bindings') =
+          (let child_result_values: (Array[V] val | None), bindings') =
             child._values_aux(indent + 1, bindings')
-          result_values'.append(child_result_values)
+
+          match child_result_values
+          | let crv: Array[V] val if crv.size() > 0 =>
+            result_values' =
+              match result_values'
+              | let rv': Array[V] =>
+                rv' .> append(crv)
+              else
+                Array[V](crv.size()) .> append(crv)
+              end
+          end
         end
         result_values'
       end
@@ -67,19 +81,33 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
     // now run node's action, if any
     match node.get_action()
     | let action: Action[S, D, V] =>
-      (let value, bindings') = action(this, result_values, bindings')
+      let result_values' =
+        match result_values
+        | let rv': Array[V] val =>
+          rv'
+        else
+          recover val Array[V] end
+        end
+      (let value, bindings') = action(this, result_values', bindings')
       match value
       | let value': V =>
         result_values = recover val [ value' ] end
       else
-        result_values = recover val Array[V] end
+        result_values = None
       end
     end
 
     // now bind variables
     match node
     | let bind: Bind[S, D, V] =>
-      bindings' = bindings'.update(bind.variable, (this, result_values))
+      let result_values' =
+        match result_values
+        | let rv': Array[V] val =>
+          rv'
+        else
+          recover val Array[V] end
+        end
+      bindings' = bindings'.update(bind.variable, (this, result_values'))
     end
     (result_values, bindings')
 
