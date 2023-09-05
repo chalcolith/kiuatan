@@ -89,17 +89,17 @@ class GrammarBuilder
               var second: F64 = 0.0
 
               try
-                first = bindings(a)?._2(0)?
+                first = bindings.values(a, result)?(0)?
               end
 
               try
-                if bindings(o)?._1.start()? == '-' then
+                if bindings(o, result)?._1.start()? == '-' then
                   op_is_add = false
                 end
               end
 
               try
-                second = bindings(b)?._2(0)?
+                second = bindings.values(b, result)?(0)?
               end
 
               let sum: (F64 | None) =
@@ -139,17 +139,17 @@ class GrammarBuilder
               var second: F64 = 1.0
 
               try
-                first = bindings(a)?._2(0)?
+                first = bindings.values(a, result)?(0)?
               end
 
               try
-                if bindings(o)?._1.start()? == '/' then
+                if bindings(o, result)?._1.start()? == '/' then
                   op_is_mul = false
                 end
               end
 
               try
-                second = bindings(b)?._2(0)?
+                second = bindings.values(b, result)?(0)?
               end
 
               let prod: (F64 | None) =
@@ -252,15 +252,15 @@ class GrammarBuilder
               var exp_num: F64 = 1.0
 
               try
-                int_num = bindings(i)?._2(0)?
+                int_num = bindings.values(i, result)?(0)?
               end
 
               try
-                frac_num = bindings(f)?._2(0)?
+                frac_num = bindings.values(f, result)?(0)?
               end
 
               try
-                exp_num = bindings(e)?._2(0)?
+                exp_num = bindings.values(e, result)?(0)?
               end
 
               let n =
@@ -336,7 +336,7 @@ class GrammarBuilder
                     var f: F64 = 0.0
 
                     try
-                      match b(i)?
+                      match b(i, r)?
                       | (let s: Success, let ns: ReadSeq[F64] val) =>
                         f = ns(0)?
                         for _ in s.start.values(s.next) do
