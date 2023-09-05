@@ -34,3 +34,4 @@ actor \nodoc\ Main is TestList
     test(_TestRuleData)
     test(_TestFlatten)
     test(_TestRuleBindStar)
+    test(_TestRuleBindRecursive)

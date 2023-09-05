@@ -369,18 +369,18 @@ class iso _TestRuleVariableBind is UnitTest
                 (USize(2),b)
               }))
           ],
-          {(result, vals, bindings) =>
+          {(result, child_values, bindings) =>
             var vx: USize = 0
             var vy: USize = 0
 
             try
-              vx = bindings(x)?._2(0)?
+              vx = bindings.values(x, result)?(0)?
             else
               return (None, bindings)
             end
 
             try
-              vy = bindings(y)?._2(0)?
+              vy = bindings.values(y, result)?(0)?
             else
               return (None, bindings)
             end
@@ -460,7 +460,7 @@ class iso _TestRuleBindStar is UnitTest
           {(r,_,b) =>
             let n: USize =
               try
-                let values = b(v)?._2
+                let values = b.values(v, r)?
                 values.size()
               else
                 0
@@ -472,3 +472,41 @@ class iso _TestRuleBindStar is UnitTest
     Assert[U8, None, USize].test_promises(h, [
       Assert[U8, None, USize].test_matches(h, rule, true, [ "aaa" ], 0, 3, None, 3)
     ])
+
+class _TestRuleBindRecursive is UnitTest
+  fun name(): String => "Rule_Bind_Recursive"
+
+  fun apply(h: TestHelper) =>
+    let int_rule =
+      recover val
+        NamedRule[U8,None,String]("Int",
+          Star[U8,None,String](Single[U8,None,String]("0123456789")),
+          {(r,_,b) =>
+            let str = recover val String .> concat(r.start.values(r.next)) end
+            (str, b)
+          })
+      end
+
+    let comma_rule =
+      recover val
+        let lhs = Variable("lhs")
+        let rhs = Variable("rhs")
+        let comma_rule' = NamedRule[U8,None,String]("Comma")
+        comma_rule'.set_body(
+          Conj[U8,None,String](
+            [ Bind[U8,None,String](lhs, int_rule)
+              Star[U8,None,String](
+                Conj[U8,None,String](
+                  [ Literal[U8,None,String](",")
+                    Bind[U8,None,String](rhs, comma_rule') ])) ]),
+          {(r,_,b) =>
+            let lhs' = try b.values(lhs, r)?(0)? else "?" end
+            let rhs' = try b.values(rhs, r)?(0)? else "?" end
+            (recover val lhs' + "," + rhs' end, b)
+          })
+        comma_rule'
+      end
+
+    Assert[U8,None,String].test_promises(h,
+      [ Assert[U8,None,String].test_matches(
+          h, comma_rule, true, [ "20,10" ], 0, 5, None, "20,10,?") ])

@@ -31,7 +31,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
     next': Loc[S],
     data': D,
     children': ReadSeq[Success[S, D, V]] val =
-      recover Array[Success[S, D, V]] end)
+      recover val Array[Success[S, D, V]] end)
   =>
     node = node'
     start = start'
@@ -107,7 +107,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
         else
           recover val Array[V] end
         end
-      bindings' = bindings'.update(bind.variable, (this, result_values'))
+      bindings' = bindings'.add(bind.variable, (this, result_values'))
     end
     (result_values, bindings')
 
@@ -120,6 +120,11 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
       end
       s
     end
+
+  fun eq(that: box->Success[S, D, V]): Bool =>
+    (this.node is that.node)
+      and (this.start == that.start)
+      and (this.next == that.next)
 
   fun string(): String iso^ =>
     recover
