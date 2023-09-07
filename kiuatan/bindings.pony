@@ -67,3 +67,11 @@ class val Bindings[S, D: Any #share, V: Any #share]
       end
     end
     error
+
+  fun val contains(variable: (Variable | None)): Bool =>
+    match variable
+    | let variable': Variable =>
+      _bindings.contains(variable')
+    else
+      false
+    end
