@@ -58,24 +58,34 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
     // collect values from child results
     var bindings' = bindings
     var result_values: (Array[V] val | None) =
-      recover val
-        var result_values': (Array[V] | None) = None
-        for child in children.values() do
+      // if we have only one result, pass it on up rather than
+      // allocating another array
+      if children.size() < 2 then
+        try
           (let child_result_values: (Array[V] val | None), bindings') =
-            child._values_aux(indent + 1, bindings')
-
-          match child_result_values
-          | let crv: Array[V] val if crv.size() > 0 =>
-            result_values' =
-              match result_values'
-              | let rv': Array[V] =>
-                rv' .> append(crv)
-              else
-                Array[V](crv.size()) .> append(crv)
-              end
-          end
+            children(0)?._values_aux(indent + 1, bindings')
+          child_result_values
         end
-        result_values'
+      else
+        recover val
+          var result_values': (Array[V] | None) = None
+          for child in children.values() do
+            (let child_result_values: (Array[V] val | None), bindings') =
+              child._values_aux(indent + 1, bindings')
+
+            match child_result_values
+            | let crv: Array[V] val if crv.size() > 0 =>
+              result_values' =
+                match result_values'
+                | let rv': Array[V] =>
+                  rv' .> append(crv)
+                else
+                  Array[V](crv.size()) .> append(crv)
+                end
+            end
+          end
+          result_values'
+        end
       end
 
     // now run node's action, if any
