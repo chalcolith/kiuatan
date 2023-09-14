@@ -7,15 +7,20 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
   """
 
   let name: String
+  let memoize_failures: Bool
   var _body: (RuleNode[S, D, V] box | None)
   var _action: (Action[S, D, V] | None)
 
-  new create(name': String, body': (RuleNode[S, D, V] box | None) = None,
-    action': (Action[S, D, V] | None) = None)
+  new create(
+    name': String,
+    body': (RuleNode[S, D, V] box | None) = None,
+    action': (Action[S, D, V] | None) = None,
+    memoize_failures': Bool = true)
   =>
     name = name'
     _body = body'
     _action = action'
+    memoize_failures = memoize_failures'
 
   fun body(): (this->(RuleNode[S, D, V] box) | None) =>
     _body

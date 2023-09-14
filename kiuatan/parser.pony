@@ -168,7 +168,16 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     if not _is_left_recursive(rule, per.Lists[NamedRule[S, D, V]].empty()) then
       body.parse(consume state, depth + 1, loc,
         {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
-          self._memoize(consume state', depth + 1, rule, loc, result', cont)
+          match result'
+          | let success: Success[S, D, V] =>
+            self._memoize(consume state', depth + 1, rule, loc, result', cont)
+          else
+            if rule.memoize_failures then
+              self._memoize(consume state', depth + 1, rule, loc, result', cont)
+            else
+              cont(consume state', result')
+            end
+          end
         })
       return
     end
