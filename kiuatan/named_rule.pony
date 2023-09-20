@@ -38,50 +38,47 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
     end
 
   fun val parse(
-    state: _ParseState[S, D, V],
+    parser: Parser[S, D, V],
     depth: USize,
     loc: Loc[S],
     outer: _Continuation[S, D, V])
   =>
     ifdef debug then
-      _Dbg.out(depth, "RULE " + name + " @" + loc._dbg(state.source))
+      _Dbg.out(depth, "RULE " + name + " @" + loc.string())
     end
 
     match _body
     | let body': RuleNode[S, D, V] =>
       let self = this
-      let parser = state.parser
       parser._parse_named_rule(
-        consume state,
         depth,
         self,
         body',
         loc,
-        {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
-          let result'' =
-            match result'
+        {(result: Result[S, D, V]) =>
+          let result' =
+            match result
             | let success: Success[S, D, V] =>
               Success[S, D, V](
                 self,
                 success.start,
                 success.next,
-                state'.data,
                 [success])
             else
-              result'
+              result
             end
           ifdef debug then
-            _Dbg.out(depth, name + " = " + result''.string())
+            _Dbg.out(depth, name + " = " + result'.string())
           end
-          outer(consume state', result'')
+          outer(result')
         })
     else
       let result =
-        Failure[S, D, V](this, loc, state.data, ErrorMsg.rule_empty(name))
+        Failure[S, D, V](this, loc, ErrorMsg.rule_empty(name))
       ifdef debug then
         _Dbg.out(depth, name + " = " + result.string())
       end
-      outer(consume state, result)
+      outer(result)
     end
 
   fun val get_action(): (Action[S, D, V] | None) =>

@@ -223,11 +223,11 @@ class iso _TestRuleStarChildren is UnitTest
         NamedRule[U8, None, USize]("Dots",
           Star[U8, None, USize](
             Single[U8, None, USize](".",
-              {(_, _, b) =>
+              {(_, _, _, b) =>
                 (USize(1), b)
               }),
             1),
-          {(_, c, b) =>
+          {(_, _, c, b) =>
             (c.size(), b)
           })
       end
@@ -288,10 +288,10 @@ class iso _TestRuleLRImmediate is UnitTest
       end
 
     Assert[U8].test_promises(h,
-      [ //Assert[U8].test_matches(h, rule, true, [ "123" ], 0, 3)
+      [ Assert[U8].test_matches(h, rule, true, [ "123" ], 0, 3)
         Assert[U8].test_matches(h, rule, true, [ "123+456" ], 0, 7)
-        //Assert[U8].test_matches(h, rule, false, [ "+" ], 0, 0)
-        //Assert[U8].test_matches(h, rule, false, [ "" ], 0, 0)
+        Assert[U8].test_matches(h, rule, false, [ "+" ], 0, 0)
+        Assert[U8].test_matches(h, rule, false, [ "" ], 0, 0)
       ])
 
 class iso _TestRuleLRLeftAssoc is UnitTest
@@ -361,15 +361,15 @@ class iso _TestRuleVariableBind is UnitTest
       recover val
         NamedRule[U8, None, USize]("Rule", Conj[U8, None, USize](
           [ Bind[U8, None, USize](x, Literal[U8, None, USize]("x",
-              {(_,_,b) =>
+              {(_,_,_,b) =>
                 (USize(1),b)
               }))
             Bind[U8, None, USize](y, Literal[U8, None, USize]("y",
-              {(_,_,b) =>
+              {(_,_,_,b) =>
                 (USize(2),b)
               }))
           ],
-          {(result, child_values, bindings) =>
+          {(_, result, child_values, bindings) =>
             var vx: USize = 0
             var vy: USize = 0
 
@@ -391,8 +391,8 @@ class iso _TestRuleVariableBind is UnitTest
       end
 
     Assert[U8, None, USize].test_promises(h,
-      [ Assert[U8, None, USize].test_matches(h, rule, true, [ "xy" ], 0, 2, None, 3)
-      ])
+      [ Assert[U8, None, USize].test_matches(
+          h, rule, true, [ "xy" ], 0, 2, None, 3) ])
 
 class iso _TestRuleCondition is UnitTest
   fun name(): String => "Rule_Condition"
@@ -427,14 +427,14 @@ class iso _TestRuleData is UnitTest
       recover val
         NamedRule[U8, String, String]("WithData",
           Literal[U8, String, String]("x",
-            {(s, _, b) =>
+            {(data, s, _, b) =>
               let str =
                 recover
                   let str': String ref = String
                   for ch in s.start.values(s.next) do
                     str'.push(ch)
                   end
-                  str'.>append(s.data)
+                  str'.>append(data)
                 end
               (str, b)
             }))
@@ -456,8 +456,8 @@ class iso _TestRuleBindStar is UnitTest
           Bind[U8,None,USize](v,
             Star[U8,None,USize](
               Single[U8,None,USize]("a",
-                {(r,_,b) => (USize(123), b) }))),
-          {(r,_,b) =>
+                {(_,r,_,b) => (USize(123), b) }))),
+          {(_,r,_,b) =>
             let n: USize =
               try
                 let values = b.values(v, r)?
@@ -481,7 +481,7 @@ class _TestRuleBindRecursive is UnitTest
       recover val
         NamedRule[U8,None,String]("Int",
           Star[U8,None,String](Single[U8,None,String]("0123456789")),
-          {(r,_,b) =>
+          {(_,r,_,b) =>
             let str = recover val String .> concat(r.start.values(r.next)) end
             (str, b)
           })
@@ -499,7 +499,7 @@ class _TestRuleBindRecursive is UnitTest
                 Conj[U8,None,String](
                   [ Literal[U8,None,String](",")
                     Bind[U8,None,String](rhs, comma_rule') ])) ]),
-          {(r,_,b) =>
+          {(_,r,_,b) =>
             let lhs' = try b.values(lhs, r)?(0)? else "?" end
             let rhs' = try b.values(rhs, r)?(0)? else "?" end
             (recover val lhs' + "," + rhs' end, b)

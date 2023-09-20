@@ -83,7 +83,7 @@ class GrammarBuilder
               Bind(o, add_op())
               Bind(b, multiplicative())
             ],
-            {(result, values, bindings) =>
+            {(_, result, values, bindings) =>
               var first: F64 = 0.0
               var op_is_add: Bool = true
               var second: F64 = 0.0
@@ -133,7 +133,7 @@ class GrammarBuilder
               Bind(o, mul_op())
               Bind(b, term())
             ],
-            {(result, values, bindings) =>
+            {(_, result, values, bindings) =>
               var first: F64 = 1.0
               var op_is_mul: Bool = true
               var second: F64 = 1.0
@@ -246,7 +246,7 @@ class GrammarBuilder
               Bind(e, Star(exponent(), 0, None, 1))
               space()
             ],
-            {(result, subvals, bindings) =>
+            {(_, result, values, bindings) =>
               var int_num: F64 = 0.0
               var frac_num: F64 = 0.0
               var exp_num: F64 = 1.0
@@ -292,7 +292,7 @@ class GrammarBuilder
             [ Star(Sing("-+"), 0, None, 1)
               Star(Sing("0123456789"), 1)
             ]),
-            {(r,_,b) =>
+            {(_,r,_,b) =>
               var n: F64 = 0.0
               try
                 var start = r.start
@@ -318,7 +318,6 @@ class GrammarBuilder
       integer'
     end
 
-
   fun ref fraction(): NamedRule =>
     match _fraction
     | let r: NamedRule =>
@@ -332,7 +331,7 @@ class GrammarBuilder
             Conj(
               [ Lit(".")
                 Star(Bind(i, integer()), 0,
-                  {(r,_,b) =>
+                  {(_,r,_,b) =>
                     var f: F64 = 0.0
 
                     try

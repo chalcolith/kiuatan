@@ -20,17 +20,17 @@ class val Conj[S, D: Any #share = None, V: Any #share = None]
     _children
 
   fun val parse(
-    state: _ParseState[S, D, V],
+    parser: Parser[S, D, V],
     depth: USize,
     loc: Loc[S],
     outer: _Continuation[S, D, V])
   =>
     ifdef debug then
-      _Dbg.out(depth, "CONJ @" + loc._dbg(state.source))
+      _Dbg.out(depth, "CONJ @" + loc.string())
     end
 
     _parse_child(
-      consume state,
+      parser,
       depth,
       loc,
       0,
@@ -39,7 +39,7 @@ class val Conj[S, D: Any #share = None, V: Any #share = None]
       outer)
 
   fun val _parse_child(
-    state: _ParseState[S, D, V],
+    parser: Parser[S, D, V],
     depth: USize,
     start: Loc[S],
     child_index: USize,
@@ -52,24 +52,23 @@ class val Conj[S, D: Any #share = None, V: Any #share = None]
         this,
         start,
         loc,
-        state.data,
         results.reverse())
 
       ifdef debug then
         _Dbg.out(depth, "= " + result.string())
       end
 
-      outer(consume state, result)
+      outer(result)
     else
       match try _children(child_index)? end
       | let child: RuleNode[S, D, V] =>
         let self = this
-        child.parse(consume state, depth + 1, loc,
-          {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
-            match result'
+        child.parse(parser, depth + 1, loc,
+          {(result: Result[S, D, V]) =>
+            match result
             | let success: Success[S, D, V] =>
               self._parse_child(
-                consume state',
+                parser,
                 depth,
                 start,
                 child_index + 1,
@@ -77,21 +76,20 @@ class val Conj[S, D: Any #share = None, V: Any #share = None]
                 results.prepend(success),
                 outer)
             | let failure: Failure[S, D, V] =>
-              let result'' = Failure[S, D, V](
-                self, start, state'.data, None, failure)
+              let failure' = Failure[S, D, V](self, start, None, failure)
               ifdef debug then
-                _Dbg.out(depth, "= " + result''.string())
+                _Dbg.out(depth, "= " + failure'.string())
               end
-              outer(consume state', result'')
+              outer(failure')
             end
           })
       else
         let result = Failure[S, D, V](
-          this, start, state.data, ErrorMsg.conjunction_failed())
+          this, start, ErrorMsg.conjunction_failed())
         ifdef debug then
           _Dbg.out(depth, "= " + result.string())
         end
-        outer(consume state, result)
+        outer(result)
       end
     end
 

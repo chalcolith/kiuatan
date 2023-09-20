@@ -19,39 +19,39 @@ class val Single[
     _action = action
 
   fun val parse(
-    state: _ParseState[S, D, V],
+    parser: Parser[S, D, V],
     depth: USize,
     loc: Loc[S],
     outer: _Continuation[S, D, V])
   =>
     ifdef debug then
-      _Dbg.out(depth, "SING @" + loc._dbg(state.source))
+      _Dbg.out(depth, "SING @" + loc.string())
     end
 
-    let result = _parse_single(loc, state.data)
+    let result = _parse_single(loc)
     ifdef debug then
       _Dbg.out(depth, "= " + result.string())
     end
-    outer(consume state, result)
+    outer(result)
 
-  fun val _parse_single(loc: Loc[S], data: D): Result[S, D, V] =>
+  fun val _parse_single(loc: Loc[S]): Result[S, D, V] =>
     try
       if loc.has_value() then
         if _expected.size() > 0 then
           for exp in _expected.values() do
             if exp == loc()? then
-              return Success[S, D, V](this, loc, loc.next(), data)
+              return Success[S, D, V](this, loc, loc.next())
             end
           end
-          Failure[S, D, V](this, loc, data)
+          Failure[S, D, V](this, loc)
         else
-          Success[S, D, V](this, loc, loc.next(), data)
+          Success[S, D, V](this, loc, loc.next())
         end
       else
-        Failure[S, D, V](this, loc, data)
+        Failure[S, D, V](this, loc)
       end
     else
-      Failure[S, D, V](this, loc, data, ErrorMsg.single_failed())
+      Failure[S, D, V](this, loc, ErrorMsg.single_failed())
     end
 
   fun val get_action(): (Action[S, D, V] | None) =>

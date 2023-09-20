@@ -23,36 +23,32 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
   let children: ReadSeq[Success[S, D, V]] val
   """Results from child rules' matches."""
 
-  let data: D
-
   new val create(
     node': RuleNode[S, D, V],
     start': Loc[S],
     next': Loc[S],
-    data': D,
     children': ReadSeq[Success[S, D, V]] val =
       recover val Array[Success[S, D, V]] end)
   =>
     node = node'
     start = start'
     next = next'
-    data = data'
     children = children'
 
-  fun val _values(bindings: Bindings[S, D, V] = Bindings[S, D, V])
+  fun val _values(data: D, bindings: Bindings[S, D, V] = Bindings[S, D, V])
     : ReadSeq[V] val
   =>
     """
     Call the matched rules' actions to assemble a custom result value.
     """
-    match _values_aux(0, bindings)
+    match _values_aux(data, 0, bindings)
     | (let result_values: Array[V] val, _) =>
       result_values
     else
       []
     end
 
-  fun val _values_aux(indent: USize, bindings: Bindings[S, D, V])
+  fun val _values_aux(data: D, indent: USize, bindings: Bindings[S, D, V])
     : ((Array[V] val | None), Bindings[S, D, V])
   =>
     // collect values from child results
@@ -63,7 +59,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
       if children.size() < 2 then
         try
           (let child_result_values: (Array[V] val | None), bindings') =
-            children(0)?._values_aux(indent + 1, bindings')
+            children(0)?._values_aux(data, indent + 1, bindings')
           child_result_values
         end
       else
@@ -71,7 +67,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
           var result_values': (Array[V] | None) = None
           for child in children.values() do
             (let child_result_values: (Array[V] val | None), bindings') =
-              child._values_aux(indent + 1, bindings')
+              child._values_aux(data, indent + 1, bindings')
 
             match child_result_values
             | let crv: Array[V] val if crv.size() > 0 =>
@@ -98,7 +94,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
         else
           recover val Array[V] end
         end
-      (let value, bindings') = action(this, result_values', bindings')
+      (let value, bindings') = action(data, this, result_values', bindings')
       match value
       | let value': V =>
         result_values = recover val [ value' ] end
@@ -145,66 +141,6 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
           next.string() + "))")
       else
         s.append("Success(@[" + start.string() + "," + next.string() + "))")
-      end
-      s
-    end
-
-class val Failure[S, D: Any #share = None, V: Any #share = None]
-  """
-  The result of a failed match.
-  """
-
-  let node: RuleNode[S, D, V]
-  let start: Loc[S]
-  let message: (String | None)
-  let inner: (Failure[S, D, V] | None)
-  let data: D
-
-  new val create(
-    node': RuleNode[S, D, V],
-    start': Loc[S],
-    data': D,
-    message': (String | None) = None,
-    inner': (Failure[S, D, V] | None) = None)
-  =>
-    node = node'
-    start = start'
-    data = data'
-    message = message'
-    inner = inner'
-
-  fun get_message(): String =>
-    recover
-      let s = String
-      let message' = match message | let m: String => m else "" end
-      if message'.size() > 0 then
-        s.append("[")
-        s.append(message')
-      end
-      match inner
-      | let inner': Failure[S, D, V] =>
-        let inner_msg = inner'.get_message()
-        if inner_msg.size() > 0 then
-          if message'.size() > 0 then
-            s.append(": ")
-          end
-          s.append(inner_msg)
-        end
-      end
-      if (message'.size() > 0) then
-        s.append("]")
-      end
-      s
-    end
-
-  fun string(): String iso^ =>
-    recover
-      let s = String
-      match node
-      | let rule: NamedRule[S, D, V] =>
-        s.append("Failure(" + rule.name + "@" + start.string() + ")")
-      else
-        s.append("Failure(@" + start.string() + ")")
       end
       s
     end

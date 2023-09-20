@@ -2,7 +2,7 @@ use per = "collections/persistent"
 
 trait val RuleNode[S, D: Any #share, V: Any #share]
   fun val parse(
-    state: _ParseState[S, D, V],
+    parser: Parser[S, D, V],
     depth: USize,
     loc: Loc[S],
     cont: _Continuation[S, D, V])

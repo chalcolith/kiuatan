@@ -11,12 +11,12 @@ class iso _TestFlatten is UnitTest
           Conj[U8,None,USize]([
             NamedRule[U8,None,USize]("OneTwo",
               Conj[U8,None,USize]([
-                Literal[U8,None,USize]("one", {(r,_,b) => (USize(1),b)})
-                Literal[U8,None,USize]("two", {(r,_,b) => (USize(2),b)})
+                Literal[U8,None,USize]("one", {(_,r,_,b) => (USize(1),b)})
+                Literal[U8,None,USize]("two", {(_,r,_,b) => (USize(2),b)})
               ]))
-            Literal[U8,None,USize]("three", {(r,_,b) => (USize(3),b)})
+            Literal[U8,None,USize]("three", {(_,r,_,b) => (USize(3),b)})
             NamedRule[U8,None,USize]("Four",
-              Literal[U8,None,USize]("four", {(r,_,b) => (USize(4),b)}))
+              Literal[U8,None,USize]("four", {(_,r,_,b) => (USize(4),b)}))
           ]))
       end
 

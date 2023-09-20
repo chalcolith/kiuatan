@@ -26,7 +26,7 @@ class val Star[S, D: Any #share = None, V: Any #share = None]
     _body
 
   fun val parse(
-    state: _ParseState[S, D, V],
+    parser: Parser[S, D, V],
     depth: USize,
     loc: Loc[S],
     outer: _Continuation[S, D, V])
@@ -34,11 +34,11 @@ class val Star[S, D: Any #share = None, V: Any #share = None]
     ifdef debug then
       _Dbg.out(depth, "STAR {" + _min.string() + "," +
         if _max < USize.max_value() then _max.string() else "" end +
-        "} @" + loc._dbg(state.source))
+        "} @" + loc.string())
     end
 
     _parse_child(
-      consume state,
+      parser,
       depth,
       loc,
       0,
@@ -47,7 +47,7 @@ class val Star[S, D: Any #share = None, V: Any #share = None]
       outer)
 
   fun val _parse_child(
-    state: _ParseState[S, D, V],
+    parser: Parser[S, D, V],
     depth: USize,
     start: Loc[S],
     index: USize,
@@ -56,17 +56,16 @@ class val Star[S, D: Any #share = None, V: Any #share = None]
     outer: _Continuation[S, D, V])
   =>
     let self = this
-    _body.parse(consume state, depth + 1, loc,
-      {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
-        let result'' =
-          match result'
+    _body.parse(parser, depth + 1, loc,
+      {(result: Result[S, D, V]) =>
+        let result' =
+          match result
           | let success: Success[S, D, V] =>
             if index == _max then
-              Failure[S, D, V](self, start, state'.data,
-                ErrorMsg.star_too_long())
+              Failure[S, D, V](self, start, ErrorMsg.star_too_long())
             else
               self._parse_child(
-                consume state',
+                parser,
                 depth,
                 start,
                 index + 1,
@@ -77,21 +76,19 @@ class val Star[S, D: Any #share = None, V: Any #share = None]
             end
           | let failure: Failure[S, D, V] =>
             if index < _min then
-              Failure[S, D, V](self, start, state'.data,
-                ErrorMsg.star_too_short())
+              Failure[S, D, V](self, start, ErrorMsg.star_too_short())
             else
               Success[S, D, V](
                 self,
                 start,
                 loc,
-                state'.data,
                 results.reverse())
             end
           end
         ifdef debug then
-          _Dbg.out(depth, "= " + result''.string())
+          _Dbg.out(depth, "= " + result'.string())
         end
-        outer(consume state', result'')
+        outer(result')
       })
 
   fun val get_action(): (Action[S, D, V] | None) =>

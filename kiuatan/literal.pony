@@ -16,13 +16,13 @@ class val Literal[
     _action = action
 
   fun val parse(
-    state: _ParseState[S, D, V],
+    parser: Parser[S, D, V],
     depth: USize,
     loc: Loc[S],
     outer: _Continuation[S, D, V])
   =>
     ifdef debug then
-      _Dbg.out(depth, "LIT @" + loc._dbg(state.source))
+      _Dbg.out(depth, "LIT @" + loc.string())
     end
 
     let result =
@@ -30,20 +30,20 @@ class val Literal[
         var act = loc
         for exp in _expected.values() do
           if (not act.has_value()) or (exp != act()?) then
-            break Failure[S, D, V](this, loc, state.data)
+            break Failure[S, D, V](this, loc)
           end
           act = act.next()
-          Success[S, D, V](this, loc, act, state.data)
+          Success[S, D, V](this, loc, act)
         else
-          Success[S, D, V](this, loc, loc, state.data)
+          Success[S, D, V](this, loc, loc)
         end
       else
-        Failure[S, D, V](this, loc, state.data, ErrorMsg.literal_failed())
+        Failure[S, D, V](this, loc, ErrorMsg.literal_failed())
       end
     ifdef debug then
       _Dbg.out(depth, "= " + result.string())
     end
-    outer(consume state, result)
+    outer(result)
 
   fun val get_action(): (Action[S, D, V] | None) =>
     _action

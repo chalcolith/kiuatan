@@ -20,18 +20,18 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
     _children
 
   fun val parse(
-    state: _ParseState[S, D, V],
+    parser: Parser[S, D, V],
     depth: USize,
     loc: Loc[S],
     outer: _Continuation[S, D, V])
   =>
     ifdef debug then
-      _Dbg.out(depth, "DISJ @" + loc._dbg(state.source))
+      _Dbg.out(depth, "DISJ @" + loc.string())
     end
-    _parse_child(consume state, depth, 0, loc, None, outer)
+    _parse_child(parser, depth, 0, loc, None, outer)
 
   fun val _parse_child(
-    state: _ParseState[S, D, V],
+    parser: Parser[S, D, V],
     depth: USize,
     child_index: USize,
     loc: Loc[S],
@@ -39,41 +39,40 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
     outer: _Continuation[S, D, V])
   =>
     if child_index == _children.size() then
-      let result = Failure[S, D, V](this, loc, state.data, None, last_failure)
+      let result = Failure[S, D, V](this, loc, None, last_failure)
       ifdef debug then
         _Dbg.out(depth, "< " + result.string())
       end
-      outer(consume state, result)
+      outer(result)
     else
       match try _children(child_index)? end
       | let child: RuleNode[S, D, V] =>
         let self = this
-        child.parse(consume state, depth + 1, loc,
-          {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
-            match result'
+        child.parse(parser, depth + 1, loc,
+          {(result: Result[S, D, V]) =>
+            match result
             | let success: Success[S, D, V] =>
-              let result'' = Success[S, D, V](
+              let success' = Success[S, D, V](
                 self,
                 loc,
                 success.next,
-                state'.data,
                 [success])
               ifdef debug then
-                _Dbg.out(depth, "= " + result''.string())
+                _Dbg.out(depth, "= " + success'.string())
               end
-              outer(consume state', result'')
+              outer(success')
             | let failure: Failure[S, D, V] =>
               self._parse_child(
-                consume state', depth, child_index + 1, loc, failure, outer)
+                parser, depth, child_index + 1, loc, failure, outer)
             end
           })
       else
-        let result = Failure[S, D, V](this, loc, state.data,
-          ErrorMsg.disjunction_failed(), None)
+        let result = Failure[S, D, V](
+          this, loc, ErrorMsg.disjunction_failed(), None)
         ifdef debug then
           _Dbg.out(depth, "= " + result.string())
         end
-        outer(consume state, result)
+        outer(result)
       end
     end
 

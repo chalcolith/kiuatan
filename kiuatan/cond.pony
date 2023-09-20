@@ -17,33 +17,33 @@ class val Cond[S, D: Any #share = None, V: Any #share = None]
     _body
 
   fun val parse(
-    state: _ParseState[S, D, V],
+    parser: Parser[S, D, V],
     depth: USize,
     loc: Loc[S],
     outer: _Continuation[S, D, V])
   =>
     ifdef debug then
-      _Dbg.out(depth, "COND @" + loc._dbg(state.source))
+      _Dbg.out(depth, "COND @" + loc.string())
     end
     let self = this
-    _body.parse(consume state, depth + 1, loc,
-      {(state': _ParseState[S, D, V], result': Result[S, D, V]) =>
-        let result'' =
-          match result'
+    _body.parse(parser, depth + 1, loc,
+      {(result: Result[S, D, V]) =>
+        let result' =
+          match result
           | let success: Success[S, D, V] =>
             (let succeeded: Bool, let message: (String | None)) = _cond(success)
             if succeeded then
               success
             else
-              Failure[S, D, V](self, success.start, state'.data, message)
+              Failure[S, D, V](self, success.start, message)
             end
           | let failure: Failure[S, D, V] =>
             failure
           end
         ifdef debug then
-          _Dbg.out(depth, "= " + result''.string())
+          _Dbg.out(depth, "= " + result'.string())
         end
-        outer(consume state', result'')
+        outer(result')
       })
 
   fun val get_action(): (Action[S, D, V] | None) =>
