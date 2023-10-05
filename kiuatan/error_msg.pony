@@ -11,6 +11,9 @@ primitive ErrorMsg
   fun tag conjunction_failed(): String val =>
     "conjunction (sequence) combinator failed unexpectedly"
 
+  fun tag disjunction_empty(): String val =>
+    "disjunction contained no alternatives"
+
   fun tag disjunction_failed(): String val =>
     "disjunction combinator failed unexpectedly"
 

@@ -1,3 +1,7 @@
+
+class val _DisjInstance
+  new val create() => None
+
 class val Disj[S, D: Any #share = None, V: Any #share = None]
   is RuleNodeWithChildren[S, D, V]
   """
@@ -28,7 +32,30 @@ class val Disj[S, D: Any #share = None, V: Any #share = None]
     ifdef debug then
       _Dbg.out(depth, "DISJ @" + loc.string())
     end
-    _parse_child(parser, depth, 0, loc, None, outer)
+    //_parse_child(parser, depth, 0, loc, None, outer)
+
+    if _children.size() == 0 then
+      outer(Failure[S, D, V](this, loc, ErrorMsg.disjunction_empty()))
+      return
+    end
+
+    let disj = _DisjInstance
+    let self = this
+    parser._parse_disjunction_start(
+      this,
+      disj,
+      _children.size(),
+      depth,
+      loc,
+      {()(children: ReadSeq[RuleNode[S, D, V] box] val = _children) =>
+        var index: USize = 0
+        for child in children.values() do
+          parser._parse_disjunction_child(
+            disj, index, self, child, depth, loc, outer)
+          index = index + 1
+        end
+      },
+      outer)
 
   fun val _parse_child(
     parser: Parser[S, D, V],

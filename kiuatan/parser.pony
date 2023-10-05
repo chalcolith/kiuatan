@@ -13,8 +13,10 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   var _updates: Array[_SegmentUpdate[S]]
 
   let _memo: _Memo[S, D, V]
-  let _left_recursive_rules: per.MapIs[NamedRule[S, D, V], Bool]
+  let _disj_results:
+    col.MapIs[_DisjInstance, Array[(Result[S, D, V] | None)]]
 
+  let _left_recursive_rules: per.MapIs[NamedRule[S, D, V], Bool]
   let _lr_states:
     col.HashMap[
       (NamedRule[S, D, V], Loc[S]),
@@ -24,15 +26,11 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
 
   new create(source: ReadSeq[Segment[S]] val) =>
     _segments = per.Lists[Segment[S]].from(source.values())
-    _updates = Array[_SegmentUpdate[S]]
-    _memo = _Memo[S, D, V]
-    _left_recursive_rules = per.MapIs[NamedRule[S, D, V], Bool]
-    _lr_states =
-      col.HashMap[
-        (NamedRule[S, D, V], Loc[S]),
-        _LRRuleState[S, D, V],
-        _LRRuleLocHash[S, D, V]
-      ]
+    _updates = _updates.create()
+    _memo = _memo.create()
+    _disj_results = _disj_results.create()
+    _left_recursive_rules = _left_recursive_rules.create()
+    _lr_states = _lr_states.create()
 
   fun num_segments(): USize =>
     """
@@ -218,6 +216,79 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         _current_expansion(rule, loc).string() + ">")
     end
     _try_expansion(depth, rule, body, loc, topmost, cont)
+
+  be _parse_disjunction_start(
+    rule: Disj[S, D, V],
+    disj: _DisjInstance,
+    size: USize,
+    depth: USize,
+    loc: Loc[S],
+    run: {()} iso,
+    outer: _Continuation[S, D, V])
+  =>
+    _disj_results.update(disj, Array[(Result[S, D, V] | None)].init(None, size))
+    run()
+
+  be _parse_disjunction_child(
+    disj: _DisjInstance,
+    index: USize,
+    rule: Disj[S, D, V],
+    node: RuleNode[S, D, V],
+    depth: USize,
+    loc: Loc[S],
+    outer: _Continuation[S, D, V])
+  =>
+    let self: Parser[S, D, V] tag = this
+    node.parse(this, depth, loc,
+      {(result: Result[S, D, V]) =>
+        self._parse_disjunction_result(
+          disj, index, rule, depth, loc, outer, result)
+      })
+
+  be _parse_disjunction_result(
+    disj: _DisjInstance,
+    index: USize,
+    rule: Disj[S, D, V],
+    depth: USize,
+    loc: Loc[S],
+    outer: _Continuation[S, D, V],
+    result: Result[S, D, V])
+  =>
+    // no more results; we already found a solution, so bail
+    if not _disj_results.contains(disj) then
+      return
+    end
+
+    try
+      let size = _disj_results(disj)?.size()
+      _disj_results(disj)?(index)? = result
+
+      var i: USize = 0
+      for res in _disj_results(disj)?.values() do
+        match res
+        | None =>
+          // no first result yet, give up
+          return
+        | let failure: Failure[S, D, V] =>
+          // check for last failure, otherwise continue
+          if i == (size - 1) then
+            try _disj_results.remove(disj)? end
+            outer(Failure[S, D, V](
+              rule, loc, ErrorMsg.disjunction_failed(), failure))
+          end
+        | let success: Success[S, D, V] =>
+          // we've found a first result, succeed
+          try _disj_results.remove(disj)? end
+          outer(Success[S, D, V](
+            rule, success.start, success.next, [ success ]))
+          return
+        end
+        i = i + 1
+      end
+    else
+      try _disj_results.remove(disj)? end
+      outer(Failure[S, D, V](rule, loc, ErrorMsg.disjunction_failed()))
+    end
 
   fun ref _is_left_recursive(
     node: RuleNode[S, D, V],
