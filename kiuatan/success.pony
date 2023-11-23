@@ -11,7 +11,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
   The result of a successful parse.
   """
 
-  let node: RuleNode[S, D, V]
+  let node: RuleNode[S, D, V] val
   """The rule that matched successfully."""
 
   let start: Loc[S]
@@ -24,7 +24,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
   """Results from child rules' matches."""
 
   new val create(
-    node': RuleNode[S, D, V],
+    node': RuleNode[S, D, V] val,
     start': Loc[S],
     next': Loc[S],
     children': ReadSeq[Success[S, D, V]] val =
@@ -85,7 +85,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
       end
 
     // now run node's action, if any
-    match node.get_action()
+    match node.action()
     | let action: Action[S, D, V] =>
       let result_values' =
         match result_values
@@ -105,7 +105,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
 
     // now bind variables
     match node
-    | let bind: Bind[S, D, V] =>
+    | let bind: Bind[S, D, V] val =>
       let result_values' =
         match result_values
         | let rv': Array[V] val =>
@@ -136,7 +136,7 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
     recover
       let s = String
       match node
-      | let rule: NamedRule[S, D, V] =>
+      | let rule: NamedRule[S, D, V] val =>
         s.append("Success(" + rule.name + "@[" + start.string() + "," +
           next.string() + "))")
       else

@@ -1,4 +1,4 @@
-class val Literal[
+class Literal[
   S: (Any #read & Equatable[S]),
   D: Any #share = None,
   V: Any #share = None]
@@ -10,10 +10,12 @@ class val Literal[
   let _expected: ReadSeq[S] val
   let _action: (Action[S, D, V] | None)
 
-  new create(expected: ReadSeq[S] val, action: (Action[S, D, V] | None) = None)
+  new create(
+    expected': ReadSeq[S] val,
+    action': (Action[S, D, V] | None) = None)
   =>
-    _expected = expected
-    _action = action
+    _expected = expected'
+    _action = action'
 
   fun val parse(
     parser: Parser[S, D, V],
@@ -45,5 +47,5 @@ class val Literal[
     end
     outer(result)
 
-  fun val get_action(): (Action[S, D, V] | None) =>
+  fun action(): (Action[S, D, V] | None) =>
     _action

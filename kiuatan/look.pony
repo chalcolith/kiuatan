@@ -1,6 +1,6 @@
 use per = "collections/persistent"
 
-class val Look[S, D: Any #share = None, V: Any #share = None]
+class Look[S, D: Any #share = None, V: Any #share = None]
   is RuleNodeWithBody[S, D, V]
   """
   Positive lookahead: will succeed if its child rule matches, but will not advance the match position.
@@ -44,5 +44,5 @@ class val Look[S, D: Any #share = None, V: Any #share = None]
         outer(result')
       })
 
-  fun val get_action(): (Action[S, D, V] | None) =>
+  fun action(): (Action[S, D, V] | None) =>
     _action

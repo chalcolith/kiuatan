@@ -80,12 +80,14 @@ primitive _Test
     h.assert_true((a - b).abs() < 1.0e-6,
       "expected " + a.string() + " == " + b.string())
 
+  fun grammar(): calc.GrammarBuilder val =>
+    recover val calc.GrammarBuilder end
 
 class iso _TestGrammarSpace is UnitTest
   fun name(): String => "Grammar_Space"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.space()
+    let rule = _Test.grammar().space
     let parser = Parser([" \t"])
     parser.parse(rule, None, _Test~should_span(h, 2))
     h.long_test(10_000_000_000)
@@ -95,7 +97,7 @@ class iso _TestGrammarSpaceFail is UnitTest
   fun name(): String => "Grammar_Space_Fail"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.space()
+    let rule = _Test.grammar().space
     let parser = Parser(["abc"])
     parser.parse(rule, None, _Test~should_span(h, 0))
     h.long_test(10_000_000_000)
@@ -105,7 +107,7 @@ class iso _TestGrammarEOF is UnitTest
   fun name(): String => "Grammar_EOF"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.eof()
+    let rule = _Test.grammar().eof
     let parser = Parser([""])
     parser.parse(rule, None, _Test~should_span(h, 0))
     h.long_test(10_000_000_000)
@@ -115,7 +117,7 @@ class iso _TestGrammarEOFFail is UnitTest
   fun name(): String => "Grammar_EOF_Fail"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.eof()
+    let rule = _Test.grammar().eof
     let parser = Parser(["abc"])
     parser.parse(rule, None, _Test~should_fail(h))
     h.long_test(10_000_000_000)
@@ -125,7 +127,7 @@ class iso _TestGrammarInt is UnitTest
   fun name(): String => "Grammar_Int"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.integer()
+    let rule = _Test.grammar().integer
     let parser = Parser(["123"])
     parser.parse(rule, None, _Test~should_succeed(h, 123.0))
     h.long_test(10_000_000_000)
@@ -135,7 +137,7 @@ class iso _TestGrammarIntNeg is UnitTest
   fun name(): String => "Grammar_Int_Neg"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.integer()
+    let rule = _Test.grammar().integer
     let parser = Parser(["-321"])
     parser.parse(rule, None, _Test~should_succeed(h, -321.0))
     h.long_test(10_000_000_000)
@@ -145,7 +147,7 @@ class iso _TestGrammarFloatBlank is UnitTest
   fun name(): String => "Grammar_Float_Blank"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.float()
+    let rule = _Test.grammar().float
     let parser = Parser([""])
     parser.parse(rule, None, _Test~should_fail(h))
 
@@ -154,7 +156,7 @@ class iso _TestGrammarFloatSpace is UnitTest
   fun name(): String => "Grammar_Float_Space"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.float()
+    let rule = _Test.grammar().float
     let parser = Parser([" \t"])
     parser.parse(rule, None, _Test~should_fail(h))
 
@@ -163,7 +165,7 @@ class iso _TestGrammarFloatIntPart is UnitTest
   fun name(): String => "Grammar_Float_IntPart"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.float()
+    let rule = _Test.grammar().float
     let parser = Parser(["123"])
     parser.parse(rule, None, _Test~should_succeed(h, 123.0))
     h.long_test(10_000_000_000)
@@ -173,7 +175,7 @@ class iso _TestGrammarFloatDecimal is UnitTest
   fun name(): String => "Grammar_Float_Decimal"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.float()
+    let rule = _Test.grammar().float
     let parser = Parser(["123.456"])
     parser.parse(rule, None, _Test~should_succeed(h, 123.456))
     h.long_test(10_000_000_000)
@@ -183,7 +185,7 @@ class iso _TestGrammarFloatDecimalNeg is UnitTest
   fun name(): String => "Grammar_Float_Decimal_Neg"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.float()
+    let rule = _Test.grammar().float
     let parser = Parser(["-324.111"])
     parser.parse(rule, None, _Test~should_succeed(h, -324.111))
     h.long_test(10_000_000_000)
@@ -193,7 +195,7 @@ class iso _TestGrammarFloatExponent is UnitTest
   fun name(): String => "Grammar_Float_Exponent"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.float()
+    let rule = _Test.grammar().float
     let parser = Parser(["-675.22e12"])
     parser.parse(rule, None, _Test~should_succeed(h, -675.22e12))
     h.long_test(10_000_000_000)
@@ -203,7 +205,7 @@ class iso _TestGrammarFloatExponentNeg is UnitTest
   fun name(): String => "Grammar_Float_Exponent_Neg"
 
   fun apply(h: TestHelper) =>
-    let rule = calc.GrammarBuilder.float()
+    let rule = _Test.grammar().float
     let parser = Parser(["8876e-33"])
     parser.parse(rule, None, _Test~should_succeed(h, 8876e-33))
     h.long_test(10_000_000_000)
@@ -213,7 +215,7 @@ class iso _TestGrammarMultiplicativeMul is UnitTest
   fun name(): String => "Grammar_Multiplicative_Mul"
 
   fun apply(h: TestHelper) =>
-    let rule = recover val calc.GrammarBuilder.multiplicative() end
+    let rule = recover val _Test.grammar().multiplicative end
     let parser = Parser(["123.4 * 567.8"])
     parser.parse(rule, None, _Test~should_succeed(h, 70066.52))
     h.long_test(10_000_000_000)
@@ -223,7 +225,7 @@ class iso _TestGrammarMultiplicativeDiv is UnitTest
   fun name(): String => "Grammar_Multiplicative_Div"
 
   fun apply(h: TestHelper) =>
-    let rule = recover val calc.GrammarBuilder.multiplicative() end
+    let rule = recover val _Test.grammar().multiplicative end
     let parser = Parser(["123.4 / 567.8"])
     parser.parse(rule, None, _Test~should_succeed(h, 0.21733004579))
     h.long_test(10_000_000_000)
@@ -233,7 +235,7 @@ class iso _TestGrammarAdditiveAdd is UnitTest
   fun name(): String => "Grammar_Additive_Add"
 
   fun apply(h: TestHelper) =>
-    let rule = recover val calc.GrammarBuilder.additive() end
+    let rule = recover val _Test.grammar().additive end
     let parser = Parser(["123.4 + 567.8"])
     parser.parse(rule, None, _Test~should_succeed(h, 691.2))
     h.long_test(10_000_000_000)
@@ -243,7 +245,7 @@ class iso _TestGrammarAdditiveSub is UnitTest
   fun name(): String => "Grammar_Additive_Sub"
 
   fun apply(h: TestHelper) =>
-    let rule = recover val calc.GrammarBuilder.additive() end
+    let rule = recover val _Test.grammar().additive end
     let parser = Parser(["123.4 - 567.8"])
     parser.parse(rule, None, _Test~should_succeed(h, -444.4))
     h.long_test(10_000_000_000)
@@ -253,7 +255,7 @@ class iso _TestGrammarPrecedence is UnitTest
   fun name(): String => "Grammar_Precedence"
 
   fun apply(h: TestHelper) =>
-    let rule = recover val calc.GrammarBuilder.expression() end
+    let rule = recover val _Test.grammar().expression end
     let parser = Parser(["12 + 34 * 56"])
     parser.parse(rule, None, _Test~should_succeed(h, 1916.0))
     h.long_test(10_000_000_000)
@@ -263,7 +265,7 @@ class iso _TestGrammarParens is UnitTest
   fun name(): String => "Grammar_Parens"
 
   fun apply(h: TestHelper) =>
-    let rule = recover val calc.GrammarBuilder.expression() end
+    let rule = recover val _Test.grammar().expression end
     let parser = Parser(["(12 + 34) * 56"])
     parser.parse(rule, None, _Test~should_succeed(h, 2576.0))
     h.long_test(10_000_000_000)
@@ -273,7 +275,7 @@ class iso _TestGrammarLeftAssoc is UnitTest
   fun name(): String => "Grammar_LeftAssoc"
 
   fun apply(h: TestHelper) =>
-    let rule = recover val calc.GrammarBuilder.expression() end
+    let rule = recover val _Test.grammar().expression end
     let parser = Parser(["1*2*3"])
     parser.parse(rule, None, _Test~should_succeed(h, 6.0))
     h.long_test(10_000_000_000)
@@ -283,7 +285,7 @@ class iso _TestGrammarSequences is UnitTest
   fun name(): String => "Grammar_Sequences"
 
   fun apply(h: TestHelper) =>
-    let rule = recover val calc.GrammarBuilder.expression() end
+    let rule = recover val _Test.grammar().expression end
     let parser = Parser(["123.456 * (789.012e-12 + 345.6 - 78.90) / 12.34"])
     parser.parse(rule, None, _Test~should_succeed(h, 2668.21030795))
     h.long_test(10_000_000_000)

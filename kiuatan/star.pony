@@ -1,6 +1,6 @@
 use per = "collections/persistent"
 
-class val Star[S, D: Any #share = None, V: Any #share = None]
+class Star[S, D: Any #share = None, V: Any #share = None]
   is RuleNodeWithBody[S, D, V]
 
   """
@@ -91,5 +91,5 @@ class val Star[S, D: Any #share = None, V: Any #share = None]
         outer(result')
       })
 
-  fun val get_action(): (Action[S, D, V] | None) =>
+  fun action(): (Action[S, D, V] | None) =>
     _action

@@ -1,6 +1,6 @@
 use per = "collections/persistent"
 
-class val Conj[S, D: Any #share = None, V: Any #share = None]
+class Conj[S, D: Any #share = None, V: Any #share = None]
   is RuleNodeWithChildren[S, D, V]
   """
   Matches a sequence of child rules.
@@ -61,7 +61,7 @@ class val Conj[S, D: Any #share = None, V: Any #share = None]
       outer(result)
     else
       match try _children(child_index)? end
-      | let child: RuleNode[S, D, V] =>
+      | let child: RuleNode[S, D, V] val =>
         let self = this
         child.parse(parser, depth + 1, loc,
           {(result: Result[S, D, V]) =>
@@ -93,5 +93,5 @@ class val Conj[S, D: Any #share = None, V: Any #share = None]
       end
     end
 
-  fun val get_action(): (Action[S, D, V] | None) =>
+  fun action(): (Action[S, D, V] | None) =>
     _action

@@ -1,7 +1,8 @@
 
-use k = "../../../kiuatan"
 use "promises"
 use "term"
+
+use k = "../../../kiuatan"
 
 actor Main
   new create(env: Env) =>
@@ -25,12 +26,14 @@ actor Main
 class Handler is ReadlineNotify
   let _env: Env
   let _prompt: String
-  let _grammar: k.NamedRule[U8, None, F64]
+  let _grammar: NamedRule val
 
   new create(env: Env, prompt: String) =>
     _env = env
     _prompt = prompt
-    _grammar = recover GrammarBuilder.expression() end
+
+    let builder = recover val GrammarBuilder end
+    _grammar = builder.expression
 
   fun ref apply(line: String, prompt: Promise[String]) =>
     if (line == "quit") or (line.size() == 0) then

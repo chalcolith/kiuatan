@@ -1,6 +1,6 @@
 use per = "collections/persistent"
 
-class val Bind[S, D: Any #share = None, V: Any #share = None]
+class Bind[S, D: Any #share = None, V: Any #share = None]
   is RuleNodeWithBody[S, D, V]
 
   let variable: Variable
@@ -51,5 +51,5 @@ class val Bind[S, D: Any #share = None, V: Any #share = None]
         outer(result')
       })
 
-  fun val get_action(): (Action[S, D, V] | None) =>
+  fun action(): (Action[S, D, V] | None) =>
     None

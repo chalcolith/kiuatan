@@ -38,51 +38,46 @@ class GrammarBuilder
   EOF <- ~.
   ```
   """
-  var _expression: (NamedRule ref | None) = None
-  var _additive: (NamedRule ref | None) = None
-  var _multiplicative: (NamedRule ref | None) = None
-  var _term: (NamedRule ref | None) = None
-  var _float: (NamedRule | None) = None
-  var _integer: (NamedRule | None) = None
-  var _fraction: (NamedRule | None) = None
-  var _exponent: (NamedRule | None) = None
-  var _lpar: (NamedRule | None) = None
-  var _rpar: (NamedRule | None) = None
-  var _add_op: (NamedRule | None) = None
-  var _mul_op: (NamedRule | None) = None
-  var _space: (NamedRule | None) = None
-  var _eof: (NamedRule | None) = None
+  let expression: NamedRule = NamedRule("Expression")
+  let additive: NamedRule = NamedRule("Additive")
+  let multiplicative: NamedRule = NamedRule("Multiplicative")
+  let term: NamedRule = NamedRule("Term")
+  let float: NamedRule = NamedRule("Float")
+  let integer: NamedRule = NamedRule("Integer")
+  let fraction: NamedRule = NamedRule("Fraction")
+  let exponent: NamedRule = NamedRule("Exponent")
+  let lpar: NamedRule = NamedRule("LeftParen")
+  let rpar: NamedRule = NamedRule("RightParen")
+  let add_op: NamedRule = NamedRule("OpAdd")
+  let mul_op: NamedRule = NamedRule("OpMul")
+  let space: NamedRule = NamedRule("Space")
+  let eof: NamedRule = NamedRule("EOF")
 
-  fun ref expression(): NamedRule ref =>
-    match _expression
-    | let r: NamedRule ref =>
-      r
-    else
-      let exp = NamedRule("Expression")
-      _expression = exp
+  new create() =>
+    _gen_expression()
+    _gen_additive()
+    _gen_multiplicative()
+    _gen_term()
+    _gen_float()
+    _gen_integer()
+    _gen_fraction()
+    _gen_exponent()
+    _gen_lex()
 
-      exp.set_body(Conj([additive(); eof()]))
-      exp
-    end
+  fun ref _gen_expression() =>
+    expression.set_body(Conj([additive; eof]))
 
-  fun ref additive(): NamedRule ref =>
-    match _additive
-    | let r: NamedRule ref =>
-      r
-    else
-      let a = Var("a")
-      let o = Var("o")
-      let b = Var("b")
+  fun ref _gen_additive() =>
+    let a = Var("a")
+    let o = Var("o")
+    let b = Var("b")
 
-      let add = NamedRule("Additive")
-      _additive = add
-
-      add.set_body(Disj(
+    additive.set_body(
+      Disj(
         [ Conj(
-            [ Bind(a, add)
-              Bind(o, add_op())
-              Bind(b, multiplicative())
-            ],
+            [ Bind(a, additive)
+              Bind(o, add_op)
+              Bind(b, multiplicative) ],
             {(_, result, values, bindings) =>
               var first: F64 = 0.0
               var op_is_add: Bool = true
@@ -110,29 +105,20 @@ class GrammarBuilder
                 end
               (sum, bindings)
             })
-          Bind(b, multiplicative())
+          Bind(b, multiplicative)
         ]))
-      add
-    end
 
-  fun ref multiplicative(): NamedRule ref =>
-    match _multiplicative
-    | let r: NamedRule ref =>
-      r
-    else
-      let a = Var("a")
-      let o = Var("o")
-      let b = Var("b")
+  fun ref _gen_multiplicative() =>
+    let a = Var("a")
+    let o = Var("o")
+    let b = Var("b")
 
-      let mul = NamedRule("Multiplicative")
-      _multiplicative = mul
-
-      mul.set_body(Disj(
+    multiplicative.set_body(
+      Disj(
         [ Conj(
-            [ Bind(a, mul)
-              Bind(o, mul_op())
-              Bind(b, term())
-            ],
+            [ Bind(a, multiplicative)
+              Bind(o, mul_op)
+              Bind(b, term) ],
             {(_, result, values, bindings) =>
               var first: F64 = 1.0
               var op_is_mul: Bool = true
@@ -164,220 +150,119 @@ class GrammarBuilder
                 end
               (prod, bindings)
             })
-          Bind(b, term())
+          Bind(b, term)
         ]))
-      mul
-    end
 
-  fun ref term(): NamedRule ref =>
-    match _term
-    | let r: NamedRule ref =>
-      r
-    else
-      let term' = NamedRule("Term")
-      _term = term'
-      term'.set_body(Disj(
-        [ Conj(
-            [ lpar()
-              additive()
-              rpar()
-            ])
-          float()
+  fun ref _gen_term() =>
+    term.set_body(
+      Disj(
+        [ Conj([ lpar; additive; rpar])
+          float
         ]))
-      term'
-    end
 
-  fun ref lpar(): NamedRule =>
-    match _lpar
-    | let r: NamedRule =>
-      r
-    else
-      let lpar' = recover val NamedRule("LPAR", Conj([ Lit("("); space() ])) end
-      _lpar = lpar'
-      lpar'
-    end
+  fun ref _gen_float() =>
+    let i = Var("i")
+    let f = Var("f")
+    let e = Var("e")
 
-  fun ref rpar(): NamedRule =>
-    match _rpar
-    | let r: NamedRule =>
-      r
-    else
-      let rpar' = recover val NamedRule("RPAR", Conj([ Lit(")"); space() ])) end
-      _rpar = rpar'
-      rpar'
-    end
+    float.set_body(
+      Conj(
+        [ Bind(i, integer)
+          Bind(f, Star(fraction where min' = 0, max' = 1))
+          Bind(e, Star(exponent where min' = 0, max' = 1))
+          space ],
+        {(_, result, values, bindings) =>
+          var int_num: F64 = 0.0
+          var frac_num: F64 = 0.0
+          var exp_num: F64 = 1.0
 
-  fun ref add_op(): NamedRule =>
-    match _add_op
-    | let r: NamedRule =>
-      r
-    else
-      let add_op' =
-        recover val NamedRule("ADDOP", Conj([ Sing("+-"); space() ])) end
-      _add_op = add_op'
-      add_op'
-    end
+          try
+            int_num = bindings.values(i, result)?(0)?
+          end
 
-  fun ref mul_op(): NamedRule =>
-    match _mul_op
-    | let r: NamedRule =>
-      r
-    else
-      let mul_op' =
-        recover val NamedRule("MULOP", Conj([ Sing("*/"); space() ])) end
-      _mul_op = mul_op'
-      mul_op'
-    end
+          try
+            frac_num = bindings.values(f, result)?(0)?
+          end
 
-  fun ref float(): NamedRule =>
-    match _float
-    | let r: NamedRule =>
-      r
-    else
-      let i = Var("i")
-      let f = Var("f")
-      let e = Var("e")
+          try
+            exp_num = bindings.values(e, result)?(0)?
+          end
 
-      let float' =
-        recover val
-          NamedRule("Float", Conj(
-            [ Bind(i, integer())
-              Bind(f, Star(fraction(), 0, None, 1))
-              Bind(e, Star(exponent(), 0, None, 1))
-              space()
-            ],
-            {(_, result, values, bindings) =>
-              var int_num: F64 = 0.0
-              var frac_num: F64 = 0.0
-              var exp_num: F64 = 1.0
+          let n =
+            if int_num < 0.0 then
+              int_num - frac_num
+            else
+              int_num + frac_num
+            end
 
-              try
-                int_num = bindings.values(i, result)?(0)?
+          if exp_num != 1.0 then
+            (n * F64(10).pow(exp_num), bindings)
+          else
+            (n, bindings)
+          end
+        }))
+
+  fun ref _gen_integer() =>
+    integer.set_body(
+      Conj(
+        [ Star(Sing("-+") where min' = 0, max' = 1)
+          Star(Sing("0123456789"), 1) ],
+        {(_,r,_,b) =>
+          var n: F64 = 0.0
+          try
+            var start = r.start
+            var ss = start()?
+
+            var sign: F64 = 1.0
+            if (ss == '+') or (ss == '-') then
+              if ss == '-' then
+                sign = -1.0
               end
+              start = start.next()
+            end
 
-              try
-                frac_num = bindings.values(f, result)?(0)?
-              end
+            for ch in start.values(r.next) do
+              n = (n * 10.0) + (ch - '0').f64()
+            end
+            n = n * sign
+          end
+          (n, b)
+        }))
 
-              try
-                exp_num = bindings.values(e, result)?(0)?
-              end
+  fun ref _gen_fraction() =>
+    let i = Var("i")
 
-              let n =
-                if int_num < 0.0 then
-                  int_num - frac_num
-                else
-                  int_num + frac_num
-                end
-
-              if exp_num != 1.0 then
-                (n * F64(10).pow(exp_num), bindings)
-              else
-                (n, bindings)
-              end
-            }))
-        end
-      _float = float'
-      float'
-    end
-
-  fun ref integer(): NamedRule =>
-    match _integer
-    | let r: NamedRule =>
-      r
-    else
-      let integer' =
-        recover val
-          NamedRule("Int", Conj(
-            [ Star(Sing("-+"), 0, None, 1)
-              Star(Sing("0123456789"), 1)
-            ]),
+    fraction.set_body(
+      Conj(
+        [ Lit(".")
+          Star(
+            Bind(i, integer),
+            0,
             {(_,r,_,b) =>
-              var n: F64 = 0.0
+              var f: F64 = 0.0
+
               try
-                var start = r.start
-                var ss = start()?
-
-                var sign: F64 = 1.0
-                if (ss == '+') or (ss == '-') then
-                  if ss == '-' then
-                    sign = -1.0
+                match b(i, r)?
+                | (let s: Success, let ns: ReadSeq[F64] val) =>
+                  f = ns(0)?
+                  for _ in s.start.values(s.next) do
+                    f = f / 10.0
                   end
-                  start = start.next()
                 end
-
-                for ch in start.values(r.next) do
-                  n = (n * 10.0) + (ch - '0').f64()
-                end
-                n = n * sign
               end
-              (n, b)
-            })
-        end
-      _integer = integer'
-      integer'
-    end
 
-  fun ref fraction(): NamedRule =>
-    match _fraction
-    | let r: NamedRule =>
-      r
-    else
-      let fraction' =
-        recover val
-          let i = Var("i")
+              (f, b)
+            },
+            1)
+        ]))
 
-          NamedRule("Frac",
-            Conj(
-              [ Lit(".")
-                Star(Bind(i, integer()), 0,
-                  {(_,r,_,b) =>
-                    var f: F64 = 0.0
+  fun ref _gen_exponent() =>
+    exponent.set_body(Conj([ Sing("eE"); integer ]))
 
-                    try
-                      match b(i, r)?
-                      | (let s: Success, let ns: ReadSeq[F64] val) =>
-                        f = ns(0)?
-                        for _ in s.start.values(s.next) do
-                          f = f / 10.0
-                        end
-                      end
-                    end
-
-                    (f, b)
-                  }, 1)
-              ]))
-        end
-      _fraction = fraction'
-      fraction'
-    end
-
-  fun ref exponent(): NamedRule =>
-    match _exponent
-    | let r: NamedRule =>
-      r
-    else
-      let exponent' = recover val NamedRule("Exp", Conj([ Sing("eE"); integer() ])) end
-      _exponent = exponent'
-      exponent'
-    end
-
-  fun ref space(): NamedRule =>
-    match _space
-    | let r: NamedRule =>
-      r
-    else
-      let space' = recover val NamedRule("WS", Star(Sing(" \t"))) end
-      _space = space'
-      space'
-    end
-
-  fun ref eof(): NamedRule =>
-    match _eof
-    | let r: NamedRule =>
-      r
-    else
-      let eof' = recover val NamedRule("EOF", Neg(Sing())) end
-      _eof = eof'
-      eof'
-    end
+  fun ref _gen_lex() =>
+    lpar.set_body(Conj([ Lit("("); space ]))
+    rpar.set_body(Conj([ Lit(")"); space ]))
+    add_op.set_body(Conj([ Sing("+-"); space ]))
+    mul_op.set_body(Conj([ Sing("*/"); space ]))
+    space.set_body(Star(Sing(" \t")))
+    eof.set_body(Neg(Sing()))

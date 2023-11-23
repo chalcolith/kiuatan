@@ -1,6 +1,6 @@
 use per = "collections/persistent"
 
-class val Single[
+class Single[
   S: (Any #read & Equatable[S]),
   D: Any #share = None,
   V: Any #share = None]
@@ -12,11 +12,12 @@ class val Single[
   let _expected: ReadSeq[S] val
   let _action: (Action[S, D, V] | None)
 
-  new create(expected: ReadSeq[S] val = [],
-    action: (Action[S, D, V] | None) = None)
+  new create(
+    expected': ReadSeq[S] val = [],
+    action': (Action[S, D, V] | None) = None)
   =>
-    _expected = expected
-    _action = action
+    _expected = expected'
+    _action = action'
 
   fun val parse(
     parser: Parser[S, D, V],
@@ -54,5 +55,5 @@ class val Single[
       Failure[S, D, V](this, loc, ErrorMsg.single_failed())
     end
 
-  fun val get_action(): (Action[S, D, V] | None) =>
+  fun action(): (Action[S, D, V] | None) =>
     _action

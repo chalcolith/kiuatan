@@ -16,10 +16,10 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   let _disj_results:
     col.MapIs[_DisjInstance, Array[(Result[S, D, V] | None)]]
 
-  let _left_recursive_rules: per.MapIs[NamedRule[S, D, V], Bool]
+  let _left_recursive_rules: per.MapIs[NamedRule[S, D, V] val, Bool]
   let _lr_states:
     col.HashMap[
-      (NamedRule[S, D, V], Loc[S]),
+      (NamedRule[S, D, V] val, Loc[S]),
       _LRRuleState[S, D, V],
       _LRRuleLocHash[S, D, V]
     ]
@@ -159,8 +159,8 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
 
   be _parse_named_rule(
     depth: USize,
-    rule: NamedRule[S, D, V],
-    body: RuleNode[S, D, V],
+    rule: NamedRule[S, D, V] val,
+    body: RuleNode[S, D, V] val,
     loc: Loc[S],
     cont: _Continuation[S, D, V])
   =>
@@ -174,7 +174,9 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     end
 
     // if we can't be left-recursive, go ahead and parse
-    if not _is_left_recursive(rule, per.Lists[NamedRule[S, D, V]].empty()) then
+    if not _is_left_recursive(
+      rule, per.Lists[NamedRule[S, D, V] val].empty())
+    then
       body.parse(this, depth + 1, loc,
         {(result: Result[S, D, V]) =>
           match result
@@ -218,7 +220,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     _try_expansion(depth, rule, body, loc, topmost, cont)
 
   be _parse_disjunction_start(
-    rule: Disj[S, D, V],
+    rule: Disj[S, D, V] val,
     disj: _DisjInstance,
     size: USize,
     depth: USize,
@@ -232,8 +234,8 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   be _parse_disjunction_child(
     disj: _DisjInstance,
     index: USize,
-    rule: Disj[S, D, V],
-    node: RuleNode[S, D, V],
+    rule: Disj[S, D, V] val,
+    node: RuleNode[S, D, V] val,
     depth: USize,
     loc: Loc[S],
     outer: _Continuation[S, D, V])
@@ -248,7 +250,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   be _parse_disjunction_result(
     disj: _DisjInstance,
     index: USize,
-    rule: Disj[S, D, V],
+    rule: Disj[S, D, V] val,
     depth: USize,
     loc: Loc[S],
     outer: _Continuation[S, D, V],
@@ -291,11 +293,11 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     end
 
   fun ref _is_left_recursive(
-    node: RuleNode[S, D, V],
-    stack: per.List[NamedRule[S, D, V]]): Bool
+    node: RuleNode[S, D, V] val,
+    stack: per.List[NamedRule[S, D, V] val]): Bool
   =>
     match node
-    | let named: NamedRule[S, D, V] =>
+    | let named: NamedRule[S, D, V] val =>
       try
         return _left_recursive_rules(named)?
       end
@@ -305,16 +307,16 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       end
 
       match named.body()
-      | let body: RuleNode[S, D, V] =>
+      | let body: RuleNode[S, D, V] val =>
         let is_lr = _is_left_recursive(body, stack.prepend(named))
         _left_recursive_rules(named) = is_lr
         return is_lr
       end
-    | let conj: Conj[S, D, V] =>
+    | let conj: Conj[S, D, V] val =>
       try
         return _is_left_recursive(conj.children()(0)?, stack)
       end
-    | let disj: Disj[S, D, V] =>
+    | let disj: Disj[S, D, V] val =>
       let children = disj.children()
       for i in col.Range(0, children.size()) do
         try
@@ -324,9 +326,9 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
           end
         end
       end
-    | let with_body: RuleNodeWithBody[S, D, V] =>
+    | let with_body: RuleNodeWithBody[S, D, V] val =>
       match with_body.body()
-      | let body: RuleNode[S, D, V] =>
+      | let body: RuleNode[S, D, V] val =>
         return _is_left_recursive(body, stack)
       end
     end
@@ -334,8 +336,8 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
 
   be _try_expansion(
     depth: USize,
-    rule: NamedRule[S, D, V],
-    body: RuleNode[S, D, V],
+    rule: NamedRule[S, D, V] val,
+    body: RuleNode[S, D, V] val,
     loc: Loc[S],
     topmost: Bool,
     cont: _Continuation[S, D, V])
@@ -349,8 +351,8 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   be _try_expansion_aux(
     result: Result[S, D, V],
     depth: USize,
-    rule: NamedRule[S, D, V],
-    body: RuleNode[S, D, V],
+    rule: NamedRule[S, D, V] val,
+    body: RuleNode[S, D, V] val,
     loc: Loc[S],
     topmost: Bool,
     cont: _Continuation[S, D, V])
@@ -422,7 +424,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       cont(result)
     end
 
-  fun _lookup(depth: USize, rule: NamedRule[S, D, V], loc: Loc[S])
+  fun _lookup(depth: USize, rule: NamedRule[S, D, V] val, loc: Loc[S])
     : (Result[S, D, V] | None)
   =>
     try
@@ -437,7 +439,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
 
   be _memoize(
     depth: USize,
-    rule: NamedRule[S, D, V],
+    rule: NamedRule[S, D, V] val,
     loc: Loc[S],
     result: Result[S, D, V],
     cont: _Continuation[S, D, V])
@@ -459,7 +461,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
 
   be _memoize_seq(
     depth: USize,
-    results: ReadSeq[(NamedRule[S, D, V], Loc[S], Result[S, D, V])] iso,
+    results: ReadSeq[(NamedRule[S, D, V] val, Loc[S], Result[S, D, V])] iso,
     result: Result[S, D, V],
     cont: _Continuation[S, D, V])
   =>
@@ -482,7 +484,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
 
   fun ref _push_expansion(
     depth: USize,
-    rule: NamedRule[S, D, V],
+    rule: NamedRule[S, D, V] val,
     loc: Loc[S],
     result: Result[S, D, V]): Bool
   =>
@@ -509,7 +511,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
 
   fun ref _update_expansion(
     depth: USize,
-    rule: NamedRule[S, D, V],
+    rule: NamedRule[S, D, V] val,
     loc: Loc[S],
     result: Result[S, D, V])
   =>
@@ -523,24 +525,24 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       lr_state.expansions(prev_exp)? = result
     end
 
-  fun _current_expansion(rule: NamedRule[S, D, V], loc: Loc[S]): USize =>
+  fun _current_expansion(rule: NamedRule[S, D, V] val, loc: Loc[S]): USize =>
     try
       _lr_states((rule, loc))?.expansions.size()
     else
       0
     end
 
-  fun ref _remove_expansions(rule: NamedRule[S, D, V], loc: Loc[S]) =>
+  fun ref _remove_expansions(rule: NamedRule[S, D, V] val, loc: Loc[S]) =>
     try
       _lr_states.remove((rule, loc))?
     end
 
   fun ref _remove_expansions_below(depth: USize, loc: Loc[S])
-    : Array[(NamedRule[S, D, V], Loc[S], Result[S, D, V])] iso^
+    : Array[(NamedRule[S, D, V] val, Loc[S], Result[S, D, V])] iso^
   =>
-    let to_memoize: Array[(NamedRule[S, D, V], Loc[S], Result[S, D, V])] iso
-       = Array[(NamedRule[S, D, V], Loc[S], Result[S, D, V])]
-    let to_remove = Array[(NamedRule[S, D, V], Loc[S])]
+    let to_memoize =
+      recover iso Array[(NamedRule[S, D, V] val, Loc[S], Result[S, D, V])] end
+    let to_remove = Array[(NamedRule[S, D, V] val, Loc[S])]
     for lr_state in _lr_states.values() do
       if (lr_state.depth >= depth) and (lr_state.loc == loc) then
         let last_exp = lr_state.expansions.size() - 1
@@ -559,7 +561,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     consume to_memoize
 
   fun ref _prev_expansion(
-    rule: NamedRule[S, D, V],
+    rule: NamedRule[S, D, V] val,
     loc: Loc[S],
     detect_lr: Bool = false)
     : ((Result[S, D, V], Bool) | None)
@@ -575,14 +577,14 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       (result, first_detected)
     end
 
-  fun _lr_detected(rule: NamedRule[S, D, V], loc: Loc[S]): Bool =>
+  fun _lr_detected(rule: NamedRule[S, D, V] val, loc: Loc[S]): Bool =>
     try
       _lr_states((rule, loc))?.lr_detected
     else
       false
     end
 
-  fun _last_next(rule: NamedRule[S, D, V], loc: Loc[S]): Loc[S] =>
+  fun _last_next(rule: NamedRule[S, D, V] val, loc: Loc[S]): Loc[S] =>
     try
       let lr_state = _lr_states((rule, loc))?
       let prev_exp = lr_state.expansions.size() - 1

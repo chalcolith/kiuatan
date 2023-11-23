@@ -1,6 +1,6 @@
 use per = "collections/persistent"
 
-class val NamedRule[S, D: Any #share = None, V: Any #share = None]
+class NamedRule[S, D: Any #share = None, V: Any #share = None]
   is RuleNodeWithBody[S, D, V]
   """
   Represents a named grammar rule.  Memoization and left-recursion handling happens per named `Rule`.
@@ -48,7 +48,7 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
     end
 
     match _body
-    | let body': RuleNode[S, D, V] =>
+    | let body': RuleNode[S, D, V] val =>
       let self = this
       parser._parse_named_rule(
         depth,
@@ -81,5 +81,5 @@ class val NamedRule[S, D: Any #share = None, V: Any #share = None]
       outer(result)
     end
 
-  fun val get_action(): (Action[S, D, V] | None) =>
+  fun action(): (Action[S, D, V] | None) =>
     _action

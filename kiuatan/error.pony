@@ -1,4 +1,4 @@
-class val Error[S, D: Any #share = None, V: Any #share = None]
+class Error[S, D: Any #share = None, V: Any #share = None]
   is RuleNode[S, D, V]
   """
   Will result in an error with the given message.
@@ -7,9 +7,12 @@ class val Error[S, D: Any #share = None, V: Any #share = None]
   let _message: String
   let _action: (Action[S, D, V] | None)
 
-  new create(message: String, action: (Action[S, D, V] | None) = None) =>
-    _message = message
-    _action = action
+  new create(
+    message': String,
+    action': (Action[S, D, V] | None) = None)
+  =>
+    _message = message'
+    _action = action'
 
   fun val parse(
     parser: Parser[S, D, V],
@@ -23,5 +26,5 @@ class val Error[S, D: Any #share = None, V: Any #share = None]
     end
     outer(result)
 
-  fun val get_action(): (Action[S, D, V] | None) =>
+  fun action(): (Action[S, D, V] | None) =>
     _action
