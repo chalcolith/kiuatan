@@ -32,7 +32,7 @@ class Literal[
         var act = loc
         for exp in _expected.values() do
           if (not act.has_value()) or (exp != act()?) then
-            break Failure[S, D, V](this, loc)
+            break Failure[S, D, V](this, loc, ErrorMsg.literal_unexpected())
           end
           act = act.next()
           Success[S, D, V](this, loc, act)

@@ -64,7 +64,8 @@ class Disj[S, D: Any #share = None, V: Any #share = None]
     outer: _Continuation[S, D, V])
   =>
     if child_index == _children.size() then
-      let result = Failure[S, D, V](this, loc, None, last_failure)
+      let result = Failure[S, D, V](
+        this, loc, ErrorMsg.disjunction_none(), last_failure)
       ifdef debug then
         _Dbg.out(depth, "< " + result.string())
       end

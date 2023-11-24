@@ -2,6 +2,9 @@ primitive ErrorMsg
   fun tag empty_source(): String val =>
     "cannot parse empty source"
 
+  fun tag literal_unexpected(): String val =>
+    "unexpected value"
+
   fun tag literal_failed(): String val =>
     "literal combinator failed unexpectedly"
 
@@ -17,6 +20,9 @@ primitive ErrorMsg
   fun tag disjunction_failed(): String val =>
     "disjunction combinator failed unexpectedly"
 
+  fun tag disjunction_none(): String val =>
+    "all alternatives failed"
+
   fun tag single_failed(): String val =>
     "single-item combinator failed unexpectedly"
 
@@ -26,8 +32,8 @@ primitive ErrorMsg
   fun tag star_too_short(): String val =>
     "star combinator did not match enough times"
 
-  fun tag rule_expected(name: String): String val =>
-    "expected '" + name + "'"
+  fun tag rule_expected(name: String, loc: String): String val =>
+    "expected '" + name + "' @" + loc
 
   fun tag rule_empty(name: String): String val =>
     "named rule combinator '" + name + "' is empty"

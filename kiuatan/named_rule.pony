@@ -64,8 +64,9 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
                 success.start,
                 success.next,
                 [success])
-            else
-              result
+            | let failure: Failure[S, D, V] =>
+              Failure[S, D, V](
+                self, loc, ErrorMsg.rule_expected(name, loc.string()), failure)
             end
           ifdef debug then
             _Dbg.out(depth, name + " = " + result'.string())
