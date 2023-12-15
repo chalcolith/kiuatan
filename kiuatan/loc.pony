@@ -14,14 +14,24 @@ class val Loc[S]
   let _segment: per.List[Segment[S]]
   let _index: USize
 
-  new val create(segment: per.List[Segment[S]], index: USize = 0) =>
+  new val create(segment': per.List[Segment[S]], index': USize = 0) =>
     """
     Create a new location in the given segment.
     """
-    _segment = segment
-    _index = index
+    _segment = segment'
+    _index = index'
 
-  fun is_in(segment: Segment[S]): Bool => _segment is segment
+  fun segment(): ReadSeq[S] val =>
+    try _segment(0)? else [] end
+
+  fun index(): USize => _index
+
+  fun is_in(seg: Segment[S]): Bool =>
+    try
+      seg is _segment(0)?
+    else
+      false
+    end
 
   fun has_value(): Bool =>
     """
