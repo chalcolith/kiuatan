@@ -34,7 +34,7 @@ class Look[S, D: Any #share = None, V: Any #share = None]
         let result' =
           match result
           | let success: Success[S, D, V] =>
-            Success[S, D, V](self, loc, loc, [success])
+            Success[S, D, V](self, loc, loc)
           | let failure: Failure[S, D, V] =>
             Failure[S, D, V](self, loc, None, failure)
           end
