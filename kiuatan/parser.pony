@@ -77,14 +77,15 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
           _remove_memoized_spanning(
             _segments(remove.index)?,
             _segments(remove.index)?)
-          _remove_memoized_spanning(
-            _segments(remove.index)?,
-            _segments(remove.index + 1)?
-          )
+          if _segments.size() > (remove.index + 1) then
+            _remove_memoized_spanning(
+              _segments(remove.index)?,
+              _segments(remove.index + 1)?)
+          end
         end
 
         let left = _segments.take(remove.index)
-        let right = _segments.take(remove.index + 1)
+        let right = _segments.drop(remove.index + 1)
         _segments = left.concat(right)
       end
     end
