@@ -126,9 +126,10 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       _memo.clear()
     end
 
+    _update_segments()
+
     match _segments
     | let source: per.Cons[Segment[S]] =>
-      _update_segments()
       let loc: Loc[S] =
         match start
         | let loc': Loc[S] =>
