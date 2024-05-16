@@ -19,79 +19,38 @@ class Conj[S, D: Any #share = None, V: Any #share = None]
   fun children(): ReadSeq[this->(RuleNode[S, D, V] box)] =>
     _children
 
-  fun val parse(
-    parser: Parser[S, D, V],
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
+  fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
+    : Result[S, D, V]
   =>
     ifdef debug then
       _Dbg.out(depth, "CONJ @" + loc.string())
     end
 
-    _parse_child(
-      parser,
-      depth,
-      loc,
-      0,
-      loc,
-      per.Lists[Success[S, D, V]].empty(),
-      outer)
+    if _children.size() == 0 then
+      return Failure[S, D, V](this, loc, ErrorMsg.conjunction_empty())
+    end
 
-  fun val _parse_child(
-    parser: Parser[S, D, V],
-    depth: USize,
-    start: Loc[S],
-    child_index: USize,
-    loc: Loc[S],
-    results: per.List[Success[S, D, V]],
-    outer: _Continuation[S, D, V])
-  =>
-    if child_index == _children.size() then
-      let result = Success[S, D, V](
-        this,
-        start,
-        loc,
-        results.reverse())
-
-      ifdef debug then
-        _Dbg.out(depth, "= " + result.string())
-      end
-
-      outer(result)
-    else
-      match try _children(child_index)? end
-      | let child: RuleNode[S, D, V] val =>
-        let self = this
-        child.parse(parser, depth + 1, loc,
-          {(result: Result[S, D, V]) =>
-            match result
-            | let success: Success[S, D, V] =>
-              self._parse_child(
-                parser,
-                depth,
-                start,
-                child_index + 1,
-                success.next,
-                results.prepend(success),
-                outer)
-            | let failure: Failure[S, D, V] =>
-              let failure' = Failure[S, D, V](self, start, None, failure)
-              ifdef debug then
-                _Dbg.out(depth, "= " + failure'.string())
-              end
-              outer(failure')
-            end
-          })
-      else
-        let result = Failure[S, D, V](
-          this, start, ErrorMsg.conjunction_failed())
+    let results: Array[Success[S, D, V]] trn = []
+    var next = loc
+    for child in _children.values() do
+      match child.parse(parser, depth + 1, next)
+      | let success: Success[S, D, V] =>
+        results.push(success)
+        next = success.next
+      | let failure: Failure[S, D, V] =>
+        let failure' = Failure[S, D, V](this, failure.start, None, failure)
         ifdef debug then
-          _Dbg.out(depth, "= " + result.string())
+          _Dbg.out(depth, "= " + failure'.string())
         end
-        outer(result)
+        return failure'
       end
     end
+
+    let success = Success[S, D, V](this, loc, next, consume results)
+    ifdef debug then
+      _Dbg.out(depth, "= " + success.string())
+    end
+    success
 
   fun action(): (Action[S, D, V] | None) =>
     _action

@@ -138,15 +138,12 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
           Loc[S](source, 0)
         end
 
-      rule.parse(this, 0, loc,
-        {(result: Result[S, D, V]) =>
-          match result
-          | let success: Success[S, D, V] =>
-            callback(success, success._values(data))
-          else
-            callback(result, Array[V])
-          end
-        })
+      match rule.parse(this~_parse_named_rule(), 0, loc)
+      | let success: Success[S, D, V] =>
+        callback(success, success._values(data))
+      | let failure: Failure[S, D, V] =>
+        callback(failure, [])
+      end
     else
       let loc =
         match start
@@ -159,40 +156,38 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         Failure[S, D, V](rule, loc, ErrorMsg.empty_source()), Array[V])
     end
 
-  be _parse_named_rule(
+  fun ref _parse_named_rule(
     depth: USize,
     rule: NamedRule[S, D, V] val,
     body: RuleNode[S, D, V] val,
-    loc: Loc[S],
-    cont: _Continuation[S, D, V])
+    loc: Loc[S])
+    : Result[S, D, V]
   =>
-    let self: Parser[S, D, V] tag = this
+    let self = this
 
     // look in memo for a top-level memoized result
     match _lookup(depth + 1, rule, loc)
     | let result: Result[S, D, V] =>
-      cont(result)
-      return
+      ifdef debug then
+        _Dbg.out(depth + 1, rule.name + ": FOUND: " + result.string())
+      end
+      return result
     end
 
     // if we can't be left-recursive, go ahead and parse
     if not _is_left_recursive(
       rule, per.Lists[NamedRule[S, D, V] val].empty())
     then
-      body.parse(this, depth + 1, loc,
-        {(result: Result[S, D, V]) =>
-          match result
-          | let success: Success[S, D, V] =>
-            self._memoize(depth + 1, rule, loc, result, cont)
-          else
-            if rule.memoize_failures then
-              self._memoize(depth + 1, rule, loc, result, cont)
-            else
-              cont(result)
-            end
-          end
-        })
-      return
+      match body.parse(this~_parse_named_rule(), depth + 1, loc)
+      | let success: Success[S, D, V] =>
+        _memoize(depth + 1, rule, loc, success)
+        return success
+      | let failure: Failure[S, D, V] =>
+        if rule.memoize_failures then
+          _memoize(depth + 1, rule, loc, failure)
+        end
+        return failure
+      end
     end
 
     // look in the LR records to see if we have a previous expansion
@@ -206,8 +201,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         _Dbg.out(depth + 1, "fnd_exp " + rule.name + "@" + loc.string() + " <" +
           prev_exp.string() + "> " + result.string())
       end
-      cont(result)
-      return
+      return result
     end
 
     // otherwise, memoize this rule as having failed for this expansion
@@ -219,80 +213,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       _Dbg.out(depth + 1, rule.name + "@" + loc.string() + " <" +
         _current_expansion(rule, loc).string() + ">")
     end
-    _try_expansion(depth, rule, body, loc, topmost, cont)
-
-  be _parse_disjunction_start(
-    rule: Disj[S, D, V] val,
-    disj: _DisjInstance,
-    size: USize,
-    depth: USize,
-    loc: Loc[S],
-    run: {()} iso,
-    outer: _Continuation[S, D, V])
-  =>
-    _disj_results.update(disj, Array[(Result[S, D, V] | None)].init(None, size))
-    run()
-
-  be _parse_disjunction_child(
-    disj: _DisjInstance,
-    index: USize,
-    rule: Disj[S, D, V] val,
-    node: RuleNode[S, D, V] val,
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
-  =>
-    let self: Parser[S, D, V] tag = this
-    node.parse(this, depth, loc,
-      {(result: Result[S, D, V]) =>
-        self._parse_disjunction_result(
-          disj, index, rule, depth, loc, outer, result)
-      })
-
-  be _parse_disjunction_result(
-    disj: _DisjInstance,
-    index: USize,
-    rule: Disj[S, D, V] val,
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V],
-    result: Result[S, D, V])
-  =>
-    // no more results; we already found a solution, so bail
-    if not _disj_results.contains(disj) then
-      return
-    end
-
-    try
-      let size = _disj_results(disj)?.size()
-      _disj_results(disj)?(index)? = result
-
-      var i: USize = 0
-      for res in _disj_results(disj)?.values() do
-        match res
-        | None =>
-          // no first result yet, give up
-          return
-        | let failure: Failure[S, D, V] =>
-          // check for last failure, otherwise continue
-          if i == (size - 1) then
-            try _disj_results.remove(disj)? end
-            outer(Failure[S, D, V](
-              rule, loc, ErrorMsg.disjunction_failed(), failure))
-          end
-        | let success: Success[S, D, V] =>
-          // we've found a first result, succeed
-          try _disj_results.remove(disj)? end
-          outer(Success[S, D, V](
-            rule, success.start, success.next, [ success ]))
-          return
-        end
-        i = i + 1
-      end
-    else
-      try _disj_results.remove(disj)? end
-      outer(Failure[S, D, V](rule, loc, ErrorMsg.disjunction_failed()))
-    end
+    _try_expansion(depth, rule, body, loc, topmost)
 
   fun ref _is_left_recursive(
     node: RuleNode[S, D, V] val,
@@ -336,28 +257,25 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     end
     false
 
-  be _try_expansion(
+  fun ref _try_expansion(
     depth: USize,
     rule: NamedRule[S, D, V] val,
     body: RuleNode[S, D, V] val,
     loc: Loc[S],
-    topmost: Bool,
-    cont: _Continuation[S, D, V])
+    topmost: Bool)
+    : Result[S, D, V]
   =>
-    let self: Parser[S, D, V] tag = this
-    body.parse(this, depth + 2, loc,
-      {(result: Result[S, D, V]) =>
-        self._try_expansion_aux(result, depth, rule, body, loc, topmost, cont)
-      })
+    let result = body.parse(this~_parse_named_rule(), depth + 2, loc)
+    _try_expansion_aux(result, depth, rule, body, loc, topmost)
 
-  be _try_expansion_aux(
+  fun ref _try_expansion_aux(
     result: Result[S, D, V],
     depth: USize,
     rule: NamedRule[S, D, V] val,
     body: RuleNode[S, D, V] val,
     loc: Loc[S],
-    topmost: Bool,
-    cont: _Continuation[S, D, V])
+    topmost: Bool)
+    : Result[S, D, V]
   =>
     if _lr_detected(rule, loc) then
       let cur_exp = _current_expansion(rule, loc)
@@ -374,14 +292,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
             _Dbg.out(depth + 1, rule.name + "@" + loc.string() + " <" +
               _current_expansion(rule, loc).string() + ">")
           end
-          _try_expansion(
-            depth,
-            rule,
-            body,
-            loc,
-            topmost,
-            cont)
-          return
+          return _try_expansion(depth, rule, body, loc, topmost)
         end
         // fall through
       end
@@ -403,12 +314,12 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         _memoize_seq(
           depth + 1,
           consume to_memoize,
-          result',
-          cont)
+          result')
+        return result'
       else
         // we're not at the top level; memoize in this expansions
         _update_expansion(depth + 1, rule, loc, result')
-        cont(result')
+        return result'
       end
     elseif topmost then
       // no left-recursion was detected, memoize us globally
@@ -417,13 +328,13 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       _memoize_seq(
         depth + 1,
         consume to_memoize,
-        result,
-        cont)
+        result)
+      return result
     else
       // no left-recursion detected, but we are inside another,
       // memoize in this expansion
       _update_expansion(depth + 1, rule, loc, result)
-      cont(result)
+      return result
     end
 
   fun _lookup(depth: USize, rule: NamedRule[S, D, V] val, loc: Loc[S])
@@ -439,12 +350,11 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       result
     end
 
-  be _memoize(
+  fun ref _memoize(
     depth: USize,
     rule: NamedRule[S, D, V] val,
     loc: Loc[S],
-    result: Result[S, D, V],
-    cont: _Continuation[S, D, V])
+    result: Result[S, D, V])
   =>
     ifdef debug then
       _Dbg.out(depth, "memoize " + rule.name + " " + result.string())
@@ -459,13 +369,11 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         by_loc'
       end
     by_loc(loc) = result
-    cont(result)
 
-  be _memoize_seq(
+  fun ref _memoize_seq(
     depth: USize,
     results: ReadSeq[(NamedRule[S, D, V] val, Loc[S], Result[S, D, V])] iso,
-    result: Result[S, D, V],
-    cont: _Continuation[S, D, V])
+    result: Result[S, D, V])
   =>
     for (rule, loc, res) in (consume results).values() do
       ifdef debug then
@@ -482,7 +390,6 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         end
       by_loc(loc) = res
     end
-    cont(result)
 
   fun ref _push_expansion(
     depth: USize,

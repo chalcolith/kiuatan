@@ -38,49 +38,32 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
     end
 
   fun val parse(
-    parser: Parser[S, D, V],
+    parser: _ParseNamedRule[S, D, V],
     depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
+    loc: Loc[S])
+    : Result[S, D, V]
   =>
     ifdef debug then
       _Dbg.out(depth, "RULE " + name + " @" + loc.string())
     end
 
-    match _body
-    | let body': RuleNode[S, D, V] val =>
-      let self = this
-      parser._parse_named_rule(
-        depth,
-        self,
-        body',
-        loc,
-        {(result: Result[S, D, V]) =>
-          let result' =
-            match result
-            | let success: Success[S, D, V] =>
-              Success[S, D, V](
-                self,
-                success.start,
-                success.next,
-                [success])
-            | let failure: Failure[S, D, V] =>
-              Failure[S, D, V](
-                self, loc, ErrorMsg.rule_expected(name, loc.string()), failure)
-            end
-          ifdef debug then
-            _Dbg.out(depth, name + " = " + result'.string())
-          end
-          outer(result')
-        })
-    else
-      let result =
+    let result =
+      match _body
+      | let body': RuleNode[S, D, V] val =>
+        match parser(depth, this, body', loc)
+        | let success: Success[S, D, V] =>
+          Success[S, D, V](this, success.start, success.next, [success])
+        | let failure: Failure[S, D, V] =>
+          Failure[S, D, V](
+            this, loc, ErrorMsg.rule_expected(name, loc.string()), failure)
+        end
+      else
         Failure[S, D, V](this, loc, ErrorMsg.rule_empty(name))
-      ifdef debug then
-        _Dbg.out(depth, name + " = " + result.string())
       end
-      outer(result)
+    ifdef debug then
+      _Dbg.out(depth, "     " + name + " = " + result.string())
     end
+    result
 
   fun action(): (Action[S, D, V] | None) =>
     _action

@@ -16,35 +16,28 @@ class Cond[S, D: Any #share = None, V: Any #share = None]
   fun body(): (this->(RuleNode[S, D, V] box) | None) =>
     _body
 
-  fun val parse(
-    parser: Parser[S, D, V],
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
+  fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
+    : Result[S, D, V]
   =>
     ifdef debug then
       _Dbg.out(depth, "COND @" + loc.string())
     end
-    let self = this
-    _body.parse(parser, depth + 1, loc,
-      {(result: Result[S, D, V]) =>
-        let result' =
-          match result
-          | let success: Success[S, D, V] =>
-            (let succeeded: Bool, let message: (String | None)) = _cond(success)
-            if succeeded then
-              success
-            else
-              Failure[S, D, V](self, success.start, message)
-            end
-          | let failure: Failure[S, D, V] =>
-            failure
-          end
-        ifdef debug then
-          _Dbg.out(depth, "= " + result'.string())
+    let result =
+      match _body.parse(parser, depth + 1, loc)
+      | let success: Success[S, D, V] =>
+        (let succeeded, let message) = _cond(success)
+        if succeeded then
+          success
+        else
+          Failure[S, D, V](this, success.start, message)
         end
-        outer(result')
-      })
+      | let failure: Failure[S, D, V] =>
+        failure
+      end
+    ifdef debug then
+      _Dbg.out(depth, "     = " + result.string())
+    end
+    result
 
   fun action(): (Action[S, D, V] | None) =>
     None

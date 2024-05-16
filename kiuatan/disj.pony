@@ -20,87 +20,39 @@ class Disj[S, D: Any #share = None, V: Any #share = None]
   fun children(): ReadSeq[this->(RuleNode[S, D, V] box)] =>
     _children
 
-  fun val parse(
-    parser: Parser[S, D, V],
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
+  fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
+    : Result[S, D, V]
   =>
     ifdef debug then
       _Dbg.out(depth, "DISJ @" + loc.string())
     end
 
     if _children.size() == 0 then
-      outer(Failure[S, D, V](this, loc, ErrorMsg.disjunction_empty()))
-      return
+      return Failure[S, D, V](this, loc, ErrorMsg.disjunction_empty())
     end
 
-    _parse_child(parser, depth, 0, loc, None, outer)
-
-    // let disj = _DisjInstance
-    // let self = this
-    // parser._parse_disjunction_start(
-    //   this,
-    //   disj,
-    //   _children.size(),
-    //   depth,
-    //   loc,
-    //   {()(children: ReadSeq[RuleNode[S, D, V] box] val = _children) =>
-    //     var index: USize = 0
-    //     for child in children.values() do
-    //       parser._parse_disjunction_child(
-    //         disj, index, self, child, depth, loc, outer)
-    //       index = index + 1
-    //     end
-    //   },
-    //   outer)
-
-  fun val _parse_child(
-    parser: Parser[S, D, V],
-    depth: USize,
-    child_index: USize,
-    loc: Loc[S],
-    last_failure: (Failure[S, D, V] | None),
-    outer: _Continuation[S, D, V])
-  =>
-    if child_index == _children.size() then
-      let result = Failure[S, D, V](
-        this, loc, ErrorMsg.disjunction_none(), last_failure)
-      ifdef debug then
-        _Dbg.out(depth, "< " + result.string())
-      end
-      outer(result)
-    else
-      match try _children(child_index)? end
-      | let child: RuleNode[S, D, V] val =>
-        let self = this
-        child.parse(parser, depth + 1, loc,
-          {(result: Result[S, D, V]) =>
-            match result
-            | let success: Success[S, D, V] =>
-              let success' = Success[S, D, V](
-                self,
-                loc,
-                success.next,
-                [success])
-              ifdef debug then
-                _Dbg.out(depth, "= " + success'.string())
-              end
-              outer(success')
-            | let failure: Failure[S, D, V] =>
-              self._parse_child(
-                parser, depth, child_index + 1, loc, failure, outer)
-            end
-          })
-      else
-        let result = Failure[S, D, V](
-          this, loc, ErrorMsg.disjunction_failed(), None)
+    let message: String trn = String
+    for child in _children.values() do
+      match child.parse(parser, depth + 1, loc)
+      | let success: Success[S, D, V] =>
+        let result = Success[S, D, V](this, loc, success.next, [success])
         ifdef debug then
-          _Dbg.out(depth, "= " + result.string())
+          _Dbg.out(depth, "     = " + result.string())
         end
-        outer(result)
+        return result
+      | let failure: Failure[S, D, V] =>
+        if message.size() > 0 then
+          message.append("; ")
+        end
+        message.append(failure.get_message())
       end
     end
+
+    let result = Failure[S, D, V](this, loc, consume message)
+    ifdef debug then
+      _Dbg.out(depth, "     = " + result.string())
+    end
+    result
 
   fun action(): (Action[S, D, V] | None) =>
     _action

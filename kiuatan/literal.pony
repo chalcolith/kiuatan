@@ -17,14 +17,11 @@ class Literal[
     _expected = expected'
     _action = action'
 
-  fun val parse(
-    parser: Parser[S, D, V],
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
+  fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
+    : Result[S, D, V]
   =>
     ifdef debug then
-      _Dbg.out(depth, "LIT @" + loc.string())
+      _Dbg.out(depth, "LIT  @" + loc.string())
     end
 
     let result =
@@ -43,9 +40,9 @@ class Literal[
         Failure[S, D, V](this, loc, ErrorMsg.literal_failed())
       end
     ifdef debug then
-      _Dbg.out(depth, "= " + result.string())
+      _Dbg.out(depth, "    = " + result.string())
     end
-    outer(result)
+    result
 
   fun action(): (Action[S, D, V] | None) =>
     _action

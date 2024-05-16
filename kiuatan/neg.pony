@@ -19,30 +19,24 @@ class Neg[S, D: Any #share = None, V: Any #share = None]
   fun body(): (this->(RuleNode[S, D, V] box) | None) =>
     _body
 
-  fun val parse(
-    parser: Parser[S, D, V],
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
+  fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
+    : Result[S, D, V]
   =>
     ifdef debug then
       _Dbg.out(depth, "NEG  @" + loc.string())
     end
-    let self = this
-    _body.parse(parser, depth + 1, loc,
-      {(result: Result[S, D, V]) =>
-        let result' =
-          match result
-          | let _: Success[S, D, V] =>
-            Failure[S, D, V](self, loc)
-          | let _: Failure[S, D, V] =>
-            Success[S, D, V](self, loc, loc)
-          end
-        ifdef debug then
-          _Dbg.out(depth, "= " + result'.string())
-        end
-        outer(result')
-      })
+
+    let result =
+      match _body.parse(parser, depth + 1, loc)
+      | let _: Success[S, D, V] =>
+        Failure[S, D, V](this, loc, "lookahead succeeded when it shouldn't")
+      | let _: Failure[S, D, V] =>
+        Success[S, D, V](this, loc, loc)
+      end
+    ifdef debug then
+      _Dbg.out(depth, "= " + result.string())
+    end
+    result
 
   fun action(): (Action[S, D, V] | None) =>
     _action
