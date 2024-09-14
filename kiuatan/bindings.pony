@@ -68,10 +68,16 @@ class val Bindings[S, D: Any #share, V: Any #share]
     end
     error
 
-  fun val contains(variable: (Variable | None)): Bool =>
+  fun val contains(
+    variable: (Variable | None),
+    enclosing_success: Success[S, D, V])
+    : Bool
+  =>
     match variable
     | let variable': Variable =>
-      _bindings.contains(variable')
-    else
-      false
+      try
+        apply(variable', enclosing_success)?
+        return true
+      end
     end
+    false
