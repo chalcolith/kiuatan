@@ -70,7 +70,7 @@ clean:
 	$(CLEAN_DEPENDENCIES_WITH)
 	rm -rf $(BUILD_DIR)
 
-$(docs_dir): $(SOURCE_FILES)
+$(docs_dir): $(GEN_FILES) $(SOURCE_FILES)
 	rm -rf $(docs_dir)
 	$(GET_DEPENDENCIES_WITH)
 	$(PONYC) --docs-public --pass=docs --output build $(SRC_DIR)
@@ -85,4 +85,4 @@ all: test
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
-.PHONY: all build-examples clean TAGS test
+.PHONY: all build-examples clean docs TAGS test
