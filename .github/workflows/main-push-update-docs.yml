@@ -38,14 +38,14 @@ jobs:
           fetch-depth: 0
       - name: Copy Files and Commit
         run: |
-          rm -rf ./chalcolith.github.io/kiuatan/*
+          cd ./chalcolith.github.io
+          git rm -r -f --quiet ./kiuatan/
+          cd ..
+          mkdir -p ./chalcolith.github.io/kiuatan
+          cp -a ./build/kiuatan-docs/site/* ./chalcolith.github.io/kiuatan
           cd ./chalcolith.github.io
           git add .
-          cd ..
-          cp -R ./build/kiuatan-docs/site/* ./chalcolith.github.io/kiuatan/
-          cd ./chalcolith.github.io
           git config user.name "Kiuatan GitHub Actions"
           git config user.email "<>"
-          git add .
           git commit -m "Updated Kiuatan documentation on `date`"
           git push
