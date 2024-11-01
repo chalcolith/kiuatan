@@ -1,9 +1,10 @@
 config ?= release
 
+PONYC ?= ponyc
 PACKAGE := kiuatan
 GET_DEPENDENCIES_WITH := corral fetch
 CLEAN_DEPENDENCIES_WITH := corral clean
-COMPILE_WITH := corral run -- ponyc
+COMPILE_WITH := corral run -- $(PONYC)
 
 BUILD_DIR ?= build/$(config)
 SRC_DIR := $(PACKAGE)

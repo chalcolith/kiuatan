@@ -1,0 +1,15 @@
+name: Main
+on:
+  push:
+    branches:
+      - main
+jobs:
+  call_windows_build_and_test:
+    name: Windows
+    uses: ./.github/workflows/windows-build-and-test.yml
+  call_ubuntu_build_and_test:
+    name: Ubuntu
+    uses: ./.github/workflows/ubuntu-build-and-test.yml
+  call_macos_build_and_test:
+    name: MacOS
+    uses: ./.github/workflows/macos-build-and-test.yml

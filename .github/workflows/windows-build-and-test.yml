@@ -1,0 +1,24 @@
+name: Windows Build and Test
+on:
+  workflow_call:
+jobs:
+  windows_build_and_test:
+    name: Build and Test
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        config: [debug, release]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Windows Build and Test (${{ matrix.config }})
+        run: |
+          Invoke-WebRequest https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/latest/ponyc-x86-64-pc-windows-msvc.zip -OutFile C:\ponyc.zip
+          Expand-Archive -Path C:\ponyc.zip -DestinationPath C:\ponyc
+          $env:PATH = 'C:\ponyc\bin;' + $env:PATH
+          Invoke-WebRequest https://dl.cloudsmith.io/public/ponylang/releases/raw/versions/latest/corral-x86-64-pc-windows-msvc.zip -OutFile C:\corral.zip
+          Expand-Archive -Path C:\corral.zip -DestinationPath C:\corral
+          $env:PATH = 'C:\corral\bin;' + $env:PATH
+          .\make.ps1 -Command fetch
+          .\make.ps1 -Config ${{matrix.config}} test
+          cd .\examples\calc
+          .\make.ps1 -Config ${{matrix.config}} test
