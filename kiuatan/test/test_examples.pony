@@ -7,15 +7,19 @@ class iso _TestExampleMain is UnitTest
   fun apply(h: TestHelper) =>
     let rule =
       recover val
-        let ws = NamedRule[U8]("WhiteSpace", Star[U8](Single[U8](" \t"), 1))
-        NamedRule[U8]("OneTwoThree",
+        let ws = NamedRule[U8](
+          "WhiteSpace", Star[U8](Single[U8](" \t"), 1)
+          where memoize' = true)
+        NamedRule[U8](
+          "OneTwoThree",
           Conj[U8](
             [ Literal[U8]("one")
               ws
               Disj[U8]([ Literal[U8]("two"); Literal[U8]("deux") ])
               ws
               Literal[U8]("three")
-            ]))
+            ])
+            where memoize' = true)
       end
 
     let segment = "one two three"

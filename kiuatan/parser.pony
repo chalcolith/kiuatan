@@ -140,9 +140,15 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
 
       match rule.parse(this~_parse_named_rule(), 0, loc)
       | let success: Success[S, D, V] =>
-        callback(success, success._values(data))
+        _lr_states.clear()
+        _lr_states.compact()
+        _memo.compact()
+        _parse_succeeded(success, data, callback)
       | let failure: Failure[S, D, V] =>
-        callback(failure, [])
+        _lr_states.clear()
+        _lr_states.compact()
+        _memo.compact()
+        _parse_failed(failure, callback)
       end
     else
       let loc =
@@ -152,9 +158,26 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         else
           Loc[S](per.Cons[Segment[S]]([], per.Nil[Segment[S]]), 0)
         end
-      callback(
-        Failure[S, D, V](rule, loc, ErrorMsg.empty_source()), Array[V])
+      let failure = Failure[S, D, V](rule, loc, ErrorMsg.empty_source())
+
+      _lr_states.clear()
+      _lr_states.compact()
+      _memo.compact()
+      _parse_failed(failure, callback)
     end
+
+  be _parse_succeeded(
+    success: Success[S, D, V],
+    data: D,
+    callback: ParseCallback[S, D, V])
+  =>
+    callback(success, success._values(data))
+
+  be _parse_failed(
+    failure: Failure[S, D, V],
+    callback: ParseCallback[S, D, V])
+  =>
+    callback(failure, [])
 
   fun ref _parse_named_rule(
     depth: USize,
@@ -180,10 +203,12 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     then
       match body.parse(this~_parse_named_rule(), depth + 1, loc)
       | let success: Success[S, D, V] =>
-        _memoize(depth + 1, rule, loc, success)
+        if rule.memoize then
+          _memoize(depth + 1, rule, loc, success)
+        end
         return success
       | let failure: Failure[S, D, V] =>
-        if rule.memoize_failures then
+        if rule.memoize then
           _memoize(depth + 1, rule, loc, failure)
         end
         return failure
@@ -376,6 +401,10 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     result: Result[S, D, V])
   =>
     for (rule, loc, res) in (consume results).values() do
+      if not rule.memoize then
+        continue
+      end
+
       ifdef debug then
         _Dbg.out(depth, "memoize " + rule.name + " " + res.string())
       end

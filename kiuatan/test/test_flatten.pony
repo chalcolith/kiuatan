@@ -7,7 +7,8 @@ class iso _TestFlatten is UnitTest
   fun apply(h: TestHelper) =>
     let rule =
       recover val
-        NamedRule[U8,None,USize]("Three",
+        NamedRule[U8,None,USize](
+          "Three",
           Conj[U8,None,USize]([
             NamedRule[U8,None,USize]("OneTwo",
               Conj[U8,None,USize]([
@@ -17,7 +18,8 @@ class iso _TestFlatten is UnitTest
             Literal[U8,None,USize]("three", {(_,r,_,b) => (USize(3),b)})
             NamedRule[U8,None,USize]("Four",
               Literal[U8,None,USize]("four", {(_,r,_,b) => (USize(4),b)}))
-          ]))
+          ])
+          where memoize' = true)
       end
 
     let segment = "onetwothreefour"
