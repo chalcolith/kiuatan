@@ -11,7 +11,8 @@ class iso _TestLookChildren is UnitTest
         NamedRule[U8, None, USize](
           "sub",
           Literal[U8, None, USize]("a"),
-          {(_, _, _, b) => (USize(0), b) })
+          {(_, _, _, b) => (USize(0), b) },
+          true)
       end
     let rule =
       recover val
@@ -20,7 +21,8 @@ class iso _TestLookChildren is UnitTest
           Conj[U8, None, USize](
             [ Look[U8, None, USize](sub)
               sub ]),
-          {(_, _, c, b) => (c.size(), b) })
+          {(_, _, c, b) => (c.size(), b) },
+          true)
       end
 
     let parser = Parser[U8, None, USize]([ "a" ])
