@@ -13,10 +13,6 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   var _updates: Array[_SegmentUpdate[S]]
 
   let _memo: _Memo[S, D, V]
-  let _disj_results:
-    col.MapIs[_DisjInstance, Array[(Result[S, D, V] | None)]]
-
-  let _left_recursive_rules: per.MapIs[NamedRule[S, D, V] val, Bool]
   let _lr_states:
     col.HashMap[
       (NamedRule[S, D, V] val, Loc[S]),
@@ -28,8 +24,6 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     _segments = per.Lists[Segment[S]].from(source.values())
     _updates = _updates.create()
     _memo = _memo.create()
-    _disj_results = _disj_results.create()
-    _left_recursive_rules = _left_recursive_rules.create()
     _lr_states = _lr_states.create()
 
   fun num_segments(): USize =>
@@ -176,16 +170,42 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       return
     end
 
-    // if we can't be left-recursive, go ahead and parse
-    if not _is_left_recursive(
-      rule, per.Lists[NamedRule[S, D, V] val].empty())
-    then
-      body.parse(this, depth + 1, loc,
-        {(result: Result[S, D, V]) =>
+    // if we can't be left-recursive, go ahead and parse directly
+    if not rule.left_recursive then
+      var involved = false
+      if rule.memoize then
+        for lr_state in _lr_states.values() do
+          if loc == lr_state.loc then
+            involved = true
+            break
+          end
+        end
+      end
+
+      body.parse(
+        this,
+        depth + 1,
+        loc,
+        {(body_result: Result[S, D, V]) =>
+          let rule_result =
+            match body_result
+            | let success: Success[S, D, V] =>
+              Success[S, D, V](rule, success.start, success.next, [success])
+            | let failure: Failure[S, D, V] =>
+              Failure[S, D, V](
+                rule,
+                loc,
+                ErrorMsg.rule_expected(rule.name, loc.string()),
+                failure)
+            end
           if rule.memoize then
-            self._memoize(depth + 1, rule, loc, result, cont)
+            if involved then
+              self._memoize_in_lr(depth, rule, loc, rule_result, cont)
+            else
+              self._memoize(depth, rule, loc, rule_result, cont)
+            end
           else
-            cont(result)
+            cont(rule_result)
           end
         })
       return
@@ -208,7 +228,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     end
 
     // otherwise, memoize this rule as having failed for this expansion
-    // and try parsing
+    // and try parsing again
     let failure = Failure[S, D, V](rule, loc)
     let topmost = _push_expansion(depth + 1, rule, loc, failure)
 
@@ -217,122 +237,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       _current_expansion(rule, loc).string() + ">")
     _try_expansion(depth, rule, body, loc, topmost, cont)
 
-  be _parse_disjunction_start(
-    rule: Disj[S, D, V] val,
-    disj: _DisjInstance,
-    size: USize,
-    depth: USize,
-    loc: Loc[S],
-    run: {()} iso,
-    outer: _Continuation[S, D, V])
-  =>
-    _disj_results.update(disj, Array[(Result[S, D, V] | None)].init(None, size))
-    run()
-
-  be _parse_disjunction_child(
-    disj: _DisjInstance,
-    index: USize,
-    rule: Disj[S, D, V] val,
-    node: RuleNode[S, D, V] val,
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
-  =>
-    let self: Parser[S, D, V] tag = this
-    node.parse(this, depth, loc,
-      {(result: Result[S, D, V]) =>
-        self._parse_disjunction_result(
-          disj, index, rule, depth, loc, outer, result)
-      })
-
-  be _parse_disjunction_result(
-    disj: _DisjInstance,
-    index: USize,
-    rule: Disj[S, D, V] val,
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V],
-    result: Result[S, D, V])
-  =>
-    // no more results; we already found a solution, so bail
-    if not _disj_results.contains(disj) then
-      return
-    end
-
-    try
-      let size = _disj_results(disj)?.size()
-      _disj_results(disj)?(index)? = result
-
-      var i: USize = 0
-      for res in _disj_results(disj)?.values() do
-        match res
-        | None =>
-          // no first result yet, give up
-          return
-        | let failure: Failure[S, D, V] =>
-          // check for last failure, otherwise continue
-          if i == (size - 1) then
-            try _disj_results.remove(disj)? end
-            outer(Failure[S, D, V](
-              rule, loc, ErrorMsg.disjunction_failed(), failure))
-          end
-        | let success: Success[S, D, V] =>
-          // we've found a first result, succeed
-          try _disj_results.remove(disj)? end
-          outer(Success[S, D, V](
-            rule, success.start, success.next, [ success ]))
-          return
-        end
-        i = i + 1
-      end
-    else
-      try _disj_results.remove(disj)? end
-      outer(Failure[S, D, V](rule, loc, ErrorMsg.disjunction_failed()))
-    end
-
-  fun ref _is_left_recursive(
-    node: RuleNode[S, D, V] val,
-    stack: per.List[NamedRule[S, D, V] val]): Bool
-  =>
-    match node
-    | let named: NamedRule[S, D, V] val =>
-      try
-        return _left_recursive_rules(named)?
-      end
-
-      if stack.exists({(rn) => rn.name == named.name }) then
-        return true
-      end
-
-      match named.body()
-      | let body: RuleNode[S, D, V] val =>
-        let is_lr = _is_left_recursive(body, stack.prepend(named))
-        _left_recursive_rules(named) = is_lr
-        return is_lr
-      end
-    | let conj: Conj[S, D, V] val =>
-      try
-        return _is_left_recursive(conj.children()(0)?, stack)
-      end
-    | let disj: Disj[S, D, V] val =>
-      let children = disj.children()
-      for i in col.Range(0, children.size()) do
-        try
-          let child = children(i)?
-          if _is_left_recursive(child, stack) then
-            return true
-          end
-        end
-      end
-    | let with_body: RuleNodeWithBody[S, D, V] val =>
-      match with_body.body()
-      | let body: RuleNode[S, D, V] val =>
-        return _is_left_recursive(body, stack)
-      end
-    end
-    false
-
-  be _try_expansion(
+  fun ref _try_expansion(
     depth: USize,
     rule: NamedRule[S, D, V] val,
     body: RuleNode[S, D, V] val,
@@ -342,8 +247,20 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   =>
     let self: Parser[S, D, V] tag = this
     body.parse(this, depth + 2, loc,
-      {(result: Result[S, D, V]) =>
-        self._try_expansion_aux(result, depth, rule, body, loc, topmost, cont)
+      {(body_result: Result[S, D, V]) =>
+        let rule_result =
+          match body_result
+          | let success: Success[S, D, V] =>
+            Success[S, D, V](rule, success.start, success.next, [success])
+          | let failure: Failure[S, D, V] =>
+            Failure[S, D, V](
+              rule,
+              loc,
+              ErrorMsg.rule_expected(rule.name, loc.string()),
+              failure)
+          end
+        self._try_expansion_aux(
+          rule_result, depth, rule, body, loc, topmost, cont)
       })
 
   be _try_expansion_aux(
@@ -461,7 +378,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         continue
       end
 
-      _Dbg() and _Dbg.out(depth, "memoize " + rule.name + " " + res.string())
+      _Dbg() and _Dbg.out(depth, "memoizes " + rule.name + " " + res.string())
 
       let by_loc =
         try
@@ -475,11 +392,22 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     end
     cont(result)
 
+  be _memoize_in_lr(
+    depth: USize,
+    rule: NamedRule[S, D, V] val,
+    loc: Loc[S],
+    result: Result[S, D, V],
+    cont: _Continuation[S, D, V])
+  =>
+    _push_expansion(depth, rule, loc, result)
+    cont(result)
+
   fun ref _push_expansion(
     depth: USize,
     rule: NamedRule[S, D, V] val,
     loc: Loc[S],
-    result: Result[S, D, V]): Bool
+    result: Result[S, D, V])
+    : Bool
   =>
     let toplevel = _lr_states.size() == 0
     try

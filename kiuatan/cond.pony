@@ -25,7 +25,10 @@ class Cond[S, D: Any #share = None, V: Any #share = None]
     _Dbg() and _Dbg.out(depth, "COND @" + loc.string())
 
     let self = this
-    _body.parse(parser, depth + 1, loc,
+    _body.parse(
+      parser,
+      depth + 1,
+      loc,
       {(result: Result[S, D, V]) =>
         let result' =
           match result
