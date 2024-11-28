@@ -20,9 +20,7 @@ class Literal[
   fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
     : Result[S, D, V]
   =>
-    ifdef debug then
-      _Dbg.out(depth, "LIT  @" + loc.string())
-    end
+    _Dbg() and _Dbg.out(depth, "LIT  @" + loc.string())
 
     let result =
       try
@@ -39,9 +37,7 @@ class Literal[
       else
         Failure[S, D, V](this, loc, ErrorMsg.literal_failed())
       end
-    ifdef debug then
-      _Dbg.out(depth, "    = " + result.string())
-    end
+    _Dbg() and _Dbg.out(depth, "    = " + result.string())
     result
 
   fun action(): (Action[S, D, V] | None) =>

@@ -22,9 +22,7 @@ class Conj[S, D: Any #share = None, V: Any #share = None]
   fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
     : Result[S, D, V]
   =>
-    ifdef debug then
-      _Dbg.out(depth, "CONJ @" + loc.string())
-    end
+    _Dbg() and _Dbg.out(depth, "CONJ @" + loc.string())
 
     if _children.size() == 0 then
       return Failure[S, D, V](this, loc, ErrorMsg.conjunction_empty())
@@ -39,17 +37,13 @@ class Conj[S, D: Any #share = None, V: Any #share = None]
         next = success.next
       | let failure: Failure[S, D, V] =>
         let failure' = Failure[S, D, V](this, failure.start, None, failure)
-        ifdef debug then
-          _Dbg.out(depth, "= " + failure'.string())
-        end
+        _Dbg() and _Dbg.out(depth, "= " + failure'.string())
         return failure'
       end
     end
 
     let success = Success[S, D, V](this, loc, next, consume results)
-    ifdef debug then
-      _Dbg.out(depth, "= " + success.string())
-    end
+    _Dbg() and _Dbg.out(depth, "= " + success.string())
     success
 
   fun action(): (Action[S, D, V] | None) =>

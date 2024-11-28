@@ -43,9 +43,7 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
     loc: Loc[S])
     : Result[S, D, V]
   =>
-    ifdef debug then
-      _Dbg.out(depth, "RULE " + name + " @" + loc.string())
-    end
+    _Dbg() and _Dbg.out(depth, "RULE " + name + " @" + loc.string())
 
     let result =
       match _body
@@ -60,9 +58,7 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
       else
         Failure[S, D, V](this, loc, ErrorMsg.rule_empty(name))
       end
-    ifdef debug then
-      _Dbg.out(depth, "     " + name + " = " + result.string())
-    end
+    _Dbg() and _Dbg.out(depth, "     " + name + " = " + result.string())
     result
 
   fun action(): (Action[S, D, V] | None) =>

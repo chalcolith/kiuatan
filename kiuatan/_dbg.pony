@@ -2,7 +2,15 @@ use "debug"
 use "collections"
 
 primitive _Dbg
-  fun out(depth: USize, msg: String) =>
+  fun apply(): Bool =>
+    false
+    // ifdef debug then
+    //   true
+    // else
+    //   false
+    // end
+
+  fun out(depth: USize, msg: String): Bool =>
     // // Uncomment to get lots of debug output
     // let indent =
     //   recover val
@@ -13,4 +21,4 @@ primitive _Dbg
     //     indent'
     //   end
     // Debug.out(indent + msg)
-    None
+    false
