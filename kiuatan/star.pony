@@ -28,11 +28,10 @@ class Star[S, D: Any #share = None, V: Any #share = None]
   fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
     : Result[S, D, V]
   =>
-    ifdef debug then
-      _Dbg.out(depth, "STAR {" + _min.string() + "," +
-        if _max < USize.max_value() then _max.string() else "" end +
-        "} @" + loc.string())
-    end
+    _Dbg() and _Dbg.out(
+      depth, "STAR {" + _min.string() + "," +
+      if _max < USize.max_value() then _max.string() else "" end +
+      "} @" + loc.string())
 
     let results: Array[Success[S, D, V]] trn = []
     var next = loc
@@ -42,9 +41,7 @@ class Star[S, D: Any #share = None, V: Any #share = None]
       | let success: Success[S, D, V] =>
         if index == _max then
           let result = Failure[S, D, V](this, loc, ErrorMsg.star_too_long())
-          ifdef debug then
-            _Dbg.out(depth, "= " + result.string())
-          end
+          _Dbg() and _Dbg.out(depth, "= " + result.string())
           return result
         end
         results.push(success)
@@ -52,9 +49,7 @@ class Star[S, D: Any #share = None, V: Any #share = None]
       | let failure: Failure[S, D, V] =>
         if index < _min then
           let result = Failure[S, D, V](this, loc, ErrorMsg.star_too_short())
-          ifdef debug then
-            _Dbg.out(depth, "    = " + result.string())
-          end
+          _Dbg() and _Dbg.out(depth, "    = " + result.string())
           return result
         end
         break
@@ -63,9 +58,7 @@ class Star[S, D: Any #share = None, V: Any #share = None]
     end
 
     let result = Success[S, D, V](this, loc, next, consume results)
-    ifdef debug then
-      _Dbg.out(depth, "    = " + result.string())
-    end
+    _Dbg() and _Dbg.out(depth, "    = " + result.string())
     result
 
   fun action(): (Action[S, D, V] | None) =>

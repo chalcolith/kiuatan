@@ -23,9 +23,7 @@ class Disj[S, D: Any #share = None, V: Any #share = None]
   fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
     : Result[S, D, V]
   =>
-    ifdef debug then
-      _Dbg.out(depth, "DISJ @" + loc.string())
-    end
+    _Dbg() and _Dbg.out(depth, "DISJ @" + loc.string())
 
     if _children.size() == 0 then
       return Failure[S, D, V](this, loc, ErrorMsg.disjunction_empty())
@@ -36,9 +34,7 @@ class Disj[S, D: Any #share = None, V: Any #share = None]
       match child.parse(parser, depth + 1, loc)
       | let success: Success[S, D, V] =>
         let result = Success[S, D, V](this, loc, success.next, [success])
-        ifdef debug then
-          _Dbg.out(depth, "     = " + result.string())
-        end
+        _Dbg() and _Dbg.out(depth, "     = " + result.string())
         return result
       | let failure: Failure[S, D, V] =>
         if message.size() > 0 then
@@ -49,9 +45,7 @@ class Disj[S, D: Any #share = None, V: Any #share = None]
     end
 
     let result = Failure[S, D, V](this, loc, consume message)
-    ifdef debug then
-      _Dbg.out(depth, "     = " + result.string())
-    end
+    _Dbg() and _Dbg.out(depth, "     = " + result.string())
     result
 
   fun action(): (Action[S, D, V] | None) =>

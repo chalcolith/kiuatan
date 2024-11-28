@@ -18,9 +18,7 @@ class Error[S, D: Any #share = None, V: Any #share = None]
     : Result[S, D, V]
   =>
     let result = Failure[S, D, V](this, loc, _message)
-    ifdef debug then
-      _Dbg.out(depth, "ERROR " + result.string())
-    end
+    _Dbg() and _Dbg.out(depth, "ERROR " + result.string())
     result
 
   fun action(): (Action[S, D, V] | None) =>

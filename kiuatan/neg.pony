@@ -22,9 +22,7 @@ class Neg[S, D: Any #share = None, V: Any #share = None]
   fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
     : Result[S, D, V]
   =>
-    ifdef debug then
-      _Dbg.out(depth, "NEG  @" + loc.string())
-    end
+    _Dbg() and _Dbg.out(depth, "NEG  @" + loc.string())
 
     let result =
       match _body.parse(parser, depth + 1, loc)
@@ -33,9 +31,7 @@ class Neg[S, D: Any #share = None, V: Any #share = None]
       | let _: Failure[S, D, V] =>
         Success[S, D, V](this, loc, loc)
       end
-    ifdef debug then
-      _Dbg.out(depth, "= " + result.string())
-    end
+    _Dbg() and _Dbg.out(depth, "= " + result.string())
     result
 
   fun action(): (Action[S, D, V] | None) =>

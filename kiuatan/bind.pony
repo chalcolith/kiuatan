@@ -19,10 +19,8 @@ class Bind[S, D: Any #share = None, V: Any #share = None]
   fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
     : Result[S, D, V]
   =>
-    ifdef debug then
-      _Dbg.out(depth,
-        "BIND " + variable.name + " @" + loc.string())
-    end
+    _Dbg() and _Dbg.out(depth,"BIND " + variable.name + " @" + loc.string())
+
     let result =
       match _body.parse(parser, depth + 1, loc)
       | let success: Success[S, D, V] =>
@@ -30,9 +28,8 @@ class Bind[S, D: Any #share = None, V: Any #share = None]
       | let failure: Failure[S, D, V] =>
         failure
       end
-    ifdef debug then
-      _Dbg.out(depth, "     = " + variable.name + " := " + result.string())
-    end
+    _Dbg() and _Dbg.out(
+      depth, "     = " + variable.name + " := " + result.string())
     result
 
   fun action(): (Action[S, D, V] | None) =>

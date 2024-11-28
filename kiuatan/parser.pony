@@ -191,9 +191,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     // look in memo for a top-level memoized result
     match _lookup(depth + 1, rule, loc)
     | let result: Result[S, D, V] =>
-      ifdef debug then
-        _Dbg.out(depth + 1, rule.name + ": FOUND: " + result.string())
-      end
+      _Dbg() and _Dbg.out(depth + 1, rule.name + ": FOUND: " + result.string())
       return result
     end
 
@@ -220,10 +218,11 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     | (let result: Result[S, D, V], let first_lr: Bool) =>
       ifdef debug then
         if first_lr then
-          _Dbg.out(depth + 1, rule.name + ": LR DETECTED")
+          _Dbg() and _Dbg.out(depth + 1, rule.name + ": LR DETECTED")
         end
         let prev_exp = _current_expansion(rule, loc) - 1
-        _Dbg.out(depth + 1, "fnd_exp " + rule.name + "@" + loc.string() + " <" +
+        _Dbg() and _Dbg.out(
+          depth + 1, "fnd_exp " + rule.name + "@" + loc.string() + " <" +
           prev_exp.string() + "> " + result.string())
       end
       return result
@@ -234,10 +233,9 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     let failure = Failure[S, D, V](rule, loc)
     let topmost = _push_expansion(depth + 1, rule, loc, failure)
 
-    ifdef debug then
-      _Dbg.out(depth + 1, rule.name + "@" + loc.string() + " <" +
-        _current_expansion(rule, loc).string() + ">")
-    end
+    _Dbg() and _Dbg.out(
+      depth + 1, rule.name + "@" + loc.string() + " <" +
+      _current_expansion(rule, loc).string() + ">")
     _try_expansion(depth, rule, body, loc, topmost)
 
   fun ref _is_left_recursive(
@@ -313,10 +311,9 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
           _remove_expansions_below(depth + 2, loc)
           _push_expansion(depth + 2, rule, loc, success)
 
-          ifdef debug then
-            _Dbg.out(depth + 1, rule.name + "@" + loc.string() + " <" +
-              _current_expansion(rule, loc).string() + ">")
-          end
+          _Dbg() and _Dbg.out(
+            depth + 1, rule.name + "@" + loc.string() + " <" +
+            _current_expansion(rule, loc).string() + ">")
           return _try_expansion(depth, rule, body, loc, topmost)
         end
         // fall through
@@ -367,11 +364,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   =>
     try
       let result = _memo(rule)?(loc)?
-
-      ifdef debug then
-        _Dbg.out(depth, "found " + rule.name + " " + result.string())
-      end
-
+      _Dbg() and _Dbg.out(depth, "found " + rule.name + " " + result.string())
       result
     end
 
@@ -381,9 +374,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     loc: Loc[S],
     result: Result[S, D, V])
   =>
-    ifdef debug then
-      _Dbg.out(depth, "memoize " + rule.name + " " + result.string())
-    end
+    _Dbg() and _Dbg.out(depth, "memoize " + rule.name + " " + result.string())
 
     let by_loc =
       try
@@ -405,9 +396,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         continue
       end
 
-      ifdef debug then
-        _Dbg.out(depth, "memoize " + rule.name + " " + res.string())
-      end
+      _Dbg() and _Dbg.out(depth, "memoize " + rule.name + " " + res.string())
 
       let by_loc =
         try
@@ -430,18 +419,16 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     try
       let lr_state = _lr_states((rule, loc))?
       let cur_exp = lr_state.expansions.size()
-      ifdef debug then
-        _Dbg.out(depth, "mem_exp " + rule.name + "@" + loc.string() + " <" +
-          cur_exp.string() + "> " + result.string())
-      end
+      _Dbg() and _Dbg.out(
+        depth, "mem_exp " + rule.name + "@" + loc.string() + " <" +
+        cur_exp.string() + "> " + result.string())
       lr_state.expansions.push(result)
     else
       let lr_state = _LRRuleState[S, D, V](depth, rule, loc)
       let cur_exp = lr_state.expansions.size()
-      ifdef debug then
-        _Dbg.out(depth, "mem_exp " + rule.name + "@" + loc.string() + " <" +
-          cur_exp.string() + "> " + result.string())
-      end
+      _Dbg() and _Dbg.out(
+        depth, "mem_exp " + rule.name + "@" + loc.string() + " <" +
+        cur_exp.string() + "> " + result.string())
       lr_state.expansions.push(result)
       _lr_states((rule, loc)) = lr_state
     end
@@ -456,10 +443,9 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
     try
       let lr_state = _lr_states((rule, loc))?
       let prev_exp = lr_state.expansions.size() - 1
-      ifdef debug then
-        _Dbg.out(depth, "mem_upd " + rule.name + "@" + loc.string() + " <" +
-          prev_exp.string() + "> " + result.string())
-      end
+      _Dbg() and _Dbg.out(
+        depth, "mem_upd " + rule.name + "@" + loc.string() + " <" +
+        prev_exp.string() + "> " + result.string())
       lr_state.expansions(prev_exp)? = result
     end
 

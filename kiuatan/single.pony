@@ -22,14 +22,10 @@ class Single[
   fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
     : Result[S, D, V]
   =>
-    ifdef debug then
-      _Dbg.out(depth, "SING @" + loc.string())
-    end
+    _Dbg() and _Dbg.out(depth, "SING @" + loc.string())
 
     let result = _parse_single(loc)
-    ifdef debug then
-      _Dbg.out(depth, "= " + result.string())
-    end
+    _Dbg() and _Dbg.out(depth, "= " + result.string())
     result
 
   fun val _parse_single(loc: Loc[S]): Result[S, D, V] =>
