@@ -19,14 +19,17 @@ class Single[
     _expected = expected'
     _action = action'
 
-  fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
-    : Result[S, D, V]
+  fun val parse(
+    parser: Parser[S, D, V],
+    depth: USize,
+    loc: Loc[S],
+    outer: _Continuation[S, D, V])
   =>
     _Dbg() and _Dbg.out(depth, "SING @" + loc.string())
 
     let result = _parse_single(loc)
     _Dbg() and _Dbg.out(depth, "= " + result.string())
-    result
+    outer(result)
 
   fun val _parse_single(loc: Loc[S]): Result[S, D, V] =>
     try
