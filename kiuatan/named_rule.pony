@@ -11,7 +11,6 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
   var _body: (RuleNode[S, D, V] box | None)
   var _action: (Action[S, D, V] | None)
 
-  var weight: USize = 0
   var left_recursive: Bool = false
 
   new create(
@@ -25,11 +24,13 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
     _body = body'
     _action = action'
 
-    match _body
-    | let node: RuleNode[S, D, V] box =>
-      weight = _calc_weight(node, SetIs[RuleNode[S, D, V] box])
-      left_recursive = _is_lr(node, SetIs[RuleNode[S, D, V] box])
-    end
+    left_recursive =
+      match _body
+      | let node: RuleNode[S, D, V] box =>
+        _is_lr(node, SetIs[RuleNode[S, D, V] box])
+      else
+        false
+      end
 
   fun body(): (this->(RuleNode[S, D, V] box) | None) =>
     _body
@@ -45,50 +46,13 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
     if action' isnt None then
       _action = action'
     end
-    match _body
-    | let node: RuleNode[S, D, V] box =>
-      weight = _calc_weight(node, SetIs[RuleNode[S, D, V] box])
-      left_recursive = _is_lr(node, SetIs[RuleNode[S, D, V] box])
-    end
-
-  fun tag _calc_weight(
-    node: RuleNode[S, D, V] box,
-    seen: SetIs[RuleNode[S, D, V] box])
-    : USize
-  =>
-    if seen.contains(node) then
-      return 0
-    end
-
-    seen.set(node)
-    match node
-    | let named_rule: NamedRule[S, D, V] box =>
-      if named_rule.weight == 0 then
-        match named_rule._body
-        | let body': RuleNode[S, D, V] box =>
-          1 + _calc_weight(body', seen)
-        else
-          1
-        end
+    left_recursive =
+      match _body
+      | let node: RuleNode[S, D, V] box =>
+        _is_lr(node, SetIs[RuleNode[S, D, V] box])
       else
-        1 + named_rule.weight
+        false
       end
-    | let with_children: RuleNodeWithChildren[S, D, V] box =>
-      var sum: USize = 1
-      for child in with_children.children().values() do
-        sum = sum + _calc_weight(child, seen)
-      end
-      sum
-    | let with_body: RuleNodeWithBody[S, D, V] box =>
-      match with_body.body()
-      | let body': NamedRule[S, D, V] box =>
-        1 + _calc_weight(body', seen)
-      else
-        1
-      end
-    else
-      1
-    end
 
   fun tag _is_lr(
     node: RuleNode[S, D, V] box,
@@ -139,8 +103,28 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
     | let body': RuleNode[S, D, V] val =>
       let self = this
 
-      // full on fancy stuff
-      parser._parse_named_rule(depth, self, body', loc, outer)
+      if not left_recursive then
+        body'.parse(
+          parser,
+          depth,
+          loc,
+          {(body_result: Result[S, D, V]) =>
+            let rule_result =
+              match body_result
+              | let success: Success[S, D, V] =>
+                Success[S, D, V](self, success.start, success.next, [success])
+              | let failure: Failure[S, D, V] =>
+                Failure[S, D, V](
+                  self,
+                  loc,
+                  ErrorMsg.rule_expected(self.name, loc.string()),
+                  failure)
+              end
+            outer(rule_result)
+          })
+      else
+        parser._parse_named_rule(depth, self, body', loc, outer)
+      end
     else
       let result =
         Failure[S, D, V](this, loc, ErrorMsg.rule_empty(name))
