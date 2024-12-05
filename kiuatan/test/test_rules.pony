@@ -309,7 +309,8 @@ class iso _TestRuleLRImmediate is UnitTest
       end
 
     Assert[U8].test_promises(h,
-      [ Assert[U8].test_matches(h, rule, true, [ "123" ], 0, 3)
+      [
+        Assert[U8].test_matches(h, rule, true, [ "123" ], 0, 3)
         Assert[U8].test_matches(h, rule, true, [ "123+456" ], 0, 7)
         Assert[U8].test_matches(h, rule, false, [ "+" ], 0, 0)
         Assert[U8].test_matches(h, rule, false, [ "" ], 0, 0)
@@ -369,9 +370,8 @@ class iso _TestRuleLRIndirect is UnitTest
         a
       end
 
-    Assert[U8].test_promises(h,
-      [ Assert[U8].test_matches(h, rule, true, [ "xlmnyz" ], 0, 6)
-      ])
+    Assert[U8].test_promises(
+      h, [ Assert[U8].test_matches(h, rule, true, [ "xlmnyz" ], 0, 6) ])
 
 class iso _TestRuleVariableBind is UnitTest
   fun name(): String => "Rule_Variable_Bind"

@@ -11,9 +11,6 @@ primitive ErrorMsg
   fun tag condition_failed(): String val =>
     "conditional combinator's condition failed"
 
-  fun tag conjunction_empty(): String val =>
-    "conjunction (sequence) has no children"
-
   fun tag conjunction_failed(): String val =>
     "conjunction (sequence) combinator failed unexpectedly"
 

@@ -1,8 +1,11 @@
 use per = "collections/persistent"
 
 trait RuleNode[S, D: Any #share, V: Any #share]
-  fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
-    : Result[S, D, V]
+  fun val parse(
+    parser: Parser[S, D, V],
+    depth: USize,
+    loc: Loc[S],
+    cont: _Continuation[S, D, V])
   fun action(): (Action[S, D, V] | None)
 
 trait RuleNodeWithChildren[S, D: Any #share, V: Any #share]

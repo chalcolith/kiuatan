@@ -17,11 +17,13 @@ class Literal[
     _expected = expected'
     _action = action'
 
-  fun val parse(parser: _ParseNamedRule[S, D, V], depth: USize, loc: Loc[S])
-    : Result[S, D, V]
+  fun val parse(
+    parser: Parser[S, D, V],
+    depth: USize,
+    loc: Loc[S],
+    outer: _Continuation[S, D, V])
   =>
-    _Dbg() and _Dbg.out(depth, "LIT  @" + loc.string())
-
+    _Dbg() and _Dbg.out(depth, "LIT @" + loc.string())
     let result =
       try
         var act = loc
@@ -37,8 +39,8 @@ class Literal[
       else
         Failure[S, D, V](this, loc, ErrorMsg.literal_failed())
       end
-    _Dbg() and _Dbg.out(depth, "    = " + result.string())
-    result
+    _Dbg() and _Dbg.out(depth, "= " + result.string())
+    outer(result)
 
   fun action(): (Action[S, D, V] | None) =>
     _action
