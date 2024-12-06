@@ -101,30 +101,7 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
 
     match _body
     | let body': RuleNode[S, D, V] val =>
-      let self = this
-
-      if not left_recursive then
-        body'.parse(
-          parser,
-          depth,
-          loc,
-          {(body_result: Result[S, D, V]) =>
-            let rule_result =
-              match body_result
-              | let success: Success[S, D, V] =>
-                Success[S, D, V](self, success.start, success.next, [success])
-              | let failure: Failure[S, D, V] =>
-                Failure[S, D, V](
-                  self,
-                  loc,
-                  ErrorMsg.rule_expected(self.name, loc.string()),
-                  failure)
-              end
-            outer(rule_result)
-          })
-      else
-        parser._parse_named_rule(depth, self, body', loc, outer)
-      end
+      parser._parse_named_rule(depth, this, body', loc, outer)
     else
       let result =
         Failure[S, D, V](this, loc, ErrorMsg.rule_empty(name))
