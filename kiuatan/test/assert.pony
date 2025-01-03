@@ -52,7 +52,7 @@ primitive \nodoc\ Assert[S: (Stringable #read & Equatable[S] #read),
     should_match: Bool, start_index: USize, length: USize,
     start_exp: Loc[S], next_exp: Loc[S], expected_value: (V | None),
     expected_msg: (String | None), result: Result[S, D, V],
-    result_values: ReadSeq[V] val)
+    result_values: ReadSeq[V])
   =>
     h.log("test_matches " + start_index.string() + " " + length.string()
       + " " + should_match.string())
@@ -87,7 +87,8 @@ primitive \nodoc\ Assert[S: (Stringable #read & Equatable[S] #read),
             let act_msg = failure.get_message()
             h.log(exp_msg)
             h.log(act_msg)
-            h.assert_true(act_msg.contains(exp_msg), "'" + act_msg +
+            h.assert_true(
+              act_msg.contains(exp_msg), "'" + act_msg +
               "' does not contain '" + exp_msg + "'")
           end
         end

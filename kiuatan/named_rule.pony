@@ -1,6 +1,9 @@
 use "collections"
 
-class NamedRule[S, D: Any #share = None, V: Any #share = None]
+class NamedRule[
+  S: (Any #read & Equatable[S]),
+  D: Any #share = None,
+  V: Any #share = None]
   is RuleNodeWithBody[S, D, V]
   """
   Represents a named grammar rule.  Memoization and left-recursion handling happens per named `Rule`.
@@ -8,14 +11,14 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
 
   let name: String
   let memoize: Bool
-  var _body: (RuleNode[S, D, V] box | None)
+  var _body: (RuleNode[S, D, V] | None)
   var _action: (Action[S, D, V] | None)
 
   var left_recursive: Bool = false
 
   new create(
     name': String,
-    body': (RuleNode[S, D, V] box | None) = None,
+    body': (RuleNode[S, D, V] | None) = None,
     action': (Action[S, D, V] | None) = None,
     memoize': Bool = false)
   =>
@@ -26,20 +29,23 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
 
     left_recursive =
       match _body
-      | let node: RuleNode[S, D, V] box =>
-        _is_lr(node, SetIs[RuleNode[S, D, V] box])
+      | let node: RuleNode[S, D, V] =>
+        _is_lr(node, SetIs[RuleNode[S, D, V]])
       else
         false
       end
 
-  fun body(): (this->(RuleNode[S, D, V] box) | None) =>
+  fun action(): (Action[S, D, V] | None) =>
+    _action
+
+  fun body(): (this->(RuleNode[S, D, V]) | None) =>
     _body
 
   fun has_body(): Bool =>
     _body isnt None
 
   fun ref set_body(
-    body': RuleNode[S, D, V] box,
+    body': RuleNode[S, D, V],
     action': (Action[S, D, V] | None) = None)
   =>
     _body = body'
@@ -48,15 +54,15 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
     end
     left_recursive =
       match _body
-      | let node: RuleNode[S, D, V] box =>
-        _is_lr(node, SetIs[RuleNode[S, D, V] box])
+      | let node: RuleNode[S, D, V] =>
+        _is_lr(node, SetIs[RuleNode[S, D, V]])
       else
         false
       end
 
   fun tag _is_lr(
-    node: RuleNode[S, D, V] box,
-    seen: SetIs[RuleNode[S, D, V] box])
+    node: RuleNode[S, D, V],
+    seen: SetIs[RuleNode[S, D, V]])
     : Bool
   =>
     if seen.contains(node) then
@@ -67,7 +73,7 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
     match node
     | let named_rule: NamedRule[S, D, V] box =>
       match named_rule._body
-      | let body': RuleNode[S, D, V] box =>
+      | let body': RuleNode[S, D, V] =>
         return _is_lr(body', seen)
       end
     | let conj: Conj[S, D, V] box =>
@@ -82,32 +88,37 @@ class NamedRule[S, D: Any #share = None, V: Any #share = None]
       end
     | let with_body: RuleNodeWithBody[S, D, V] box =>
       match with_body.body()
-      | let body': RuleNode[S, D, V] box =>
+      | let body': RuleNode[S, D, V] =>
         return _is_lr(body', seen)
       end
     end
     false
 
-  fun val parse(
-    parser: Parser[S, D, V],
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
+  fun call(depth: USize, loc: Loc[S]): _RuleFrame[S, D, V] =>
+    _NamedRuleFrame[S, D, V](this, depth, loc, _body)
+
+class _NamedRuleFrame[
+  S: (Any #read & Equatable[S]),
+  D: Any #share,
+  V: Any #share]
+  is _Frame[S, D, V]
+
+  let rule: NamedRule[S, D, V] box
+  let depth: USize
+  let loc: Loc[S]
+  let body: (RuleNode[S, D, V] | None)
+
+  new create(
+    rule': NamedRule[S, D, V] box,
+    depth': USize,
+    loc': Loc[S],
+    body': (RuleNode[S, D, V] | None))
   =>
-    _Dbg() and _Dbg.out(
-      depth, "RULE " + name + " @" + loc.string() +
-      if left_recursive then " LR" else "" end +
-      if memoize then " m" else "" end)
+    rule = rule'
+    depth = depth'
+    loc = loc'
+    body = body'
 
-    match _body
-    | let body': RuleNode[S, D, V] val =>
-      parser._parse_named_rule(depth, this, body', loc, outer)
-    else
-      let result =
-        Failure[S, D, V](this, loc, ErrorMsg.rule_empty(name))
-      _Dbg() and _Dbg.out(depth, name + " = " + result.string())
-      outer(result)
-    end
-
-  fun action(): (Action[S, D, V] | None) =>
-    _action
+  fun ref run(child_result: (Result[S, D, V] | None)): _FrameResult[S, D, V] =>
+    // can't happen; parser should not call this
+    Failure[S, D, V](rule, loc, "NamedRuleFrame.run() should not be called")

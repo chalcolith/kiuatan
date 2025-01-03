@@ -3,7 +3,7 @@ use "collections"
 
 primitive _Dbg
   fun apply(): Bool =>
-    // Uncomment to get lots of debug output
+    // // Uncomment to get lots of debug output
     // ifdef debug then
     //   return true
     // end

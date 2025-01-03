@@ -138,7 +138,8 @@ class iso _TestRuleErr is UnitTest
       end
 
     Assert[U8].test_promises(h,
-      [ Assert[U8].test_matches(
+      [
+        Assert[U8].test_matches(
           h, rule, false, [['a';'b';'c']], 0, 3, None, None, msg)
         Assert[U8].test_matches(
           h, rule, false, [['x';'y';'z']], 0, 3, None, None, "")
@@ -206,7 +207,8 @@ class iso _TestRuleStarMin is UnitTest
       end
 
     Assert[U8].test_promises(h,
-      [ Assert[U8].test_matches(h, rule, true, [['a';'b';'a';'b']], 0, 4)
+      [
+        Assert[U8].test_matches(h, rule, true, [['a';'b';'a';'b']], 0, 4)
         Assert[U8].test_matches(h, rule, false, [['a';'b';'x';'y']], 0, 0)
         Assert[U8].test_matches(
           h, rule, true, [['a';'b';'a';'b';'a';'b';'x';'y']], 0, 6)
@@ -241,14 +243,9 @@ class iso _TestRuleStarChildren is UnitTest
         NamedRule[U8, None, USize](
           "Dots",
           Star[U8, None, USize](
-            Single[U8, None, USize](".",
-              {(_, _, _, b) =>
-                (USize(1), b)
-              }),
+            Single[U8, None, USize](".", {(_, _, _, b) => 1 }),
             1),
-          {(_, _, c, b) =>
-            (c.size(), b)
-          }
+          {(_, _, c, b) => c.size() }
           where memoize' = true)
       end
 
@@ -384,13 +381,9 @@ class iso _TestRuleVariableBind is UnitTest
       recover val
         NamedRule[U8, None, USize]("Rule", Conj[U8, None, USize](
           [ Bind[U8, None, USize](x, Literal[U8, None, USize]("x",
-              {(_,_,_,b) =>
-                (USize(1),b)
-              }))
+              {(_,_,_,_) => 1 }))
             Bind[U8, None, USize](y, Literal[U8, None, USize]("y",
-              {(_,_,_,b) =>
-                (USize(2),b)
-              }))
+              {(_,_,_,_) => 2 }))
           ],
           {(_, result, child_values, bindings) =>
             var vx: USize = 0
@@ -399,17 +392,16 @@ class iso _TestRuleVariableBind is UnitTest
             try
               vx = bindings.values(x, result)?(0)?
             else
-              return (None, bindings)
+              return None
             end
 
             try
               vy = bindings.values(y, result)?(0)?
             else
-              return (None, bindings)
+              return None
             end
 
-            let vv: (USize | None) = vx + vy
-            (vv, bindings)
+            vx + vy
           })
           where memoize' = true)
       end
@@ -452,7 +444,7 @@ class iso _TestRuleData is UnitTest
       recover val
         NamedRule[U8, String, String]("WithData",
           Literal[U8, String, String]("x",
-            {(data, s, _, b) =>
+            {(data, s, _, _) =>
               let str =
                 recover
                   let str': String ref = String
@@ -461,7 +453,7 @@ class iso _TestRuleData is UnitTest
                   end
                   str'.>append(data)
                 end
-              (str, b)
+              str
             })
             where memoize' = true)
       end
@@ -482,17 +474,14 @@ class iso _TestRuleBindStar is UnitTest
           "BindStar",
           Bind[U8,None,USize](v,
             Star[U8,None,USize](
-              Single[U8,None,USize]("a",
-                {(_,r,_,b) => (USize(123), b) }))),
+              Single[U8,None,USize]("a", {(_,r,_,b) => 123 }))),
           {(_,r,_,b) =>
-            let n: USize =
-              try
-                let values = b.values(v, r)?
-                values.size()
-              else
-                0
-              end
-            (n, b)
+            try
+              let values = b.values(v, r)?
+              values.size()
+            else
+              0
+            end
           }
           where memoize' = true)
       end
@@ -511,8 +500,7 @@ class _TestRuleBindRecursive is UnitTest
           "Int",
           Star[U8,None,String](Single[U8,None,String]("0123456789")),
           {(_,r,_,b) =>
-            let str = recover val String .> concat(r.start.values(r.next)) end
-            (str, b)
+            recover val String .> concat(r.start.values(r.next)) end
           }
           where memoize' = true)
       end
@@ -533,7 +521,7 @@ class _TestRuleBindRecursive is UnitTest
           {(_,r,_,b) =>
             let lhs' = try b.values(lhs, r)?(0)? else "?" end
             let rhs' = try b.values(rhs, r)?(0)? else "?" end
-            (recover val lhs' + "," + rhs' end, b)
+            recover val lhs' + "," + rhs' end
           })
         comma_rule'
       end

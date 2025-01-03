@@ -1,17 +1,21 @@
-use per = "collections/persistent"
-
-type Result[S, D: Any #share = None, V: Any #share = None]
+type Result[
+  S: (Any #read & Equatable[S]),
+  D: Any #share = None,
+  V: Any #share = None]
   is (Success[S, D, V] | Failure[S, D, V])
   """
   The result of a parse attempt, either successful or failed.
   """
 
-class val Success[S, D: Any #share = None, V: Any #share = None]
+class box Success[
+  S: (Any #read & Equatable[S]),
+  D: Any #share = None,
+  V: Any #share = None]
   """
   The result of a successful parse.
   """
 
-  let node: RuleNode[S, D, V] val
+  let node: RuleNode[S, D, V]
   """The rule that matched successfully."""
 
   let start: Loc[S]
@@ -20,84 +24,79 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
   let next: Loc[S]
   """The location one past the end of the match."""
 
-  let children: ReadSeq[Success[S, D, V]] val
+  let children: ReadSeq[Success[S, D, V]]
   """Results from child rules' matches."""
 
-  new val create(
-    node': RuleNode[S, D, V] val,
+  new create(
+    node': RuleNode[S, D, V],
     start': Loc[S],
     next': Loc[S],
-    children': ReadSeq[Success[S, D, V]] val =
-      recover val Array[Success[S, D, V]] end)
+    children': ReadSeq[Success[S, D, V]] box = [])
   =>
     node = node'
     start = start'
     next = next'
     children = children'
 
-  fun val _values(data: D, bindings: Bindings[S, D, V] = Bindings[S, D, V])
-    : ReadSeq[V] val
+  fun _values(data: D, bindings: Bindings[S, D, V] ref = Bindings[S, D, V])
+    : ReadSeq[V]
   =>
     """
     Call the matched rules' actions to assemble a custom result value.
     """
     match _values_aux(data, 0, bindings)
-    | (let result_values: Array[V] val, _) =>
+    | let result_values: Array[V] =>
       result_values
     else
       []
     end
 
-  fun val _values_aux(data: D, indent: USize, bindings: Bindings[S, D, V])
-    : ((Array[V] val | None), Bindings[S, D, V])
+  fun _values_aux(data: D, indent: USize, bindings: Bindings[S, D, V] ref)
+    : (Array[V] | None)
   =>
     // collect values from child results
-    var bindings' = bindings
-    var result_values: (Array[V] val | None) =
+    var result_values: (Array[V] | None) =
       // if we have only one result, pass it on up rather than
       // allocating another array
-      if children.size() < 2 then
+      match children.size()
+      | 0 =>
+        None
+      | 1 =>
         try
-          (let child_result_values: (Array[V] val | None), bindings') =
-            children(0)?._values_aux(data, indent + 1, bindings')
-          child_result_values
+          children(0)?._values_aux(data, indent + 1, bindings)
         end
       else
-        recover val
-          var result_values': (Array[V] | None) = None
-          for child in children.values() do
-            (let child_result_values: (Array[V] val | None), bindings') =
-              child._values_aux(data, indent + 1, bindings')
-
-            match child_result_values
-            | let crv: Array[V] val if crv.size() > 0 =>
-              result_values' =
-                match result_values'
-                | let rv': Array[V] =>
-                  rv' .> append(crv)
-                else
-                  Array[V](crv.size()) .> append(crv)
-                end
-            end
+        // fold child results
+        var result_values': (Array[V] | None) = None
+        for child in children.values() do
+          match child._values_aux(data, indent + 1, bindings)
+          | let crv: Array[V] if crv.size() > 0 =>
+            result_values' =
+              match result_values'
+              | let rv: Array[V] =>
+                rv .> append(crv)
+              else
+                crv
+              end
           end
-          result_values'
         end
+        result_values'
       end
 
     // now run node's action, if any
     match node.action()
     | let action: Action[S, D, V] =>
-      let result_values' =
+      let result_values': Array[V] =
         match result_values
-        | let rv': Array[V] val =>
+        | let rv': Array[V] =>
           rv'
         else
-          recover val Array[V] end
+          []
         end
-      (let value, bindings') = action(data, this, result_values', bindings')
+      let value = action(data, this, result_values', bindings)
       match value
       | let value': V =>
-        result_values = recover val [ value' ] end
+        result_values = [ value' ]
       else
         result_values = None
       end
@@ -105,17 +104,17 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
 
     // now bind variables
     match node
-    | let bind: Bind[S, D, V] val =>
+    | let bind: Bind[S, D, V] box =>
       let result_values' =
         match result_values
-        | let rv': Array[V] val =>
+        | let rv': Array[V] =>
           rv'
         else
           recover val Array[V] end
         end
-      bindings' = bindings'.add(bind.variable, (this, result_values'))
+      bindings.add(bind.variable, (this, result_values'))
     end
-    (result_values, bindings')
+    result_values
 
   fun _indent(n: USize): String =>
     recover
@@ -133,14 +132,10 @@ class val Success[S, D: Any #share = None, V: Any #share = None]
       and (this.next == that.next)
 
   fun string(): String iso^ =>
-    recover
-      let s = String
-      match node
-      | let rule: NamedRule[S, D, V] val =>
-        s.append("Success(" + rule.name + "@[" + start.string() + "," +
-          next.string() + "))")
-      else
-        s.append("Success(@[" + start.string() + "," + next.string() + "))")
-      end
-      s
+    match node
+    | let rule: NamedRule[S, D, V] box =>
+      "Success(" + rule.name + "@[" + start.string() + "," + next.string() +
+        "))"
+    else
+      "Success(@[" + start.string() + "," + next.string() + "))"
     end

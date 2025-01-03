@@ -1,4 +1,4 @@
-use per = "collections/persistent"
+use "collections"
 
 class val Variable
   let name: String
@@ -6,44 +6,38 @@ class val Variable
   new val create(name': String) =>
     name = name'
 
-type Binding[S, D: Any #share, V: Any #share] is
-  (Success[S, D, V], ReadSeq[V] val)
+type Binding[S: (Any #read & Equatable[S]), D: Any #share, V: Any #share] is
+  (Success[S, D, V], ReadSeq[V])
 
-class val Bindings[S, D: Any #share, V: Any #share]
-  let _bindings: per.MapIs[Variable, per.List[Binding[S, D, V]]]
+class box Bindings[S: (Any #read & Equatable[S]), D: Any #share, V: Any #share]
+  let _bindings: MapIs[Variable, Array[Binding[S, D, V]]]
 
-  new val create() =>
-    _bindings = per.MapIs[Variable, per.List[Binding[S, D, V]]]
+  new create() =>
+    _bindings = _bindings.create()
 
-  new val _prepend(
-    prev: Bindings[S, D, V],
-    variable: Variable,
-    binding: Binding[S, D, V])
-  =>
-    let list =
-      try
-        prev._bindings(variable)?.prepend(binding)
+  fun ref add(variable: Variable, binding: Binding[S, D, V]) =>
+    let list: Array[Binding[S, D, V]] =
+      match try _bindings(variable)? end
+      | let arr: Array[Binding[S, D, V]] =>
+        arr
       else
-        per.Cons[Binding[S, D, V]](binding, per.Nil[Binding[S, D, V]])
+        let arr = Array[Binding[S, D, V]]
+        _bindings(variable) = arr
+        arr
       end
-    _bindings = prev._bindings.update(variable, list)
+    list.push(binding)
 
-  fun val add(variable: Variable, binding: Binding[S, D, V])
-    : Bindings[S, D, V]
-  =>
-    Bindings[S, D, V]._prepend(this, variable, binding)
-
-  fun val result(variable: Variable, enclosing_success: Success[S, D, V])
+  fun result(variable: Variable, enclosing_success: Success[S, D, V])
     : Success[S, D, V] ?
   =>
     this(variable, enclosing_success)?._1
 
-  fun val values(variable: Variable, enclosing_success: Success[S, D, V])
-    : ReadSeq[V] val ?
+  fun values(variable: Variable, enclosing_success: Success[S, D, V])
+    : ReadSeq[V] box ?
   =>
     this(variable, enclosing_success)?._2
 
-  fun val apply(variable: Variable, enclosing_success: Success[S, D, V])
+  fun apply(variable: Variable, enclosing_success: Success[S, D, V])
     : Binding[S, D, V] ?
   =>
     // get the list of bindings in top-down order
@@ -52,7 +46,7 @@ class val Bindings[S, D: Any #share, V: Any #share]
     // now starting from our enclosing result, do a breadth-first search
     // of results until we find the first matching binding
     // we do children in reverse order so we find the last binding in a conj
-    let queue = [ enclosing_success ]
+    let queue: Array[Success[S, D, V]] = [ enclosing_success ]
     while queue.size() > 0 do
       let success = queue.shift()?
       for (bs, vs) in var_bindings.values() do
@@ -68,7 +62,7 @@ class val Bindings[S, D: Any #share, V: Any #share]
     end
     error
 
-  fun val contains(
+  fun contains(
     variable: (Variable | None),
     enclosing_success: Success[S, D, V])
     : Bool

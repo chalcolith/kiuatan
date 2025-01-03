@@ -3,7 +3,10 @@ use per = "collections/persistent"
 
 use "debug"
 
-actor Parser[S, D: Any #share = None, V: Any #share = None]
+actor Parser[
+  S: (Any #read & Equatable[S]),
+  D: Any #share = None,
+  V: Any #share = None]
   """
   Stores a source of inputs to a parse, and a memo of parse results from prior
   parses. Used to initiate a parse attempt.
@@ -15,16 +18,19 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
   let _memo: _Memo[S, D, V]
   let _lr_states:
     col.HashMap[
-      (NamedRule[S, D, V] val, Loc[S]),
+      (NamedRule[S, D, V] box, Loc[S]),
       _LRRuleState[S, D, V],
       _LRRuleLocHash[S, D, V]
     ]
+
+  let _stack: Array[_RuleFrame[S, D, V]]
 
   new create(source: ReadSeq[Segment[S]] val) =>
     _segments = per.Lists[Segment[S]].from(source.values())
     _updates = _updates.create()
     _memo = _memo.create()
     _lr_states = _lr_states.create()
+    _stack = _stack.create(1024)
 
   fun num_segments(): USize =>
     """
@@ -132,15 +138,9 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
           Loc[S](source, 0)
         end
 
-      rule.parse(this, 0, loc,
-        {(result: Result[S, D, V]) =>
-          match result
-          | let success: Success[S, D, V] =>
-            callback(success, success._values(data))
-          else
-            callback(result, [])
-          end
-        })
+      _stack.clear()
+      _stack.push(rule.call(0, loc))
+      _parse(rule, loc, data, callback)
     else
       let loc =
         match start
@@ -153,192 +153,210 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       callback(failure, [])
     end
 
-  be _parse_named_rule(
-    depth: USize,
-    rule: NamedRule[S, D, V] val,
-    body: RuleNode[S, D, V] val,
-    loc: Loc[S],
-    cont: _Continuation[S, D, V])
+  be _parse(
+    top_rule: RuleNode[S, D, V] val,
+    top_start: Loc[S],
+    data: D,
+    callback: ParseCallback[S, D, V])
   =>
-    let self: Parser[S, D, V] tag = this
+    var last_child_result: (Result[S, D, V] | None) = None
+    var i: USize = 0
+    while true do
+      i = i + 1
 
-    // look in memo for a top-level memoized result
-    match _lookup(depth + 1, rule, loc)
-    | let result: Result[S, D, V] =>
-      _Dbg() and _Dbg.out(depth + 1, rule.name + ": FOUND: " + result.string())
-      cont(result)
-      return
-    end
+      let frame =
+        try
+          _stack(_stack.size() - 1)?
+        else
+          let failure = Failure[S, D, V](
+            top_rule, top_start, ErrorMsg.internal_error())
+          callback(failure, [])
+          return
+        end
 
-    // if we can't be left-recursive, go ahead and parse directly
-    if not rule.left_recursive then
-      var involved = false
-      if rule.memoize then
-        for lr_state in _lr_states.values() do
-          if loc == lr_state.loc then
-            involved = true
-            break
+      let frame_result =
+        match frame
+        | let named_rule_frame: _NamedRuleFrame[S, D, V] =>
+          _parse_named_rule(named_rule_frame, last_child_result)
+        | let rule_frame: _RuleFrame[S, D, V] =>
+          rule_frame.run(last_child_result)
+        end
+
+      match frame_result
+      | let result: Result[S, D, V] =>
+        last_child_result = result
+        if _stack.size() == 1 then
+          match result
+          | let success: Success[S, D, V] =>
+            callback(success, success._values(data))
+          else
+            callback(result, [])
           end
+          return
+        else
+          try _stack.pop()? end
+        end
+      | let rule_frame: _RuleFrame[S, D, V] =>
+        last_child_result = None
+        _stack.push(rule_frame)
+
+        if i >= 100 then
+          _parse(top_rule, top_start, data, callback)
+          return
         end
       end
-
-      body.parse(
-        this,
-        depth + 1,
-        loc,
-        {(body_result: Result[S, D, V]) =>
-          let rule_result =
-            match body_result
-            | let success: Success[S, D, V] =>
-              Success[S, D, V](rule, success.start, success.next, [success])
-            | let failure: Failure[S, D, V] =>
-              Failure[S, D, V](
-                rule,
-                loc,
-                ErrorMsg.rule_expected(rule.name, loc.string()),
-                failure)
-            end
-          if rule.memoize then
-            if involved then
-              self._memoize_in_lr(depth, rule, loc, rule_result, cont)
-            else
-              self._memoize(depth, rule, loc, rule_result, cont)
-            end
-          else
-            cont(rule_result)
-          end
-        })
-      return
     end
 
-    // look in the LR records to see if we have a previous expansion
-    match _prev_expansion(rule, loc, true)
+  fun ref _parse_named_rule(
+    frame: _NamedRuleFrame[S, D, V],
+    child_result: (Result[S, D, V] | None))
+    : _FrameResult[S, D, V]
+  =>
+    // look in the memo
+    match _lookup(frame.depth, frame.rule, frame.loc)
+    | let result: Result[S, D, V] =>
+      _Dbg() and _Dbg.out(
+        frame.depth, "RULE " + frame.rule.name + " @" + frame.loc.string() +
+        "= MEMO FOUND " + result.string())
+      return result
+    end
+
+    // if we have a result, check if it is an LR expansion
+    // if so, try again; if not, return the result
+    match child_result
+    | let result: Result[S, D, V] =>
+      if _lr_detected(frame.rule, frame.loc) then
+        (_, let topmost) = _current_expansion(frame.rule, frame.loc)
+
+        match result
+        | let success: Success[S, D, V] =>
+          let last_next = _last_next(frame.rule, frame.loc)
+          if success.next > last_next then
+            // try another expansion
+            _remove_expansions_below(frame.depth, frame.loc)
+
+            let result' = Success[S, D, V](
+              frame.rule, success.start, success.next, [ success ])
+            _push_expansion(frame.depth, frame.rule, frame.loc, result')
+
+            _Dbg() and _Dbg.out(
+              frame.depth, "= #" +
+              _current_expansion(frame.rule, frame.loc)._1.string() + " " +
+              result'.string())
+
+            return _call_body(frame)
+          end
+        | let failure: Failure[S, D, V] =>
+          // fall through; if there's no previous expansion then we'll fail
+          None
+        end
+
+        // we're done expanding; continue with the greediest expansion
+        let result' =
+          match _prev_expansion(frame.rule, frame.loc)
+          | (let result'': Result[S, D, V], _) =>
+            result''
+          else
+            Failure[S, D, V](
+              frame.rule,
+              frame.loc,
+              ErrorMsg.rule_expected(frame.rule.name, frame.loc.string()))
+          end
+
+        if topmost then
+          // we're at the top level of left-recursion; memoize us and all rules
+          // below us, then remove all LR records
+          let to_memoize = _remove_expansions_below(0, frame.loc)
+          to_memoize.push((frame.rule, frame.loc, result'))
+          _memoize_seq(frame.depth, to_memoize, result')
+        else
+          _update_expansion(frame.depth, frame.rule, frame.loc, result')
+        end
+
+        _Dbg() and _Dbg.out(frame.depth, "= " + result'.string())
+        return result'
+      else
+        let result' =
+          match result
+          | let success: Success[S, D, V] =>
+            Success[S, D, V](
+              frame.rule, success.start, success.next, [ success ])
+          | let failure: Failure[S, D, V] =>
+            Failure[S, D, V](
+              frame.rule,
+              failure.start,
+              ErrorMsg.rule_expected(frame.rule.name, failure.start.string()),
+              failure)
+          end
+
+        if frame.rule.memoize then
+          var involved = false
+          for lr_state in _lr_states.values() do
+            if frame.loc == lr_state.loc then
+              involved = true
+              break
+            end
+          end
+
+          if involved then
+            _memoize_in_lr(frame.depth, frame.rule, frame.loc, result')
+          else
+            _memoize(frame.depth, frame.rule, frame.loc, result')
+          end
+        end
+
+        _Dbg() and _Dbg.out(frame.depth, "= " + result'.string())
+        return result'
+      end
+    end
+
+    _Dbg() and _Dbg.out(
+      frame.depth, "RULE " + frame.rule.name + " @" + frame.loc.string() +
+      if frame.rule.left_recursive then " LR" else "" end +
+      if frame.rule.memoize then " m" else "" end)
+
+    // if we can't be left-recursive then parse normally
+    if not frame.rule.left_recursive then
+      return _call_body(frame)
+    end
+
+    // look in the LR rules to see if we have a previous expansion
+    match _prev_expansion(frame.rule, frame.loc, true)
     | (let result: Result[S, D, V], let first_lr: Bool) =>
       ifdef debug then
         if first_lr then
-          _Dbg() and _Dbg.out(depth + 1, rule.name + ": LR DETECTED")
+          _Dbg() and _Dbg.out(
+            frame.depth + 1, frame.rule.name + ": LR DETECTED")
         end
-        let prev_exp = _current_expansion(rule, loc) - 1
+        let prev_exp = _current_expansion(frame.rule, frame.loc)._1 - 1
         _Dbg() and _Dbg.out(
-          depth + 1, "fnd_exp " + rule.name + "@" + loc.string() + " <" +
-          prev_exp.string() + "> " + result.string())
+          frame.depth + 1, "fnd_exp " + frame.rule.name + "@" +
+          frame.loc.string() + " <" + prev_exp.string() + "> " +
+          result.string())
       end
-      cont(result)
-      return
+      return result
     end
 
     // otherwise, memoize this rule as having failed for this expansion
     // and try parsing again
-    let failure = Failure[S, D, V](rule, loc)
-    let topmost = _push_expansion(depth + 1, rule, loc, failure)
+    let failure = Failure[S, D, V](frame.rule, frame.loc)
+    _push_expansion(frame.depth, frame.rule, frame.loc, failure)
 
     _Dbg() and _Dbg.out(
-      depth + 1, rule.name + "@" + loc.string() + " <" +
-      _current_expansion(rule, loc).string() + ">")
-    _try_expansion(depth, rule, body, loc, topmost, cont)
+      frame.depth + 1, frame.rule.name + "@" + frame.loc.string() + " <" +
+      _current_expansion(frame.rule, frame.loc)._1.string() + ">")
+    _call_body(frame)
 
-  fun ref _try_expansion(
-    depth: USize,
-    rule: NamedRule[S, D, V] val,
-    body: RuleNode[S, D, V] val,
-    loc: Loc[S],
-    topmost: Bool,
-    cont: _Continuation[S, D, V])
-  =>
-    let self: Parser[S, D, V] tag = this
-    body.parse(this, depth + 2, loc,
-      {(body_result: Result[S, D, V]) =>
-        let rule_result =
-          match body_result
-          | let success: Success[S, D, V] =>
-            Success[S, D, V](rule, success.start, success.next, [success])
-          | let failure: Failure[S, D, V] =>
-            Failure[S, D, V](
-              rule,
-              loc,
-              ErrorMsg.rule_expected(rule.name, loc.string()),
-              failure)
-          end
-        self._try_expansion_aux(
-          rule_result, depth, rule, body, loc, topmost, cont)
-      })
-
-  be _try_expansion_aux(
-    result: Result[S, D, V],
-    depth: USize,
-    rule: NamedRule[S, D, V] val,
-    body: RuleNode[S, D, V] val,
-    loc: Loc[S],
-    topmost: Bool,
-    cont: _Continuation[S, D, V])
-  =>
-    if _lr_detected(rule, loc) then
-      let cur_exp = _current_expansion(rule, loc)
-
-      match result
-      | let success: Success[S, D, V] =>
-        let last_next = _last_next(rule, loc)
-        if success.next > last_next then
-          // try another expansion
-          _remove_expansions_below(depth + 2, loc)
-          _push_expansion(depth + 2, rule, loc, success)
-
-          _Dbg() and _Dbg.out(
-            depth + 1, rule.name + "@" + loc.string() + " <" +
-            _current_expansion(rule, loc).string() + ">")
-          _try_expansion(
-            depth,
-            rule,
-            body,
-            loc,
-            topmost,
-            cont)
-          return
-        end
-        // fall through
-      end
-
-      // we're done; continue with the widest expansion
-      let result' =
-        match _prev_expansion(rule, loc)
-        | (let r: Result[S, D, V], _) =>
-          r
-        else
-          result
-        end
-
-      if topmost then
-        // we're at the top level; memoize us and all rules below us,
-        // then remove all LR records
-        let to_memoize = _remove_expansions_below(0, loc)
-        to_memoize.push((rule, loc, result'))
-        _memoize_seq(
-          depth + 1,
-          consume to_memoize,
-          result',
-          cont)
-      else
-        // we're not at the top level; memoize in this expansions
-        _update_expansion(depth + 1, rule, loc, result')
-        cont(result')
-      end
-    elseif topmost then
-      // no left-recursion was detected, memoize us globally
-      let to_memoize = _remove_expansions_below(0, loc)
-      to_memoize.push((rule, loc, result))
-      _memoize_seq(
-        depth + 1,
-        consume to_memoize,
-        result,
-        cont)
+  fun _call_body(frame: _NamedRuleFrame[S, D, V]): _FrameResult[S, D, V] =>
+    match frame.body
+    | let node: RuleNode[S, D, V] =>
+      node.call(frame.depth + 1, frame.loc)
     else
-      // no left-recursion detected, but we are inside another,
-      // memoize in this expansion
-      _update_expansion(depth + 1, rule, loc, result)
-      cont(result)
+      Failure[S, D, V](
+        frame.rule, frame.loc, ErrorMsg.rule_empty(frame.rule.name))
     end
 
-  fun _lookup(depth: USize, rule: NamedRule[S, D, V] val, loc: Loc[S])
+  fun _lookup(depth: USize, rule: NamedRule[S, D, V] box, loc: Loc[S])
     : (Result[S, D, V] | None)
   =>
     try
@@ -347,14 +365,15 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       result
     end
 
-  be _memoize(
+  fun ref _memoize(
     depth: USize,
-    rule: NamedRule[S, D, V] val,
+    rule: NamedRule[S, D, V] box,
     loc: Loc[S],
-    result: Result[S, D, V],
-    cont: _Continuation[S, D, V])
+    result: Result[S, D, V])
   =>
-    _Dbg() and _Dbg.out(depth, "memoize " + rule.name + " " + result.string())
+    _Dbg() and _Dbg.out(
+      depth, " memoize " + rule.name + "@" + loc.string() + " " +
+      result.string())
 
     let by_loc =
       try
@@ -365,20 +384,19 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         by_loc'
       end
     by_loc(loc) = result
-    cont(result)
 
-  be _memoize_seq(
+  fun ref _memoize_seq(
     depth: USize,
-    results: ReadSeq[(NamedRule[S, D, V] val, Loc[S], Result[S, D, V])] iso,
-    result: Result[S, D, V],
-    cont: _Continuation[S, D, V])
+    results: ReadSeq[(NamedRule[S, D, V] box, Loc[S], Result[S, D, V])],
+    result: Result[S, D, V])
   =>
-    for (rule, loc, res) in (consume results).values() do
+    for (rule, loc, res) in results.values() do
       if not rule.memoize then
         continue
       end
 
-      _Dbg() and _Dbg.out(depth, "memoizes " + rule.name + " " + res.string())
+      _Dbg() and _Dbg.out(
+        depth, " memoize(seq) " + rule.name + " " + res.string())
 
       let by_loc =
         try
@@ -390,24 +408,20 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         end
       by_loc(loc) = res
     end
-    cont(result)
 
-  be _memoize_in_lr(
+  fun ref _memoize_in_lr(
     depth: USize,
-    rule: NamedRule[S, D, V] val,
+    rule: NamedRule[S, D, V] box,
     loc: Loc[S],
-    result: Result[S, D, V],
-    cont: _Continuation[S, D, V])
+    result: Result[S, D, V])
   =>
     _push_expansion(depth, rule, loc, result)
-    cont(result)
 
   fun ref _push_expansion(
     depth: USize,
-    rule: NamedRule[S, D, V] val,
+    rule: NamedRule[S, D, V] box,
     loc: Loc[S],
     result: Result[S, D, V])
-    : Bool
   =>
     let toplevel = _lr_states.size() == 0
     try
@@ -418,7 +432,7 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         cur_exp.string() + "> " + result.string())
       lr_state.expansions.push(result)
     else
-      let lr_state = _LRRuleState[S, D, V](depth, rule, loc)
+      let lr_state = _LRRuleState[S, D, V](depth, rule, loc, toplevel)
       let cur_exp = lr_state.expansions.size()
       _Dbg() and _Dbg.out(
         depth, "mem_exp " + rule.name + "@" + loc.string() + " <" +
@@ -426,11 +440,10 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       lr_state.expansions.push(result)
       _lr_states((rule, loc)) = lr_state
     end
-    toplevel
 
   fun ref _update_expansion(
     depth: USize,
-    rule: NamedRule[S, D, V] val,
+    rule: NamedRule[S, D, V] box,
     loc: Loc[S],
     result: Result[S, D, V])
   =>
@@ -443,24 +456,25 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       lr_state.expansions(prev_exp)? = result
     end
 
-  fun _current_expansion(rule: NamedRule[S, D, V] val, loc: Loc[S]): USize =>
+  fun _current_expansion(rule: NamedRule[S, D, V] box, loc: Loc[S])
+    : (USize, Bool) =>
     try
-      _lr_states((rule, loc))?.expansions.size()
+      let lr_state = _lr_states((rule, loc))?
+      (lr_state.expansions.size(), lr_state.topmost)
     else
-      0
+      (0, false)
     end
 
-  fun ref _remove_expansions(rule: NamedRule[S, D, V] val, loc: Loc[S]) =>
+  fun ref _remove_expansions(rule: NamedRule[S, D, V] box, loc: Loc[S]) =>
     try
       _lr_states.remove((rule, loc))?
     end
 
   fun ref _remove_expansions_below(depth: USize, loc: Loc[S])
-    : Array[(NamedRule[S, D, V] val, Loc[S], Result[S, D, V])] iso^
+    : Array[(NamedRule[S, D, V] box, Loc[S], Result[S, D, V])]
   =>
-    let to_memoize =
-      recover iso Array[(NamedRule[S, D, V] val, Loc[S], Result[S, D, V])] end
-    let to_remove = Array[(NamedRule[S, D, V] val, Loc[S])]
+    let to_memoize = Array[(NamedRule[S, D, V] box, Loc[S], Result[S, D, V])]
+    let to_remove = Array[(NamedRule[S, D, V] box, Loc[S])]
     for lr_state in _lr_states.values() do
       if (lr_state.depth >= depth) and (lr_state.loc == loc) then
         let last_exp = lr_state.expansions.size() - 1
@@ -476,10 +490,10 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
         _lr_states.remove(key)?
       end
     end
-    consume to_memoize
+    to_memoize
 
   fun ref _prev_expansion(
-    rule: NamedRule[S, D, V] val,
+    rule: NamedRule[S, D, V] box,
     loc: Loc[S],
     detect_lr: Bool = false)
     : ((Result[S, D, V], Bool) | None)
@@ -495,14 +509,14 @@ actor Parser[S, D: Any #share = None, V: Any #share = None]
       (result, first_detected)
     end
 
-  fun _lr_detected(rule: NamedRule[S, D, V] val, loc: Loc[S]): Bool =>
+  fun _lr_detected(rule: NamedRule[S, D, V] box, loc: Loc[S]): Bool =>
     try
       _lr_states((rule, loc))?.lr_detected
     else
       false
     end
 
-  fun _last_next(rule: NamedRule[S, D, V] val, loc: Loc[S]): Loc[S] =>
+  fun _last_next(rule: NamedRule[S, D, V] box, loc: Loc[S]): Loc[S] =>
     try
       let lr_state = _lr_states((rule, loc))?
       let prev_exp = lr_state.expansions.size() - 1

@@ -11,7 +11,7 @@ class iso _TestLookChildren is UnitTest
         NamedRule[U8, None, USize](
           "sub",
           Literal[U8, None, USize]("a"),
-          {(_, _, _, b) => (USize(0), b) },
+          {(_, _, _, _) => 0 },
           true)
       end
     let rule =
@@ -21,7 +21,7 @@ class iso _TestLookChildren is UnitTest
           Conj[U8, None, USize](
             [ Look[U8, None, USize](sub)
               sub ]),
-          {(_, _, c, b) => (c.size(), b) },
+          {(_, _, c, _) => c.size() },
           true)
       end
 
@@ -38,7 +38,7 @@ class iso _TestLookChildren is UnitTest
           end
 
         match r
-        | let s: Success[U8, None, USize] =>
+        | let s: Success[U8, None, USize] box =>
           h.assert_eq[USize](1, num_children, "should be 1 child")
         else
           h.fail("failed to parse")
