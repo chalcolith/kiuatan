@@ -78,7 +78,7 @@ class GrammarBuilder
             [ Bind(a, additive)
               Bind(o, add_op)
               Bind(b, multiplicative) ],
-            {(_, result, values, bindings) =>
+            {(_, result, _, bindings) =>
               var first: F64 = 0.0
               var op_is_add: Bool = true
               var second: F64 = 0.0
@@ -97,13 +97,11 @@ class GrammarBuilder
                 second = bindings.values(b, result)?(0)?
               end
 
-              let sum: (F64 | None) =
-                if op_is_add then
-                  first + second
-                else
-                  first - second
-                end
-              (sum, bindings)
+              if op_is_add then
+                first + second
+              else
+                first - second
+              end
             })
           Bind(b, multiplicative)
         ]))
@@ -119,7 +117,7 @@ class GrammarBuilder
             [ Bind(a, multiplicative)
               Bind(o, mul_op)
               Bind(b, term) ],
-            {(_, result, values, bindings) =>
+            {(_, result, _, bindings) =>
               var first: F64 = 1.0
               var op_is_mul: Bool = true
               var second: F64 = 1.0
@@ -138,17 +136,15 @@ class GrammarBuilder
                 second = bindings.values(b, result)?(0)?
               end
 
-              let prod: (F64 | None) =
-                if op_is_mul then
-                  first * second
+              if op_is_mul then
+                first * second
+              else
+                if second > 0.0 then
+                  first / second
                 else
-                  if second > 0.0 then
-                    first / second
-                  else
-                    0.0
-                  end
+                  0.0
                 end
-              (prod, bindings)
+              end
             })
           Bind(b, term)
         ]))
@@ -171,7 +167,7 @@ class GrammarBuilder
           Bind(f, Star(fraction where min' = 0, max' = 1))
           Bind(e, Star(exponent where min' = 0, max' = 1))
           space ],
-        {(_, result, values, bindings) =>
+        {(_, result, _, bindings) =>
           var int_num: F64 = 0.0
           var frac_num: F64 = 0.0
           var exp_num: F64 = 1.0
@@ -196,9 +192,9 @@ class GrammarBuilder
             end
 
           if exp_num != 1.0 then
-            (n * F64(10).pow(exp_num), bindings)
+            n * F64(10).pow(exp_num)
           else
-            (n, bindings)
+            n
           end
         }))
 
@@ -207,10 +203,10 @@ class GrammarBuilder
       Conj(
         [ Star(Sing("-+") where min' = 0, max' = 1)
           Star(Sing("0123456789"), 1) ],
-        {(_,r,_,b) =>
+        {(_, result, _, _) =>
           var n: F64 = 0.0
           try
-            var start = r.start
+            var start = result.start
             var ss = start()?
 
             var sign: F64 = 1.0
@@ -221,12 +217,12 @@ class GrammarBuilder
               start = start.next()
             end
 
-            for ch in start.values(r.next) do
+            for ch in start.values(result.next) do
               n = (n * 10.0) + (ch - '0').f64()
             end
             n = n * sign
           end
-          (n, b)
+          n
         }))
 
   fun ref _gen_fraction() =>
@@ -238,20 +234,18 @@ class GrammarBuilder
           Star(
             Bind(i, integer),
             0,
-            {(_,r,_,b) =>
+            {(_, result, _, bindings) =>
               var f: F64 = 0.0
-
               try
-                match b(i, r)?
-                | (let s: Success, let ns: ReadSeq[F64] val) =>
+                match bindings(i, result)?
+                | (let s: Success, let ns: ReadSeq[F64]) =>
                   f = ns(0)?
                   for _ in s.start.values(s.next) do
                     f = f / 10.0
                   end
                 end
               end
-
-              (f, b)
+              f
             },
             1)
         ]))
