@@ -1,4 +1,3 @@
-
 use "collections/persistent"
 use "itertools"
 use "pony_test"

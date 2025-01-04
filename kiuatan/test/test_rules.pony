@@ -1,5 +1,3 @@
-use "collections/persistent"
-use "itertools"
 use "pony_test"
 use "promises"
 
@@ -380,23 +378,23 @@ class iso _TestRuleVariableBind is UnitTest
     let rule =
       recover val
         NamedRule[U8, None, USize]("Rule", Conj[U8, None, USize](
-          [ Bind[U8, None, USize](x, Literal[U8, None, USize]("x",
-              {(_,_,_,_) => 1 }))
-            Bind[U8, None, USize](y, Literal[U8, None, USize]("y",
-              {(_,_,_,_) => 2 }))
+          [ Bind[U8, None, USize](x,
+              Literal[U8, None, USize]("x", {(_,_,_,_) => 1 }))
+            Bind[U8, None, USize](y,
+              Literal[U8, None, USize]("y", {(_,_,_,_) => 2 }))
           ],
           {(_, result, child_values, bindings) =>
             var vx: USize = 0
             var vy: USize = 0
 
             try
-              vx = bindings.values(x, result)?(0)?
+              vx = bindings(x)?.values(0)?
             else
               return None
             end
 
             try
-              vy = bindings.values(y, result)?(0)?
+              vy = bindings(y)?.values(0)?
             else
               return None
             end
@@ -477,8 +475,7 @@ class iso _TestRuleBindStar is UnitTest
               Single[U8,None,USize]("a", {(_,r,_,b) => 123 }))),
           {(_,r,_,b) =>
             try
-              let values = b.values(v, r)?
-              values.size()
+              b(v)?.values.size()
             else
               0
             end
@@ -494,17 +491,19 @@ class _TestRuleBindRecursive is UnitTest
   fun name(): String => "Rule_Bind_Recursive"
 
   fun apply(h: TestHelper) =>
+    // int_rule <- [0-9]+
     let int_rule =
       recover val
         NamedRule[U8,None,String](
           "Int",
-          Star[U8,None,String](Single[U8,None,String]("0123456789")),
+          Star[U8,None,String](Single[U8,None,String]("0123456789"), 1),
           {(_,r,_,b) =>
             recover val String .> concat(r.start.values(r.next)) end
           }
           where memoize' = true)
       end
 
+    // comma_rule <- lhs:int_rule (',' rhs:comma_rule)?
     let comma_rule =
       recover val
         let lhs = Variable("lhs")
@@ -517,15 +516,19 @@ class _TestRuleBindRecursive is UnitTest
               Star[U8,None,String](
                 Conj[U8,None,String](
                   [ Literal[U8,None,String](",")
-                    Bind[U8,None,String](rhs, comma_rule') ])) ]),
-          {(_,r,_,b) =>
-            let lhs' = try b.values(lhs, r)?(0)? else "?" end
-            let rhs' = try b.values(rhs, r)?(0)? else "?" end
-            recover val lhs' + "," + rhs' end
+                    Bind[U8,None,String](rhs, comma_rule')
+                  ])
+                where min' = 0, max' = 1)
+            ]),
+          {(_,_,_,b) =>
+            let lhs' = try b(lhs)?.values(0)? else "L?" end
+            let rhs' = try b(rhs)?.values(0)? else "R?" end
+            "(" + lhs' + "," + rhs' + ")"
           })
         comma_rule'
       end
 
     Assert[U8,None,String].test_promises(h,
       [ Assert[U8,None,String].test_matches(
-          h, comma_rule, true, [ "20,10" ], 0, 5, None, "20,10,?") ])
+          h, comma_rule, true, [ "50,40,30" ], 0, 8, None,
+            "(50,(40,(30,R?)))") ])

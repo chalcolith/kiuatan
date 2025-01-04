@@ -1,4 +1,3 @@
-
 use k = "../../../kiuatan"
 
 type Var is k.Variable
@@ -6,6 +5,7 @@ type NamedRule is k.NamedRule[U8, None, F64]
 type Result is k.Result[U8, None, F64]
 type Success is k.Success[U8, None, F64]
 type Failure is k.Failure[U8, None, F64]
+type Binding is k.Binding[U8, None, F64]
 type Lit is k.Literal[U8, None, F64]
 type Sing is k.Single[U8, None, F64]
 type Conj is k.Conj[U8, None, F64]
@@ -41,11 +41,11 @@ class GrammarBuilder
   let expression: NamedRule = NamedRule("Expression")
   let additive: NamedRule = NamedRule("Additive")
   let multiplicative: NamedRule = NamedRule("Multiplicative")
-  let term: NamedRule = NamedRule("Term")
-  let float: NamedRule = NamedRule("Float")
-  let integer: NamedRule = NamedRule("Integer")
-  let fraction: NamedRule = NamedRule("Fraction")
-  let exponent: NamedRule = NamedRule("Exponent")
+  let term: NamedRule = NamedRule("Term" where memoize' = true)
+  let float: NamedRule = NamedRule("Float" where memoize' = true)
+  let integer: NamedRule = NamedRule("Integer" where memoize' = true)
+  let fraction: NamedRule = NamedRule("Fraction" where memoize' = true)
+  let exponent: NamedRule = NamedRule("Exponent" where memoize' = true)
   let lpar: NamedRule = NamedRule("LeftParen")
   let rpar: NamedRule = NamedRule("RightParen")
   let add_op: NamedRule = NamedRule("OpAdd")
@@ -68,9 +68,9 @@ class GrammarBuilder
     expression.set_body(Conj([additive; eof]))
 
   fun ref _gen_additive() =>
-    let a = Var("a")
-    let o = Var("o")
-    let b = Var("b")
+    let a = Var("a: add lhs")
+    let o = Var("o: add op")
+    let b = Var("b: add rhs")
 
     additive.set_body(
       Disj(
@@ -84,17 +84,18 @@ class GrammarBuilder
               var second: F64 = 0.0
 
               try
-                first = bindings.values(a, result)?(0)?
+                first = bindings(a)?.values(0)?
               end
 
               try
-                if bindings(o, result)?._1.start()? == '-' then
+                let op_char = bindings(o)?.success.start()?
+                if op_char == '-' then
                   op_is_add = false
                 end
               end
 
               try
-                second = bindings.values(b, result)?(0)?
+                second = bindings(b)?.values(0)?
               end
 
               if op_is_add then
@@ -107,9 +108,9 @@ class GrammarBuilder
         ]))
 
   fun ref _gen_multiplicative() =>
-    let a = Var("a")
-    let o = Var("o")
-    let b = Var("b")
+    let a = Var("a: lhs")
+    let o = Var("o: op")
+    let b = Var("b: rhs")
 
     multiplicative.set_body(
       Disj(
@@ -117,23 +118,23 @@ class GrammarBuilder
             [ Bind(a, multiplicative)
               Bind(o, mul_op)
               Bind(b, term) ],
-            {(_, result, _, bindings) =>
+            {(_, _, _, bindings) =>
               var first: F64 = 1.0
               var op_is_mul: Bool = true
               var second: F64 = 1.0
 
               try
-                first = bindings.values(a, result)?(0)?
+                first = bindings(a)?.values(0)?
               end
 
               try
-                if bindings(o, result)?._1.start()? == '/' then
+                if bindings(o)?.success.start()? == '/' then
                   op_is_mul = false
                 end
               end
 
               try
-                second = bindings.values(b, result)?(0)?
+                second = bindings(b)?.values(0)?
               end
 
               if op_is_mul then
@@ -157,9 +158,9 @@ class GrammarBuilder
         ]))
 
   fun ref _gen_float() =>
-    let i = Var("i")
-    let f = Var("f")
-    let e = Var("e")
+    let i = Var("i: int part")
+    let f = Var("f: frac part")
+    let e = Var("e: exp")
 
     float.set_body(
       Conj(
@@ -173,15 +174,15 @@ class GrammarBuilder
           var exp_num: F64 = 1.0
 
           try
-            int_num = bindings.values(i, result)?(0)?
+            int_num = bindings(i)?.values(0)?
           end
 
           try
-            frac_num = bindings.values(f, result)?(0)?
+            frac_num = bindings(f)?.values(0)?
           end
 
           try
-            exp_num = bindings.values(e, result)?(0)?
+            exp_num = bindings(e)?.values(0)?
           end
 
           let n =
@@ -226,7 +227,7 @@ class GrammarBuilder
         }))
 
   fun ref _gen_fraction() =>
-    let i = Var("i")
+    let i = Var("i: frac int part")
 
     fraction.set_body(
       Conj(
@@ -237,10 +238,10 @@ class GrammarBuilder
             {(_, result, _, bindings) =>
               var f: F64 = 0.0
               try
-                match bindings(i, result)?
-                | (let s: Success, let ns: ReadSeq[F64]) =>
-                  f = ns(0)?
-                  for _ in s.start.values(s.next) do
+                match bindings(i)?
+                | let b: Binding box =>
+                  f = b.values(0)?
+                  for _ in b.success.start.values(b.success.next) do
                     f = f / 10.0
                   end
                 end

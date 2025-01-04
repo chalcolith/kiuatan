@@ -38,83 +38,119 @@ class box Success[
     next = next'
     children = children'
 
-  fun _values(data: D, bindings: Bindings[S, D, V] ref = Bindings[S, D, V])
-    : ReadSeq[V]
+  fun _values(data: D)
+    : ReadSeq[V] val
   =>
     """
     Call the matched rules' actions to assemble a custom result value.
     """
-    match _values_aux(data, 0, bindings)
-    | let result_values: Array[V] =>
+    match _values_aux(data, 0)
+    | (let result_values: Array[V] val, _) =>
       result_values
     else
       []
     end
 
-  fun _values_aux(data: D, indent: USize, bindings: Bindings[S, D, V] ref)
-    : (Array[V] | None)
+  fun _values_aux(data: D, indent: USize)
+    : ((Array[V] val | None), (Bindings[S, D, V] | None))
   =>
     // collect values from child results
-    var result_values: (Array[V] | None) =
-      // if we have only one result, pass it on up rather than
-      // allocating another array
+    ( var result_values: (Array[V] trn | None)
+    , var bindings: (Bindings[S, D, V] | None) ) =
       match children.size()
       | 0 =>
-        None
-      | 1 =>
-        try
-          children(0)?._values_aux(data, indent + 1, bindings)
-        end
+        (None, None)
       else
         // fold child results
-        var result_values': (Array[V] | None) = None
+        var result_values': (Array[V] trn | None) = None
+        var bindings': (Bindings[S, D, V] | None) = None
         for child in children.values() do
-          match child._values_aux(data, indent + 1, bindings)
-          | let crv: Array[V] if crv.size() > 0 =>
-            result_values' =
-              match result_values'
-              | let rv: Array[V] =>
-                rv .> append(crv)
-              else
-                crv
+          (let crv, let cb) = child._values_aux(data, indent + 1)
+
+          match crv
+          | let crv': Array[V] val if crv'.size() > 0 =>
+            match result_values'
+            | let rv: Array[V] trn =>
+              rv.append(crv')
+            else
+              let rv: Array[V] trn = Array[V]
+              rv.append(crv')
+              result_values' = consume rv
+            end
+          end
+
+          match cb
+          | let child_bindings': Bindings[S, D, V] =>
+            match bindings'
+            | let parent_bindings: Bindings[S, D, V] =>
+              // we want shallower bindings to override deeper ones
+              // and later ones to override earlier ones
+              for (v, child_binding) in child_bindings'.pairs() do
+                match try parent_bindings(v)? end
+                | let parent_binding: Binding[S, D, V] box =>
+                  if child_binding.depth <= parent_binding.depth then
+                    parent_bindings.update(v, child_binding)
+                  end
+                else
+                  parent_bindings.update(v, child_binding)
+                end
               end
+            else
+              bindings' = Bindings[S, D, V] .> concat(child_bindings'.pairs())
+            end
           end
         end
-        result_values'
+        (consume result_values', bindings')
       end
 
-    // now run node's action, if any
+    // run node's action
+    var val_values: (Array[V] val | None) = consume result_values
     match node.action()
     | let action: Action[S, D, V] =>
-      let result_values': Array[V] =
-        match result_values
-        | let rv': Array[V] =>
-          rv'
+      let val_values': Array[V] val =
+        match val_values
+        | let rv': Array[V] val =>
+          consume rv'
         else
           []
         end
-      let value = action(data, this, result_values', bindings)
+      let bindings' =
+        match bindings
+        | let bb': Bindings[S, D, V] =>
+          bb'
+        else
+          Bindings[S, D, V]
+        end
+      let value = action(data, this, val_values', bindings')
       match value
       | let value': V =>
-        result_values = [ value' ]
+        val_values = [ value' ]
       else
-        result_values = None
+        val_values = None
       end
     end
 
-    // now bind variables
+    // bind variable if necessary (even with empty values!)
     match node
     | let bind: Bind[S, D, V] box =>
-      let result_values' =
-        match result_values
-        | let rv': Array[V] =>
-          rv'
+      let bound_values: Array[V] val =
+        match val_values
+        | let val_values': Array[V] val =>
+          val_values'
         else
-          recover val Array[V] end
+          []
         end
-      bindings.add(bind.variable, (this, result_values'))
+      match bindings
+      | let bindings': Bindings[S, D, V] =>
+        bindings'.update(
+          bind.variable, Binding[S, D, V](this, indent, bound_values))
+      else
+        bindings = Bindings[S, D, V] .> update(
+          bind.variable, Binding[S, D, V](this, indent, bound_values))
+      end
     end
-    result_values
+
+    (val_values, bindings)
 
   fun _indent(n: USize): String =>
     recover

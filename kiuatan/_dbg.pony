@@ -10,13 +10,15 @@ primitive _Dbg
     false
 
   fun out(depth: USize, msg: String): Bool =>
-    let indent =
-      recover val
-        let indent' = String(depth * 2)
-        for i in Range(0, depth * 2) do
-          indent'.push(' ')
+    ifdef debug then
+      let indent =
+        recover val
+          let indent' = String(depth * 2)
+          for i in Range(0, depth * 2) do
+            indent'.push(' ')
+          end
+          indent'
         end
-        indent'
-      end
-    Debug.out(indent + msg)
+      Debug.out(indent + msg)
+    end
     false

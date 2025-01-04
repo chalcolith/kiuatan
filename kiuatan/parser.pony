@@ -330,7 +330,7 @@ actor Parser[
         end
         let prev_exp = _current_expansion(frame.rule, frame.loc)._1 - 1
         _Dbg() and _Dbg.out(
-          frame.depth + 1, "fnd_exp " + frame.rule.name + "@" +
+          frame.depth + 1, " fnd_exp " + frame.rule.name + "@" +
           frame.loc.string() + " <" + prev_exp.string() + "> " +
           result.string())
       end
@@ -428,14 +428,14 @@ actor Parser[
       let lr_state = _lr_states((rule, loc))?
       let cur_exp = lr_state.expansions.size()
       _Dbg() and _Dbg.out(
-        depth, "mem_exp " + rule.name + "@" + loc.string() + " <" +
+        depth, " mem_exp " + rule.name + "@" + loc.string() + " <" +
         cur_exp.string() + "> " + result.string())
       lr_state.expansions.push(result)
     else
       let lr_state = _LRRuleState[S, D, V](depth, rule, loc, toplevel)
       let cur_exp = lr_state.expansions.size()
       _Dbg() and _Dbg.out(
-        depth, "mem_exp " + rule.name + "@" + loc.string() + " <" +
+        depth, " mem_exp " + rule.name + "@" + loc.string() + " <" +
         cur_exp.string() + "> " + result.string())
       lr_state.expansions.push(result)
       _lr_states((rule, loc)) = lr_state
@@ -451,7 +451,7 @@ actor Parser[
       let lr_state = _lr_states((rule, loc))?
       let prev_exp = lr_state.expansions.size() - 1
       _Dbg() and _Dbg.out(
-        depth, "mem_upd " + rule.name + "@" + loc.string() + " <" +
+        depth, " mem_upd " + rule.name + "@" + loc.string() + " <" +
         prev_exp.string() + "> " + result.string())
       lr_state.expansions(prev_exp)? = result
     end

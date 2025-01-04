@@ -8,6 +8,6 @@ interface val Action[
   fun apply(
     data: D,
     result: Success[S, D, V],
-    child_values: ReadSeq[V],
+    child_values: ReadSeq[V] val,
     bindings: Bindings[S, D, V])
     : (V | None)
