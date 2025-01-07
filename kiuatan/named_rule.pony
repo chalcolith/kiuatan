@@ -26,14 +26,7 @@ class NamedRule[
     memoize = memoize'
     _body = body'
     _action = action'
-
-    left_recursive =
-      match _body
-      | let node: RuleNode[S, D, V] =>
-        _is_lr(node, SetIs[RuleNode[S, D, V]])
-      else
-        false
-      end
+    set_left_recursive()
 
   fun action(): (Action[S, D, V] | None) =>
     _action
@@ -52,47 +45,62 @@ class NamedRule[
     if action' isnt None then
       _action = action'
     end
-    left_recursive =
-      match _body
-      | let node: RuleNode[S, D, V] =>
-        _is_lr(node, SetIs[RuleNode[S, D, V]])
-      else
-        false
-      end
+    set_left_recursive()
 
-  fun tag _is_lr(
-    node: RuleNode[S, D, V],
-    seen: SetIs[RuleNode[S, D, V]])
-    : Bool
-  =>
-    if seen.contains(node) then
-      return true
+  fun ref set_left_recursive() =>
+    let named_rules = SetIs[NamedRule[S, D, V]]
+    _collect(this, named_rules)
+    for nr in named_rules.values() do
+      _set_lr(nr, SetIs[NamedRule[S, D, V]])
     end
 
-    seen.set(node)
+  fun tag _collect(node: RuleNode[S, D, V], seen: SetIs[NamedRule[S, D, V]]) =>
     match node
-    | let named_rule: NamedRule[S, D, V] box =>
-      match named_rule._body
-      | let body': RuleNode[S, D, V] =>
-        return _is_lr(body', seen)
-      end
-    | let conj: Conj[S, D, V] box =>
-      try
-        return _is_lr(conj.children()(0)?, seen)
-      end
-    | let disj: Disj[S, D, V] box =>
-      for child in disj.children().values() do
-        if _is_lr(child, seen) then
-          return true
+    | let named_rule: NamedRule[S, D, V] =>
+      if not seen.contains(named_rule) then
+        seen.set(named_rule)
+        match named_rule.body()
+        | let body': RuleNode[S, D, V] =>
+          _collect(body', seen)
         end
       end
-    | let with_body: RuleNodeWithBody[S, D, V] box =>
+    | let with_children: RuleNodeWithChildren[S, D, V] =>
+      for child in with_children.children().values() do
+        _collect(child, seen)
+      end
+    | let with_body: RuleNodeWithBody[S, D, V] =>
       match with_body.body()
       | let body': RuleNode[S, D, V] =>
-        return _is_lr(body', seen)
+        _collect(body', seen)
       end
     end
-    false
+
+  fun tag _set_lr(node: RuleNode[S, D, V], seen: SetIs[NamedRule[S, D, V]]) =>
+    match node
+    | let named_rule: NamedRule[S, D, V] =>
+      if seen.contains(named_rule) then
+        named_rule.left_recursive = true
+      else
+        seen.set(named_rule)
+        match named_rule.body()
+        | let body': RuleNode[S, D, V] =>
+          _set_lr(body', seen)
+        end
+      end
+    | let conj: Conj[S, D, V] =>
+      try
+        _set_lr(conj.children()(0)?, seen)
+      end
+    | let disj: Disj[S, D, V] =>
+      for child in disj.children().values() do
+        _set_lr(child, seen)
+      end
+    | let with_body: RuleNodeWithBody[S, D, V] =>
+      match with_body.body()
+      | let body': RuleNode[S, D, V] =>
+        _set_lr(body', seen)
+      end
+    end
 
   fun call(depth: USize, loc: Loc[S]): _RuleFrame[S, D, V] =>
     _NamedRuleFrame[S, D, V](this, depth, loc, _body)
@@ -106,13 +114,13 @@ class _NamedRuleFrame[
   let rule: NamedRule[S, D, V] box
   let depth: USize
   let loc: Loc[S]
-  let body: (RuleNode[S, D, V] | None)
+  let body: (RuleNode[S, D, V] box | None)
 
   new create(
     rule': NamedRule[S, D, V] box,
     depth': USize,
     loc': Loc[S],
-    body': (RuleNode[S, D, V] | None))
+    body': (RuleNode[S, D, V] box | None))
   =>
     rule = rule'
     depth = depth'

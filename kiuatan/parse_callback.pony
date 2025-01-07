@@ -5,4 +5,4 @@ interface val ParseCallback[
   """
   Used to report the results of a parse attempt.
   """
-  fun apply(result: Result[S, D, V], values: ReadSeq[V])
+  fun apply(result: Result[S, D, V], values: ReadSeq[V] val)

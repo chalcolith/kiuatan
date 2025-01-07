@@ -8,7 +8,9 @@ class iso _TestRuleAny is UnitTest
 
   fun apply(h: TestHelper) =>
     let rule =
-      recover val NamedRule[U8]("Any", Single[U8] where memoize' = true) end
+      recover val
+        NamedRule[U8]("Any", Single[U8] where memoize' = true)
+      end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, true, [['a']], 0, 1)
@@ -21,8 +23,8 @@ class iso _TestRuleAnyClass is UnitTest
 
   fun apply(h: TestHelper) =>
     let rule =
-      recover
-        val NamedRule[U8]("Any", Single[U8](['a';'b']) where memoize' = true)
+      recover val
+        NamedRule[U8]("Any", Single[U8](['a';'b']) where memoize' = true)
       end
 
     Assert[U8].test_promises(h,
@@ -263,15 +265,15 @@ class iso _TestRuleForwardDeclare is UnitTest
   fun name(): String => "Rule_ForwardDeclare"
 
   fun apply(h: TestHelper) =>
-    let rule: NamedRule[U8] val =
-      recover
-        let r: NamedRule[U8] ref = NamedRule[U8](name() where memoize' = true)
+    let rule =
+      recover val
+        let rule' = NamedRule[U8](name() where memoize' = true)
         let ab = NamedRule[U8]("AB", Literal[U8]("ab") where memoize' = true)
         let cd = NamedRule[U8]("CD", Literal[U8]("cd") where memoize' = true)
-        let disj = Disj[U8]([r; cd])
+        let disj = Disj[U8]([rule'; cd])
         let body = Conj[U8]([ab; disj])
-        r.set_body(body)
-        r
+        rule'.set_body(body)
+        rule'
       end
 
     Assert[U8].test_promises(h,
@@ -286,8 +288,8 @@ class iso _TestRuleLRImmediate is UnitTest
     // Add <- Add Op Num | Num
     // Op <- [+-]
     // Num <- [0-9]+
-    let rule: NamedRule[U8] val =
-      recover
+    let rule =
+      recover val
         let add = NamedRule[U8]("Add" where memoize' = true)
         let num = NamedRule[U8](
           "Num", Star[U8](Single[U8]("0123456789"), 1) where memoize' = true)
@@ -318,8 +320,8 @@ class iso _TestRuleLRLeftAssoc is UnitTest
     // Add <- Add Op Num | Num
     // Op <- [+-]
     // Num <- [0-9]+
-    let rule: NamedRule[U8] val =
-      recover
+    let rule =
+      recover val
         let add = NamedRule[U8](name() where memoize' = true)
         let num = NamedRule[U8](
           "Num", Star[U8](Single[U8]("0123456789"), 1) where memoize' = true)
@@ -343,8 +345,8 @@ class iso _TestRuleLRIndirect is UnitTest
     // D <- E 'n' | 'l'
     // E <- D 'm'
 
-    let rule: NamedRule[U8] val =
-      recover
+    let rule =
+      recover val
         let d = NamedRule[U8]("D" where memoize' = true)
         let e = NamedRule[U8](
           "E", Conj[U8]([ d; Literal[U8]("m")]) where memoize' = true)
@@ -465,9 +467,9 @@ class iso _TestRuleBindStar is UnitTest
   fun name(): String => "Rule_Bind_Star"
 
   fun apply(h: TestHelper) =>
+    let v = Variable("v")
     let rule =
       recover val
-        let v = Variable("v")
         NamedRule[U8,None,USize](
           "BindStar",
           Bind[U8,None,USize](v,
@@ -491,21 +493,19 @@ class _TestRuleBindRecursive is UnitTest
   fun name(): String => "Rule_Bind_Recursive"
 
   fun apply(h: TestHelper) =>
-    // int_rule <- [0-9]+
-    let int_rule =
+    let rule =
       recover val
-        NamedRule[U8,None,String](
-          "Int",
-          Star[U8,None,String](Single[U8,None,String]("0123456789"), 1),
-          {(_,r,_,b) =>
-            recover val String .> concat(r.start.values(r.next)) end
-          }
-          where memoize' = true)
-      end
+        // int_rule <- [0-9]+
+        let int_rule =
+          NamedRule[U8,None,String](
+            "Int",
+            Star[U8,None,String](Single[U8,None,String]("0123456789"), 1),
+            {(_,r,_,b) =>
+              recover val String .> concat(r.start.values(r.next)) end
+            }
+            where memoize' = true)
 
-    // comma_rule <- lhs:int_rule (',' rhs:comma_rule)?
-    let comma_rule =
-      recover val
+        // comma_rule <- lhs:int_rule (',' rhs:comma_rule)?
         let lhs = Variable("lhs")
         let rhs = Variable("rhs")
         let comma_rule' = NamedRule[U8,None,String](
@@ -530,5 +530,4 @@ class _TestRuleBindRecursive is UnitTest
 
     Assert[U8,None,String].test_promises(h,
       [ Assert[U8,None,String].test_matches(
-          h, comma_rule, true, [ "50,40,30" ], 0, 8, None,
-            "(50,(40,(30,R?)))") ])
+          h, rule, true, [ "50,40,30" ], 0, 8, None, "(50,(40,(30,R?)))") ])

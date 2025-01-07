@@ -15,7 +15,7 @@ class box Success[
   The result of a successful parse.
   """
 
-  let node: RuleNode[S, D, V]
+  let node: RuleNode[S, D, V] box
   """The rule that matched successfully."""
 
   let start: Loc[S]
@@ -28,7 +28,7 @@ class box Success[
   """Results from child rules' matches."""
 
   new create(
-    node': RuleNode[S, D, V],
+    node': RuleNode[S, D, V] box,
     start': Loc[S],
     next': Loc[S],
     children': ReadSeq[Success[S, D, V]] box = [])

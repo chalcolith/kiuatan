@@ -6,14 +6,14 @@ class box Failure[
   The result of a failed match.
   """
 
-  let node: RuleNode[S, D, V]
+  let node: RuleNode[S, D, V] box
   let start: Loc[S]
   let message: (String | None)
   let inner: (Failure[S, D, V] | None)
   let from_error: Bool
 
   new create(
-    node': RuleNode[S, D, V],
+    node': RuleNode[S, D, V] box,
     start': Loc[S],
     message': (String | None) = None,
     inner': (Failure[S, D, V] | None) = None,

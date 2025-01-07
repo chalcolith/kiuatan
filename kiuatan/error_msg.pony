@@ -42,4 +42,4 @@ primitive ErrorMsg
 
   fun tag _lr_not_memoized(): String val => "LR not memoized"
 
-  fun tag internal_error(): String val => "internal error: stack underflow"
+  fun tag internal_error(): String val => "internal error"

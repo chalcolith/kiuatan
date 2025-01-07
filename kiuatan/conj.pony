@@ -8,17 +8,17 @@ class Conj[
   Matches a sequence of child rules.
   """
 
-  let _children: ReadSeq[RuleNode[S, D, V]]
+  let _children: Array[RuleNode[S, D, V]]
   let _action: (Action[S, D, V] | None)
 
   new create(
-    children': ReadSeq[RuleNode[S, D, V]],
+    children': Array[RuleNode[S, D, V]],
     action': (Action[S, D, V] | None) = None)
   =>
     _children = children'
     _action = action'
 
-  fun children(): ReadSeq[this->(RuleNode[S, D, V])] =>
+  fun children(): this->Seq[RuleNode[S, D, V]] =>
     _children
 
   fun action(): (Action[S, D, V] | None) =>
@@ -30,19 +30,19 @@ class Conj[
 class _ConjFrame[S: (Any #read & Equatable[S]), D: Any #share, V: Any #share]
   is _Frame[S, D, V]
 
-  let _rule: RuleNode[S, D, V]
+  let _rule: RuleNode[S, D, V] box
   let _depth: USize
   let _loc: Loc[S]
-  let _children: ReadSeq[RuleNode[S, D, V]]
+  let _children: ReadSeq[RuleNode[S, D, V] box]
   let _results: Array[Success[S, D, V]]
   var _cur_loc: Loc[S]
   var _child_index: USize
 
   new create(
-    rule: RuleNode[S, D, V],
+    rule: RuleNode[S, D, V] box,
     depth: USize,
     loc: Loc[S],
-    children: ReadSeq[RuleNode[S, D, V]])
+    children: ReadSeq[RuleNode[S, D, V] box])
   =>
     _rule = rule
     _depth = depth

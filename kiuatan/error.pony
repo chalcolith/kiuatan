@@ -26,13 +26,13 @@ class Error[
 class _ErrorFrame[S: (Any #read & Equatable[S]), D: Any #share, V: Any #share]
   is _Frame[S, D, V]
 
-  let _rule: RuleNode[S, D, V]
+  let _rule: RuleNode[S, D, V] box
   let _depth: USize
   let _loc: Loc[S]
   let _message: String
 
   new create(
-    rule: RuleNode[S, D, V],
+    rule: RuleNode[S, D, V] box,
     depth: USize,
     loc: Loc[S],
     message: String)

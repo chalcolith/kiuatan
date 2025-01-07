@@ -35,23 +35,23 @@ class Star[
 class _StarFrame[S: (Any #read & Equatable[S]), D: Any #share, V: Any #share]
   is _Frame[S, D, V]
 
-  let _rule: RuleNode[S, D, V]
+  let _rule: RuleNode[S, D, V] box
   let _depth: USize
   let _loc: Loc[S]
   let _min: USize
   let _max: USize
-  let _body: RuleNode[S, D, V]
+  let _body: RuleNode[S, D, V] box
   let _results: Array[Success[S, D, V]]
   var _num_matched: USize
   var _cur_loc: Loc[S]
 
   new create(
-    rule: RuleNode[S, D, V],
+    rule: RuleNode[S, D, V] box,
     depth: USize,
     loc: Loc[S],
     min: USize,
     max: USize,
-    body: RuleNode[S, D, V])
+    body: RuleNode[S, D, V] box)
   =>
     _rule = rule
     _depth = depth

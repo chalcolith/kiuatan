@@ -6,23 +6,21 @@ class iso _TestLookChildren is UnitTest
   fun name(): String => "Look_Children"
 
   fun apply(h: TestHelper) =>
-    let sub =
-      recover val
-        NamedRule[U8, None, USize](
-          "sub",
-          Literal[U8, None, USize]("a"),
-          {(_, _, _, _) => 0 },
-          true)
-      end
     let rule =
       recover val
-        NamedRule[U8, None, USize](
-          "rule",
-          Conj[U8, None, USize](
-            [ Look[U8, None, USize](sub)
-              sub ]),
-          {(_, _, c, _) => c.size() },
-          true)
+        let sub =
+          NamedRule[U8, None, USize](
+            "sub",
+            Literal[U8, None, USize]("a"),
+            {(_, _, _, _) => 0 },
+            true)
+          NamedRule[U8, None, USize](
+            "rule",
+            Conj[U8, None, USize](
+              [ Look[U8, None, USize](sub)
+                sub ]),
+            {(_, _, c, _) => c.size() },
+            true)
       end
 
     let parser = Parser[U8, None, USize]([ "a" ])

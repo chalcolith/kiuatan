@@ -26,13 +26,13 @@ class Single[
 class _SingleFrame[S: (Any #read & Equatable[S]), D: Any #share, V: Any #share]
   is _Frame[S, D, V]
 
-  let _rule: RuleNode[S, D, V]
+  let _rule: RuleNode[S, D, V] box
   let _depth: USize
   let _loc: Loc[S]
   let _expected: ReadSeq[S] val
 
   new create(
-    rule: RuleNode[S, D, V],
+    rule: RuleNode[S, D, V] box,
     depth: USize,
     loc: Loc[S],
     expected: ReadSeq[S] val)
