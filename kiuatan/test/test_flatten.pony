@@ -12,12 +12,12 @@ class iso _TestFlatten is UnitTest
           Conj[U8,None,USize]([
             NamedRule[U8,None,USize]("OneTwo",
               Conj[U8,None,USize]([
-                Literal[U8,None,USize]("one", {(_,r,_,b) => (USize(1),b)})
-                Literal[U8,None,USize]("two", {(_,r,_,b) => (USize(2),b)})
+                Literal[U8,None,USize]("one", {(_,_,_,_) => 1 })
+                Literal[U8,None,USize]("two", {(_,_,_,_) => 2 })
               ]))
-            Literal[U8,None,USize]("three", {(_,r,_,b) => (USize(3),b)})
+            Literal[U8,None,USize]("three", {(_,_,_,_) => 3 })
             NamedRule[U8,None,USize]("Four",
-              Literal[U8,None,USize]("four", {(_,r,_,b) => (USize(4),b)}))
+              Literal[U8,None,USize]("four", {(_,_,_,_) => 4 }))
           ])
           where memoize' = true)
       end
@@ -25,7 +25,7 @@ class iso _TestFlatten is UnitTest
     let segment = "onetwothreefour"
     let parser = Parser[U8,None,USize]([segment])
     parser.parse(rule, None,
-      {(result: Result[U8,None,USize], values: ReadSeq[USize] val) =>
+      {(result: Result[U8,None,USize], values: ReadSeq[USize]) =>
         match result
         | let success: Success[U8,None,USize] =>
           try

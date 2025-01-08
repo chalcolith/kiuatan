@@ -1,4 +1,7 @@
-interface val ParseCallback[S, D: Any #share, V: Any #share]
+interface val ParseCallback[
+  S: (Any #read & Equatable[S]),
+  D: Any #share,
+  V: Any #share]
   """
   Used to report the results of a parse attempt.
   """

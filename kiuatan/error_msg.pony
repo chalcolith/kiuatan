@@ -33,11 +33,13 @@ primitive ErrorMsg
     "star combinator did not match enough times"
 
   fun tag rule_expected(name: String, loc: String): String val =>
-    "expected '" + name + "' @" + loc
+    "expected " + name
 
   fun tag rule_empty(name: String): String val =>
-    "named rule combinator '" + name + "' is empty"
+    "named rule combinator '" + name + "' has no body"
 
   fun tag _lr_started(): String val => "LR started"
 
   fun tag _lr_not_memoized(): String val => "LR not memoized"
+
+  fun tag internal_error(): String val => "internal error"

@@ -1,52 +1,59 @@
-use per = "collections/persistent"
-
-class Bind[S, D: Any #share = None, V: Any #share = None]
+class Bind[
+  S: (Any #read & Equatable[S]),
+  D: Any #share = None,
+  V: Any #share = None]
   is RuleNodeWithBody[S, D, V]
 
   let variable: Variable
-  let _body: RuleNode[S, D, V] box
+  let _body: RuleNode[S, D, V]
 
   new create(
     variable': Variable,
-    body': RuleNode[S, D, V] box)
+    body': RuleNode[S, D, V])
   =>
     variable = variable'
     _body = body'
 
-  fun body(): (this->(RuleNode[S, D, V] box) | None) =>
-    _body
-
-  fun val parse(
-    parser: Parser[S, D, V],
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
-  =>
-    _Dbg() and _Dbg.out(depth, "BIND " + variable.name + " @" + loc.string())
-
-    let self = this
-    _body.parse(
-      parser,
-      depth + 1,
-      loc,
-      {(result: Result[S, D, V]) =>
-        // we need to insert a result node referencing us here so we can get the
-        // binding when we're assembling values
-        let result' =
-          match result
-          | let success: Success[S, D, V] =>
-            Success[S, D, V](
-              self,
-              success.start,
-              success.next,
-              [success])
-          else
-            result
-          end
-        _Dbg() and _Dbg.out(
-          depth, "= " + variable.name + " := " + result'.string())
-        outer(result')
-      })
-
   fun action(): (Action[S, D, V] | None) =>
     None
+
+  fun body(): (this->(RuleNode[S, D, V]) | None) =>
+    _body
+
+  fun call(depth: USize, loc: Loc[S]): _RuleFrame[S, D, V] =>
+    _BindFrame[S, D, V](this, depth, loc, variable.name, _body)
+
+class _BindFrame[S: (Any #read & Equatable[S]), D: Any #share, V: Any #share]
+  is _Frame[S, D, V]
+
+  let _rule: RuleNode[S, D, V] box
+  let _depth: USize
+  let _loc: Loc[S]
+  let _name: String
+  let _body: RuleNode[S, D, V] box
+
+  new create(
+    rule: RuleNode[S, D, V] box,
+    depth: USize,
+    loc: Loc[S],
+    name: String,
+    body: RuleNode[S, D, V] box)
+  =>
+    _rule = rule
+    _depth = depth
+    _loc = loc
+    _name = name
+    _body = body
+
+  fun ref run(child_result: (Result[S, D, V] | None)): _FrameResult[S, D, V] =>
+    match child_result
+    | let success: Success[S, D, V] =>
+      _Dbg() and _Dbg.out(_depth, "= " + _name + " := " + success.string())
+      Success[S, D, V](_rule, success.start, success.next, [ success ])
+    | let failure: Failure[S, D, V] =>
+      _Dbg() and _Dbg.out(_depth, "= " + _name + " := " + failure.string())
+      failure
+    else
+      _Dbg() and _Dbg.out(_depth, "BIND " + _name + " @" + _loc.string())
+      _body.call(_depth + 1, _loc)
+    end

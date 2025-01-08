@@ -1,88 +1,80 @@
-use per = "collections/persistent"
 
-class Conj[S, D: Any #share = None, V: Any #share = None]
+class Conj[
+  S: (Any #read & Equatable[S]),
+  D: Any #share = None,
+  V: Any #share = None]
   is RuleNodeWithChildren[S, D, V]
   """
   Matches a sequence of child rules.
   """
 
-  let _children: ReadSeq[RuleNode[S, D, V] box]
+  let _children: Array[RuleNode[S, D, V]]
   let _action: (Action[S, D, V] | None)
 
   new create(
-    children': ReadSeq[RuleNode[S, D, V] box],
+    children': Array[RuleNode[S, D, V]],
     action': (Action[S, D, V] | None) = None)
   =>
     _children = children'
     _action = action'
 
-  fun children(): ReadSeq[this->(RuleNode[S, D, V] box)] =>
+  fun children(): this->Seq[RuleNode[S, D, V]] =>
     _children
-
-  fun val parse(
-    parser: Parser[S, D, V],
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
-  =>
-    _Dbg() and _Dbg.out(depth, "CONJ @" + loc.string())
-
-    _parse_child(
-      parser,
-      depth,
-      loc,
-      0,
-      loc,
-      per.Lists[Success[S, D, V]].empty(),
-      outer)
-
-  fun val _parse_child(
-    parser: Parser[S, D, V],
-    depth: USize,
-    start: Loc[S],
-    child_index: USize,
-    loc: Loc[S],
-    results: per.List[Success[S, D, V]],
-    outer: _Continuation[S, D, V])
-  =>
-    if child_index == _children.size() then
-      let result = Success[S, D, V](
-        this,
-        start,
-        loc,
-        results.reverse())
-
-      _Dbg() and _Dbg.out(depth, "= " + result.string())
-      outer(result)
-    else
-      match try _children(child_index)? end
-      | let child: RuleNode[S, D, V] val =>
-        let self = this
-        child.parse(parser, depth + 1, loc,
-          {(result: Result[S, D, V]) =>
-            match result
-            | let success: Success[S, D, V] =>
-              self._parse_child(
-                parser,
-                depth,
-                start,
-                child_index + 1,
-                success.next,
-                results.prepend(success),
-                outer)
-            | let failure: Failure[S, D, V] =>
-              let failure' = Failure[S, D, V](self, start, None, failure)
-              _Dbg() and _Dbg.out(depth, "= " + failure'.string())
-              outer(failure')
-            end
-          })
-      else
-        let result = Failure[S, D, V](
-          this, start, ErrorMsg.conjunction_failed())
-        _Dbg() and _Dbg.out(depth, "= " + result.string())
-        outer(result)
-      end
-    end
 
   fun action(): (Action[S, D, V] | None) =>
     _action
+
+  fun call(depth: USize, loc: Loc[S]): _RuleFrame[S, D, V] =>
+    _ConjFrame[S, D, V](this, depth, loc, _children)
+
+class _ConjFrame[S: (Any #read & Equatable[S]), D: Any #share, V: Any #share]
+  is _Frame[S, D, V]
+
+  let _rule: RuleNode[S, D, V] box
+  let _depth: USize
+  let _loc: Loc[S]
+  let _children: ReadSeq[RuleNode[S, D, V] box]
+  let _results: Array[Success[S, D, V]]
+  var _cur_loc: Loc[S]
+  var _child_index: USize
+
+  new create(
+    rule: RuleNode[S, D, V] box,
+    depth: USize,
+    loc: Loc[S],
+    children: ReadSeq[RuleNode[S, D, V] box])
+  =>
+    _rule = rule
+    _depth = depth
+    _loc = loc
+    _children = children
+    _results = _results.create(_children.size())
+    _cur_loc = _loc
+    _child_index = 0
+
+  fun ref run(child_result: (Result[S, D, V] | None)): _FrameResult[S, D, V] =>
+    match child_result
+    | let success: Success[S, D, V] =>
+      _results.push(success)
+      _child_index = _child_index + 1
+      _cur_loc = success.next
+      if _child_index == _children.size() then
+        let result = Success[S, D, V](_rule, _loc, _cur_loc, _results.clone())
+        _Dbg() and _Dbg.out(_depth, "= " + result.string())
+        return result
+      end
+      // fall through
+    | let failure: Failure[S, D, V] =>
+      _Dbg() and _Dbg.out(_depth, "= child failed")
+      return Failure[S, D, V](_rule, _loc, None, failure)
+    end
+
+    try
+      if _child_index == 0 then
+        _Dbg() and _Dbg.out(_depth, "CONJ @" + _loc.string())
+      end
+      _children(_child_index)?.call(_depth + 1, _cur_loc)
+    else
+      _Dbg() and _Dbg.out(_depth, "= invalid child index")
+      Failure[S, D, V](_rule, _loc, ErrorMsg.conjunction_failed())
+    end

@@ -1,4 +1,7 @@
-interface val Action[S, D: Any #share, V: Any #share]
+interface val Action[
+  S: (Any #read & Equatable[S]),
+  D: Any #share,
+  V: Any #share]
   """
   Used to assemble a custom result value.
   """
@@ -7,4 +10,4 @@ interface val Action[S, D: Any #share, V: Any #share]
     result: Success[S, D, V],
     child_values: ReadSeq[V] val,
     bindings: Bindings[S, D, V])
-    : ((V | None), Bindings[S, D, V])
+    : (V | None)

@@ -1,5 +1,8 @@
 
-class Disj[S, D: Any #share = None, V: Any #share = None]
+class Disj[
+  S: (Any #read & Equatable[S]),
+  D: Any #share = None,
+  V: Any #share = None]
   is RuleNodeWithChildren[S, D, V]
   """
   Matches one out of a list of possible alternatives.  Tries each alternative in
@@ -7,95 +10,86 @@ class Disj[S, D: Any #share = None, V: Any #share = None]
   backtrack to another alternative.
   """
 
-  let _children: ReadSeq[RuleNode[S, D, V] box]
+  let _children: Array[RuleNode[S, D, V]]
   let _action: (Action[S, D, V] | None)
 
   new create(
-    children': ReadSeq[RuleNode[S, D, V] box],
+    children': Array[RuleNode[S, D, V]],
     action': (Action[S, D, V] | None) = None)
   =>
     _children = children'
     _action = action'
 
-  fun children(): ReadSeq[this->(RuleNode[S, D, V] box)] =>
+  fun children(): this->Seq[RuleNode[S, D, V]] =>
     _children
-
-  fun val parse(
-    parser: Parser[S, D, V],
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
-  =>
-    _Dbg() and _Dbg.out(depth, "DISJ @" + loc.string())
-
-    if _children.size() == 0 then
-      outer(Failure[S, D, V](this, loc, ErrorMsg.disjunction_empty()))
-      return
-    end
-
-    _parse_child(parser, depth, 0, loc, None, outer)
-
-    // let disj = _DisjInstance
-    // let self = this
-    // parser._parse_disjunction_start(
-    //   this,
-    //   disj,
-    //   _children.size(),
-    //   depth,
-    //   loc,
-    //   {()(children: ReadSeq[RuleNode[S, D, V] box] val = _children) =>
-    //     var index: USize = 0
-    //     for child in children.values() do
-    //       parser._parse_disjunction_child(
-    //         disj, index, self, child, depth, loc, outer)
-    //       index = index + 1
-    //     end
-    //   },
-    //   outer)
-
-  fun val _parse_child(
-    parser: Parser[S, D, V],
-    depth: USize,
-    child_index: USize,
-    loc: Loc[S],
-    last_failure: (Failure[S, D, V] | None),
-    outer: _Continuation[S, D, V])
-  =>
-    if child_index == _children.size() then
-      let result = Failure[S, D, V](
-        this, loc, ErrorMsg.disjunction_none(), last_failure)
-      _Dbg() and _Dbg.out(depth, "< " + result.string())
-      outer(result)
-    else
-      match try _children(child_index)? end
-      | let child: RuleNode[S, D, V] val =>
-        let self = this
-        child.parse(parser, depth + 1, loc,
-          {(result: Result[S, D, V]) =>
-            match result
-            | let success: Success[S, D, V] =>
-              let success' = Success[S, D, V](
-                self,
-                loc,
-                success.next,
-                [success])
-              _Dbg() and _Dbg.out(depth, "= " + success'.string())
-              outer(success')
-            | let failure: Failure[S, D, V] =>
-              self._parse_child(
-                parser, depth, child_index + 1, loc, failure, outer)
-            end
-          })
-      else
-        let result = Failure[S, D, V](
-          this, loc, ErrorMsg.disjunction_failed(), None)
-        _Dbg() and _Dbg.out(depth, "= " + result.string())
-        outer(result)
-      end
-    end
 
   fun action(): (Action[S, D, V] | None) =>
     _action
 
-class val _DisjInstance
-  new val create() => None
+  fun call(depth: USize, loc: Loc[S]): _RuleFrame[S, D, V] =>
+    _DisjFrame[S, D, V](this, depth, loc, _children)
+
+class _DisjFrame[S: (Any #read & Equatable[S]), D: Any #share, V: Any #share]
+  is _Frame[S, D, V]
+
+  let _rule: RuleNode[S, D, V] box
+  let _depth: USize
+  let _loc: Loc[S]
+  let _children: ReadSeq[RuleNode[S, D, V] box]
+  var _child_index: USize
+
+  new create(
+    rule: RuleNode[S, D, V] box,
+    depth: USize,
+    loc: Loc[S],
+    children: ReadSeq[RuleNode[S, D, V] box])
+  =>
+    _rule = rule
+    _depth = depth
+    _loc = loc
+    _children = children
+    _child_index = 0
+
+  fun ref run(child_result: (Result[S, D, V] | None)): _FrameResult[S, D, V] =>
+    match child_result
+    | let success: Success[S, D, V] =>
+      let result = Success[S, D, V](_rule, _loc, success.next, [ success ])
+      _Dbg() and _Dbg.out(_depth, "= " + result.string())
+      return result
+    | let failure: Failure[S, D, V] =>
+      _child_index = _child_index + 1
+      if _child_index == _children.size() then
+        var message = ErrorMsg.disjunction_none()
+
+        // a common pattern is to have an Error node last in a disjunction
+        // in this case bubble up the error message
+        var rightmost = failure
+        while true do
+          if rightmost.from_error then
+            message = rightmost.get_message()
+            break
+          end
+          match rightmost.inner
+          | let inner': Failure[S, D, V] =>
+            rightmost = inner'
+          else
+            break
+          end
+        end
+
+        let result = Failure[S, D, V](_rule, _loc, message)
+        _Dbg() and _Dbg.out(_depth, "= " + result.string())
+        return result
+      end
+      // fall through
+    end
+
+    try
+      if _child_index == 0 then
+        _Dbg() and _Dbg.out(_depth, "DISJ @" + _loc.string())
+      end
+      _children(_child_index)?.call(_depth + 1, _loc)
+    else
+      _Dbg() and _Dbg.out(_depth, "= invalid child index")
+      Failure[S, D, V](_rule, _loc, ErrorMsg.disjunction_failed())
+    end

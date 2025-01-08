@@ -1,17 +1,23 @@
-use per = "collections/persistent"
+trait RuleNode[
+  S: (Any #read & Equatable[S]),
+  D: Any #share = None,
+  V: Any #share = None]
 
-trait RuleNode[S, D: Any #share, V: Any #share]
-  fun val parse(
-    parser: Parser[S, D, V],
-    depth: USize,
-    loc: Loc[S],
-    cont: _Continuation[S, D, V])
   fun action(): (Action[S, D, V] | None)
+  fun call(depth: USize, loc: Loc[S]): _RuleFrame[S, D, V]
 
-trait RuleNodeWithChildren[S, D: Any #share, V: Any #share]
+trait RuleNodeWithChildren[
+  S: (Any #read & Equatable[S]),
+  D: Any #share,
+  V: Any #share]
   is RuleNode[S, D, V]
-  fun children(): ReadSeq[this->(RuleNode[S, D, V] box)]
 
-trait RuleNodeWithBody[S, D: Any #share, V: Any #share]
+  fun children(): this->Seq[RuleNode[S, D, V]]
+
+trait RuleNodeWithBody[
+  S: (Any #read & Equatable[S]),
+  D: Any #share,
+  V: Any #share]
   is RuleNode[S, D, V]
-  fun body(): (this->(RuleNode[S, D, V] box) | None)
+
+  fun body(): (this->(RuleNode[S, D, V]) | None)

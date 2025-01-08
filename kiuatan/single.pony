@@ -1,5 +1,3 @@
-use per = "collections/persistent"
-
 class Single[
   S: (Any #read & Equatable[S]),
   D: Any #share = None,
@@ -19,37 +17,51 @@ class Single[
     _expected = expected'
     _action = action'
 
-  fun val parse(
-    parser: Parser[S, D, V],
-    depth: USize,
-    loc: Loc[S],
-    outer: _Continuation[S, D, V])
-  =>
-    _Dbg() and _Dbg.out(depth, "SING @" + loc.string())
-
-    let result = _parse_single(loc)
-    _Dbg() and _Dbg.out(depth, "= " + result.string())
-    outer(result)
-
-  fun val _parse_single(loc: Loc[S]): Result[S, D, V] =>
-    try
-      if loc.has_value() then
-        if _expected.size() > 0 then
-          for exp in _expected.values() do
-            if exp == loc()? then
-              return Success[S, D, V](this, loc, loc.next())
-            end
-          end
-          Failure[S, D, V](this, loc)
-        else
-          Success[S, D, V](this, loc, loc.next())
-        end
-      else
-        Failure[S, D, V](this, loc)
-      end
-    else
-      Failure[S, D, V](this, loc, ErrorMsg.single_failed())
-    end
-
   fun action(): (Action[S, D, V] | None) =>
     _action
+
+  fun call(depth: USize, loc: Loc[S]): _RuleFrame[S, D, V] =>
+    _SingleFrame[S, D, V](this, depth, loc, _expected)
+
+class _SingleFrame[S: (Any #read & Equatable[S]), D: Any #share, V: Any #share]
+  is _Frame[S, D, V]
+
+  let _rule: RuleNode[S, D, V] box
+  let _depth: USize
+  let _loc: Loc[S]
+  let _expected: ReadSeq[S] val
+
+  new create(
+    rule: RuleNode[S, D, V] box,
+    depth: USize,
+    loc: Loc[S],
+    expected: ReadSeq[S] val)
+  =>
+    _rule = rule
+    _depth = depth
+    _loc = loc
+    _expected = expected
+
+  fun ref run(child_result: (Result[S, D, V] | None)): _FrameResult[S, D, V] =>
+    let result =
+      try
+        if _loc.has_value() then
+          if _expected.size() > 0 then
+            for exp in _expected.values() do
+              if exp == _loc()? then
+                return Success[S, D, V](_rule, _loc, _loc.next())
+              end
+            end
+            Failure[S, D, V](_rule, _loc)
+          else
+            Success[S, D, V](_rule, _loc, _loc.next())
+          end
+        else
+          Failure[S, D, V](_rule, _loc)
+        end
+      else
+        Failure[S, D, V](_rule, _loc, ErrorMsg.single_failed())
+      end
+    _Dbg() and _Dbg.out(
+      _depth, "SING @" + _loc.string() + " = " + result.string())
+    result

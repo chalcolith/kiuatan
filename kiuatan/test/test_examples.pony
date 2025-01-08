@@ -25,7 +25,7 @@ class iso _TestExampleMain is UnitTest
     let segment = "one two three"
     let parser = Parser[U8]([segment])
     parser.parse(rule, None,
-      {(result: Result[U8], values: ReadSeq[None] val) =>
+      {(result: Result[U8], values: ReadSeq[None]) =>
         match result
         | let success: Success[U8] =>
           h.complete(true)

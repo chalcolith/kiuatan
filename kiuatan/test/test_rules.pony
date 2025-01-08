@@ -1,5 +1,3 @@
-use "collections/persistent"
-use "itertools"
 use "pony_test"
 use "promises"
 
@@ -10,7 +8,9 @@ class iso _TestRuleAny is UnitTest
 
   fun apply(h: TestHelper) =>
     let rule =
-      recover val NamedRule[U8]("Any", Single[U8] where memoize' = true) end
+      recover val
+        NamedRule[U8]("Any", Single[U8] where memoize' = true)
+      end
 
     Assert[U8].test_promises(h,
       [ Assert[U8].test_matches(h, rule, true, [['a']], 0, 1)
@@ -23,8 +23,8 @@ class iso _TestRuleAnyClass is UnitTest
 
   fun apply(h: TestHelper) =>
     let rule =
-      recover
-        val NamedRule[U8]("Any", Single[U8](['a';'b']) where memoize' = true)
+      recover val
+        NamedRule[U8]("Any", Single[U8](['a';'b']) where memoize' = true)
       end
 
     Assert[U8].test_promises(h,
@@ -138,7 +138,8 @@ class iso _TestRuleErr is UnitTest
       end
 
     Assert[U8].test_promises(h,
-      [ Assert[U8].test_matches(
+      [
+        Assert[U8].test_matches(
           h, rule, false, [['a';'b';'c']], 0, 3, None, None, msg)
         Assert[U8].test_matches(
           h, rule, false, [['x';'y';'z']], 0, 3, None, None, "")
@@ -206,7 +207,8 @@ class iso _TestRuleStarMin is UnitTest
       end
 
     Assert[U8].test_promises(h,
-      [ Assert[U8].test_matches(h, rule, true, [['a';'b';'a';'b']], 0, 4)
+      [
+        Assert[U8].test_matches(h, rule, true, [['a';'b';'a';'b']], 0, 4)
         Assert[U8].test_matches(h, rule, false, [['a';'b';'x';'y']], 0, 0)
         Assert[U8].test_matches(
           h, rule, true, [['a';'b';'a';'b';'a';'b';'x';'y']], 0, 6)
@@ -241,14 +243,9 @@ class iso _TestRuleStarChildren is UnitTest
         NamedRule[U8, None, USize](
           "Dots",
           Star[U8, None, USize](
-            Single[U8, None, USize](".",
-              {(_, _, _, b) =>
-                (USize(1), b)
-              }),
+            Single[U8, None, USize](".", {(_, _, _, b) => 1 }),
             1),
-          {(_, _, c, b) =>
-            (c.size(), b)
-          }
+          {(_, _, c, b) => c.size() }
           where memoize' = true)
       end
 
@@ -268,15 +265,15 @@ class iso _TestRuleForwardDeclare is UnitTest
   fun name(): String => "Rule_ForwardDeclare"
 
   fun apply(h: TestHelper) =>
-    let rule: NamedRule[U8] val =
-      recover
-        let r: NamedRule[U8] ref = NamedRule[U8](name() where memoize' = true)
+    let rule =
+      recover val
+        let rule' = NamedRule[U8](name() where memoize' = true)
         let ab = NamedRule[U8]("AB", Literal[U8]("ab") where memoize' = true)
         let cd = NamedRule[U8]("CD", Literal[U8]("cd") where memoize' = true)
-        let disj = Disj[U8]([r; cd])
+        let disj = Disj[U8]([rule'; cd])
         let body = Conj[U8]([ab; disj])
-        r.set_body(body)
-        r
+        rule'.set_body(body)
+        rule'
       end
 
     Assert[U8].test_promises(h,
@@ -291,8 +288,8 @@ class iso _TestRuleLRImmediate is UnitTest
     // Add <- Add Op Num | Num
     // Op <- [+-]
     // Num <- [0-9]+
-    let rule: NamedRule[U8] val =
-      recover
+    let rule =
+      recover val
         let add = NamedRule[U8]("Add" where memoize' = true)
         let num = NamedRule[U8](
           "Num", Star[U8](Single[U8]("0123456789"), 1) where memoize' = true)
@@ -323,8 +320,8 @@ class iso _TestRuleLRLeftAssoc is UnitTest
     // Add <- Add Op Num | Num
     // Op <- [+-]
     // Num <- [0-9]+
-    let rule: NamedRule[U8] val =
-      recover
+    let rule =
+      recover val
         let add = NamedRule[U8](name() where memoize' = true)
         let num = NamedRule[U8](
           "Num", Star[U8](Single[U8]("0123456789"), 1) where memoize' = true)
@@ -348,8 +345,8 @@ class iso _TestRuleLRIndirect is UnitTest
     // D <- E 'n' | 'l'
     // E <- D 'm'
 
-    let rule: NamedRule[U8] val =
-      recover
+    let rule =
+      recover val
         let d = NamedRule[U8]("D" where memoize' = true)
         let e = NamedRule[U8](
           "E", Conj[U8]([ d; Literal[U8]("m")]) where memoize' = true)
@@ -383,33 +380,28 @@ class iso _TestRuleVariableBind is UnitTest
     let rule =
       recover val
         NamedRule[U8, None, USize]("Rule", Conj[U8, None, USize](
-          [ Bind[U8, None, USize](x, Literal[U8, None, USize]("x",
-              {(_,_,_,b) =>
-                (USize(1),b)
-              }))
-            Bind[U8, None, USize](y, Literal[U8, None, USize]("y",
-              {(_,_,_,b) =>
-                (USize(2),b)
-              }))
+          [ Bind[U8, None, USize](x,
+              Literal[U8, None, USize]("x", {(_,_,_,_) => 1 }))
+            Bind[U8, None, USize](y,
+              Literal[U8, None, USize]("y", {(_,_,_,_) => 2 }))
           ],
           {(_, result, child_values, bindings) =>
             var vx: USize = 0
             var vy: USize = 0
 
             try
-              vx = bindings.values(x, result)?(0)?
+              vx = bindings(x)?.values(0)?
             else
-              return (None, bindings)
+              return None
             end
 
             try
-              vy = bindings.values(y, result)?(0)?
+              vy = bindings(y)?.values(0)?
             else
-              return (None, bindings)
+              return None
             end
 
-            let vv: (USize | None) = vx + vy
-            (vv, bindings)
+            vx + vy
           })
           where memoize' = true)
       end
@@ -452,7 +444,7 @@ class iso _TestRuleData is UnitTest
       recover val
         NamedRule[U8, String, String]("WithData",
           Literal[U8, String, String]("x",
-            {(data, s, _, b) =>
+            {(data, s, _, _) =>
               let str =
                 recover
                   let str': String ref = String
@@ -461,7 +453,7 @@ class iso _TestRuleData is UnitTest
                   end
                   str'.>append(data)
                 end
-              (str, b)
+              str
             })
             where memoize' = true)
       end
@@ -475,24 +467,20 @@ class iso _TestRuleBindStar is UnitTest
   fun name(): String => "Rule_Bind_Star"
 
   fun apply(h: TestHelper) =>
+    let v = Variable("v")
     let rule =
       recover val
-        let v = Variable("v")
         NamedRule[U8,None,USize](
           "BindStar",
           Bind[U8,None,USize](v,
             Star[U8,None,USize](
-              Single[U8,None,USize]("a",
-                {(_,r,_,b) => (USize(123), b) }))),
+              Single[U8,None,USize]("a", {(_,r,_,b) => 123 }))),
           {(_,r,_,b) =>
-            let n: USize =
-              try
-                let values = b.values(v, r)?
-                values.size()
-              else
-                0
-              end
-            (n, b)
+            try
+              b(v)?.values.size()
+            else
+              0
+            end
           }
           where memoize' = true)
       end
@@ -505,20 +493,19 @@ class _TestRuleBindRecursive is UnitTest
   fun name(): String => "Rule_Bind_Recursive"
 
   fun apply(h: TestHelper) =>
-    let int_rule =
+    let rule =
       recover val
-        NamedRule[U8,None,String](
-          "Int",
-          Star[U8,None,String](Single[U8,None,String]("0123456789")),
-          {(_,r,_,b) =>
-            let str = recover val String .> concat(r.start.values(r.next)) end
-            (str, b)
-          }
-          where memoize' = true)
-      end
+        // int_rule <- [0-9]+
+        let int_rule =
+          NamedRule[U8,None,String](
+            "Int",
+            Star[U8,None,String](Single[U8,None,String]("0123456789"), 1),
+            {(_,r,_,b) =>
+              recover val String .> concat(r.start.values(r.next)) end
+            }
+            where memoize' = true)
 
-    let comma_rule =
-      recover val
+        // comma_rule <- lhs:int_rule (',' rhs:comma_rule)?
         let lhs = Variable("lhs")
         let rhs = Variable("rhs")
         let comma_rule' = NamedRule[U8,None,String](
@@ -529,15 +516,18 @@ class _TestRuleBindRecursive is UnitTest
               Star[U8,None,String](
                 Conj[U8,None,String](
                   [ Literal[U8,None,String](",")
-                    Bind[U8,None,String](rhs, comma_rule') ])) ]),
-          {(_,r,_,b) =>
-            let lhs' = try b.values(lhs, r)?(0)? else "?" end
-            let rhs' = try b.values(rhs, r)?(0)? else "?" end
-            (recover val lhs' + "," + rhs' end, b)
+                    Bind[U8,None,String](rhs, comma_rule')
+                  ])
+                where min' = 0, max' = 1)
+            ]),
+          {(_,_,_,b) =>
+            let lhs' = try b(lhs)?.values(0)? else "L?" end
+            let rhs' = try b(rhs)?.values(0)? else "R?" end
+            "(" + lhs' + "," + rhs' + ")"
           })
         comma_rule'
       end
 
     Assert[U8,None,String].test_promises(h,
       [ Assert[U8,None,String].test_matches(
-          h, comma_rule, true, [ "20,10" ], 0, 5, None, "20,10,?") ])
+          h, rule, true, [ "50,40,30" ], 0, 8, None, "(50,(40,(30,R?)))") ])
