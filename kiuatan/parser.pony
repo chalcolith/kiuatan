@@ -369,11 +369,22 @@ actor Parser[
           _call_body(frame)
         end
       | let failure: Failure[S, D, V] =>
-        let result = Failure[S, D, V](
-          frame.rule,
-          frame.loc,
-          ErrorMsg.rule_expected(frame.rule.name, frame.loc.string()),
-          failure)
+        let result =
+          match try exp(exp.size() - 1)? end
+          | let prev_success: Success[S, D, V] =>
+            _Dbg() and _Dbg.out(
+              frame.depth, "RULE " + frame.rule.name + " @" +
+              frame.loc.string() + " = " + prev_success.string() +
+              " from previous expansion")
+            prev_success
+          else
+            Failure[S, D, V](
+              frame.rule,
+              frame.loc,
+              ErrorMsg.rule_expected(frame.rule.name, frame.loc.string()),
+              failure)
+          end
+
         if inv.size() == 1 then
           _Dbg() and _Dbg.out(
             frame.depth, "RULE " + frame.rule.name + " @" + frame.loc.string() +
