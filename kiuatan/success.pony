@@ -69,14 +69,16 @@ class box Success[
 
           match crv
           | let crv': Array[V] val if crv'.size() > 0 =>
-            match result_values'
-            | let rv: Array[V] trn =>
-              rv.append(crv')
-            else
-              let rv: Array[V] trn = Array[V]
-              rv.append(crv')
-              result_values' = consume rv
-            end
+            result_values' =
+              match consume result_values'
+              | let rv: Array[V] trn =>
+                rv.append(crv')
+                consume rv
+              else
+                let rv: Array[V] trn = Array[V]
+                rv.append(crv')
+                consume rv
+              end
           end
 
           match cb
